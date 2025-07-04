@@ -7,9 +7,9 @@
 		"build": "next build --turbo",
 		"check": "biome check",
 		"dev": "next dev --turbo",
-		"lint": "next lint",
-		"test": "pnpm lint && pnpm typecheck && pnpm check",
-		"lint:fix": "next lint --fix && biome check --write .",
+		"test": "pnpm typecheck && pnpm check && jest --passWithNoTests --runInBand --detectOpenHandles --forceExit",
+		"test:coverage": "jest --passWithNoTests --runInBand --detectOpenHandles --forceExit --coverage",
+		"lint:fix": "biome check --write .",
 		"preview": "next build && next start",
 		"start": "next start",
 		"typecheck": "tsc --noEmit"
