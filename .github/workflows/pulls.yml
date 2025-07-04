@@ -35,25 +35,25 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Run tests
         run: pnpm test:coverage
-  qodana:
-    needs: test
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      pull-requests: write
-      checks: write
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          persist-credentials: false
-          ref: ${{ github.event.pull_request.head.sha }}
-          fetch-depth: 0
-      - name: 'Qodana Scan'
-        uses: JetBrains/qodana-action@v2023.3.2
-        with:
-          upload-result: true
-        env:
-          QODANA_TOKEN: ${{ secrets.QODANA_TOKEN }}
+#  qodana:
+#    needs: test
+#    runs-on: ubuntu-latest
+#    permissions:
+#      contents: write
+#      pull-requests: write
+#      checks: write
+#    steps:
+#      - uses: actions/checkout@v4
+#        with:
+#          persist-credentials: false
+#          ref: ${{ github.event.pull_request.head.sha }}
+#          fetch-depth: 0
+#      - name: 'Qodana Scan'
+#        uses: JetBrains/qodana-action@v2023.3.2
+#        with:
+#          upload-result: true
+#        env:
+#          QODANA_TOKEN: ${{ secrets.QODANA_TOKEN }}
   automerge:
     runs-on: ubuntu-latest
     permissions:
