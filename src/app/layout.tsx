@@ -12,6 +12,9 @@ import type { Metadata } from "next";
 import { Inter as FontSans } from "next/font/google";
 import type { ReactNode } from "react";
 import { cn } from "~/lib/utils";
+import ClientProvider from "~/components/ClientProvider";
+import {TooltipProvider} from "~/components/ui/tooltip";
+import {Toaster} from "sonner";
 
 export const metadata: Metadata = {
 	title: "Retro-Board",
@@ -40,13 +43,19 @@ export default function RootLayout({
 						fontSans.variable,
 					)}
 				>
-					<SignedOut>
-						<SignInButton />
-					</SignedOut>
-					<SignedIn>
-						<UserButton />
-					</SignedIn>
-					{children}
+					<ClientProvider>
+						<TooltipProvider>
+							<div className={"relative flex min-h-screen flex-col bg-muted/49"}>
+								<div className={"flex size-full flex-col sm:py-2"}>
+									<div>HEADER</div>
+									<main className={"size-full flex-1 p-2 pb-0"} suppressHydrationWarning>
+										{children}
+									</main>
+								</div>
+							</div>
+							<Toaster />
+						</TooltipProvider>
+					</ClientProvider>
 				</body>
 			</html>
 		</ClerkProvider>
