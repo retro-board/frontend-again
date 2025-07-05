@@ -40,9 +40,14 @@
 		"sonner": "^2.0.6",
 		"tailwind-merge": "^3.3.1",
 <<<<<<< ours
+<<<<<<< ours
 		"zod": "^4.0.14",
 		"zustand": "^5.0.7"
 ||||||| ancestor
+||||||| ancestor
+=======
+		"uploadthing": "^7.7.3",
+>>>>>>> theirs
 		"zod": "^3.25.74",
 		"zustand": "^5.0.6"
 =======
