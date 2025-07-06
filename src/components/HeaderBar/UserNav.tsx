@@ -6,7 +6,7 @@ export function UserNav() {
   return (
     <>
       <SignedOut>
-        <SignInButton />
+        <SignInButton className={"cursor-pointer"} />
       </SignedOut>
       <SignedIn>
         <UserButton />
