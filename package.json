@@ -16,7 +16,7 @@
 	},
 	"dependencies": {
 		"@clerk/nextjs": "^6.25.0",
-		"@flags-gg/react-library": "^1.14.1",
+		"@flags-gg/react-library": "^1.14.2",
 		"@hookform/resolvers": "^5.1.1",
 		"@radix-ui/react-dialog": "^1.1.14",
 		"@radix-ui/react-separator": "^1.1.7",
