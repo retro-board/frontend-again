@@ -1,5 +1,5 @@
-@import 'tailwindcss';
-@import 'tw-animate-css';
+@import "tailwindcss";
+@import "tw-animate-css";
 @import "uploadthing/tw/v4";
 @source "../node_modules/@uploadthing/react/dist";
 
@@ -131,7 +131,6 @@
 		height: 0;
 	}
 }
-
 
 @layer base {
 	* {
