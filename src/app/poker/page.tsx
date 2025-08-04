@@ -28,7 +28,6 @@ import { Label } from "~/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "~/components/ui/radio-group";
 import { Textarea } from "~/components/ui/textarea";
 import { useUserSync } from "~/hooks/useUserSync";
-import { supabase } from "~/lib/supabase/client";
 import type { EstimationType, PokerSession } from "~/types/database";
 
 export default function PokerPage() {
@@ -43,23 +42,24 @@ export default function PokerPage() {
 		useState<EstimationType>("fibonacci");
 
 	const { data: sessions, isLoading } = useQuery({
-		queryKey: ["poker-sessions", user?.id, syncedUser?.id],
+		queryKey: ["poker-sessions", user?.id],
 		queryFn: async () => {
-			if (!user || !syncedUser) return [];
+			if (!user) return [];
 
-			// Fetch poker sessions
-			const { data, error } = await supabase
-				.from("poker_sessions")
-				.select(`
-          *,
-          participants:poker_participants(count)
-        `)
-				.order("created_at", { ascending: false });
+			// Fetch poker sessions via API to bypass RLS
+			const response = await fetch("/api/poker-sessions");
 
-			if (error) throw error;
-			return data as (PokerSession & { participants: { count: number }[] })[];
+			if (!response.ok) {
+				const error = await response.json();
+				throw new Error(error.error || "Failed to fetch sessions");
+			}
+
+			const data = await response.json();
+			return data.sessions as (PokerSession & {
+				participants: { count: number }[];
+			})[];
 		},
-		enabled: !!user && !!syncedUser,
+		enabled: !!user,
 	});
 
 	const createSessionMutation = useMutation({
@@ -141,7 +141,7 @@ export default function PokerPage() {
 		}
 	};
 
-	if (!isLoaded || isLoading) {
+	if (!isLoaded || isLoading || (user && !syncedUser)) {
 		return (
 			<div className="container mx-auto py-8">
 				<div className="flex h-64 items-center justify-center">
