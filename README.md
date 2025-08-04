@@ -1,29 +1,115 @@
-# Create T3 App
+# Retro Board & Sprint Poker
 
-This is a [T3 Stack](https://create.t3.gg/) project bootstrapped with `create-t3-app`.
+A modern web application for facilitating agile retrospectives and sprint planning poker sessions.
 
-## What's next? How do I make an app with this?
+## Features
 
-We try to keep this project as simple as possible, so you can start with just the scaffolding we set up for you, and add additional things later when they become necessary.
+### Retro Boards
+- Create boards with dynamic columns for any retrospective format
+- Add, edit, and organize cards in real-time
+- Vote on cards to prioritize discussion topics
+- Drag and drop cards between columns
+- Real-time collaboration with team members
 
-If you are not familiar with the different technologies used in this project, please refer to the respective docs. If you still are in the wind, please join our [Discord](https://t3.gg/discord) and ask for help.
+### Sprint Poker
+- Choose from three estimation scales:
+  - Fibonacci (1, 2, 3, 5, 8, 13, 21...)
+  - T-shirt sizes (XS, S, M, L, XL, XXL)
+  - 1-10 scale
+- Private voting with simultaneous reveal
+- Facilitator controls for managing sessions
+- Story management with descriptions
+- Real-time participant status
 
-- [Next.js](https://nextjs.org)
-- [NextAuth.js](https://next-auth.js.org)
-- [Prisma](https://prisma.io)
-- [Drizzle](https://orm.drizzle.team)
-- [Tailwind CSS](https://tailwindcss.com)
-- [tRPC](https://trpc.io)
+## Tech Stack
 
-## Learn More
+- **Framework**: Next.js 15 with App Router
+- **Language**: TypeScript
+- **Database**: Supabase (PostgreSQL)
+- **Authentication**: Clerk
+- **Styling**: Tailwind CSS with shadcn/ui
+- **State Management**: Zustand & TanStack Query
+- **Real-time**: Supabase Realtime
+- **Drag & Drop**: @dnd-kit
 
-To learn more about the [T3 Stack](https://create.t3.gg/), take a look at the following resources:
+## Setup Instructions
 
-- [Documentation](https://create.t3.gg/)
-- [Learn the T3 Stack](https://create.t3.gg/en/faq#what-learning-resources-are-currently-available) — Check out these awesome tutorials
+### Prerequisites
 
-You can check out the [create-t3-app GitHub repository](https://github.com/t3-oss/create-t3-app) — your feedback and contributions are welcome!
+- Node.js 18+ and pnpm
+- Supabase account
+- Clerk account
 
-## How do I deploy this?
+### Environment Variables
 
-Follow our deployment guides for [Vercel](https://create.t3.gg/en/deployment/vercel), [Netlify](https://create.t3.gg/en/deployment/netlify) and [Docker](https://create.t3.gg/en/deployment/docker) for more information.
+Copy `.env.example` to `.env.local` and fill in your values:
+
+```bash
+# Clerk Authentication
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=your_clerk_publishable_key
+CLERK_SECRET_KEY=your_clerk_secret_key
+
+# Supabase
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
+```
+
+### Database Setup
+
+1. Create a new Supabase project
+2. Run the migration script in `supabase/migrations/001_initial_schema.sql` in your Supabase SQL editor
+3. Enable Row Level Security (RLS) - the migration includes basic policies
+
+### Installation
+
+```bash
+# Install dependencies
+pnpm install
+
+# Run development server
+pnpm dev
+
+# Build for production
+pnpm build
+
+# Run production build
+pnpm start
+```
+
+## Usage
+
+### Creating a Retro Board
+
+1. Navigate to `/boards`
+2. Click "New Board"
+3. Enter a name and optional description
+4. Add columns (e.g., "What went well?", "What could be improved?", "Action items")
+5. Share the board URL with your team
+
+### Running a Sprint Poker Session
+
+1. Navigate to `/poker`
+2. Click "New Session"
+3. Choose your estimation scale
+4. Add stories to estimate
+5. Share the session URL with your team
+6. Participants vote privately
+7. Facilitator reveals votes when ready
+
+## Development
+
+```bash
+# Run tests
+pnpm test
+
+# Run linting
+pnpm lint
+
+# Type checking
+pnpm typecheck
+```
+
+## License
+
+MIT
