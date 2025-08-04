@@ -67,6 +67,7 @@ export function BoardTimer({ board, isOwner }: BoardTimerProps) {
 				headers: {
 					"Content-Type": "application/json",
 				},
+				body: JSON.stringify({ action: "advance" }),
 			});
 
 			if (!response.ok) {
@@ -160,41 +161,53 @@ export function BoardTimer({ board, isOwner }: BoardTimerProps) {
 
 				{isOwner && board.phase !== ("completed" as BoardPhase) && (
 					<div className="flex gap-2">
-						{board.phase_ends_at && (
+						{board.phase === "setup" ? (
 							<Button
 								size="sm"
-								variant="outline"
-								className="flex-1"
-								onClick={() => pauseResumeMutation.mutate()}
-								disabled={pauseResumeMutation.isPending}
-							>
-								{timeRemaining !== null ? (
-									<>
-										<Pause className="mr-1 h-4 w-4" />
-										Pause
-									</>
-								) : (
-									<>
-										<Play className="mr-1 h-4 w-4" />
-										Resume
-									</>
-								)}
-							</Button>
-						)}
-						{board.phase !== "setup" && (
-							<Button
-								size="sm"
-								variant="outline"
-								className="flex-1"
+								className="w-full"
 								onClick={() => advancePhaseMutation.mutate()}
-								disabled={
-									advancePhaseMutation.isPending ||
-									board.phase === ("completed" as BoardPhase)
-								}
+								disabled={advancePhaseMutation.isPending}
 							>
-								<SkipForward className="mr-1 h-4 w-4" />
-								Next Phase
+								<Play className="mr-1 h-4 w-4" />
+								Start Board
 							</Button>
+						) : (
+							<>
+								{(board.phase === "creation" || board.phase === "voting") && (
+									<Button
+										size="sm"
+										variant="outline"
+										className="flex-1"
+										onClick={() => pauseResumeMutation.mutate()}
+										disabled={pauseResumeMutation.isPending}
+									>
+										{board.phase_ends_at ? (
+											<>
+												<Pause className="mr-1 h-4 w-4" />
+												Pause
+											</>
+										) : (
+											<>
+												<Play className="mr-1 h-4 w-4" />
+												Resume
+											</>
+										)}
+									</Button>
+								)}
+								<Button
+									size="sm"
+									variant="outline"
+									className="flex-1"
+									onClick={() => advancePhaseMutation.mutate()}
+									disabled={
+										advancePhaseMutation.isPending ||
+										board.phase === ("completed" as BoardPhase)
+									}
+								>
+									<SkipForward className="mr-1 h-4 w-4" />
+									Next Phase
+								</Button>
+							</>
 						)}
 					</div>
 				)}
