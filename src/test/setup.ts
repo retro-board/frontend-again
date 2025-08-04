@@ -47,7 +47,7 @@ class MockHeaders {
 		this.headers = new Map();
 		if (init) {
 			if (init instanceof Headers) {
-				// biome-ignore lint/suspicious/noExplicitAny: headers can be anything
+				// eslint-disable-next-line @typescript-eslint/no-explicit-any
 				(init as any).forEach((value: string, key: string) => {
 					this.headers.set(key.toLowerCase(), value);
 				});
@@ -75,13 +75,13 @@ class MockHeaders {
 		return this.headers.has(name.toLowerCase());
 	}
 
-	// biome-ignore lint/suspicious/noExplicitAny: can be anything
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	forEach(callbackfn: (value: string, key: string, parent: any) => void) {
 		this.headers.forEach((value, key) => callbackfn(value, key, this));
 	}
 }
 
-// biome-ignore lint/suspicious/noExplicitAny: Mock needs any type
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 global.Headers = MockHeaders as any;
 
 global.Request = jest.fn().mockImplementation((url, options = {}) => ({
@@ -99,7 +99,7 @@ global.Request = jest.fn().mockImplementation((url, options = {}) => ({
 
 // Mock Response.json static method
 const MockResponse = {
-	// biome-ignore lint/suspicious/noExplicitAny: Mock needs any type
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	json: (data: any, init?: ResponseInit) => {
 		const body = JSON.stringify(data);
 		return new Response(body, {
@@ -113,7 +113,7 @@ const MockResponse = {
 };
 
 // Mock global Response constructor
-// biome-ignore lint/suspicious/noExplicitAny: can be anything
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 (global as any).Response = jest
 	.fn()
 	.mockImplementation((body?: BodyInit | null, init?: ResponseInit) => {
@@ -165,7 +165,7 @@ jest.mock("next/server", () => {
 	return {
 		...actual,
 		NextResponse: {
-			// biome-ignore lint/suspicious/noExplicitAny: Mock needs any type
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			json: (data: any, init?: ResponseInit) => {
 				const body = JSON.stringify(data);
 				return new Response(body, {

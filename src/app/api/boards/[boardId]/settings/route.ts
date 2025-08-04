@@ -52,8 +52,14 @@ export async function PATCH(
 		}
 
 		// Update board
-		// biome-ignore lint/suspicious/noExplicitAny: hmm
-		const updateData: any = {
+		const updateData: {
+			updated_at: string;
+			name?: string;
+			description?: string;
+			creation_time_minutes?: number;
+			voting_time_minutes?: number;
+			votes_per_user?: number;
+		} = {
 			updated_at: new Date().toISOString(),
 		};
 

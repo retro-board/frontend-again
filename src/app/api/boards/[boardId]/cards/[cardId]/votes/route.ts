@@ -137,8 +137,11 @@ export async function POST(
 		}
 
 		// Add vote
-		// biome-ignore lint/suspicious/noExplicitAny: hmm
-		const voteData: any = {
+		const voteData: {
+			card_id: string;
+			user_id?: string;
+			anonymous_user_id?: string;
+		} = {
 			card_id: params.cardId,
 		};
 

@@ -74,7 +74,6 @@ export async function GET() {
 
 		if (participantSessions) {
 			for (const ps of participantSessions) {
-				// @ts-ignore - Supabase types don't properly handle nested selects
 				if (
 					ps.session &&
 					typeof ps.session === "object" &&

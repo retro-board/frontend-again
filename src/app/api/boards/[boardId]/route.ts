@@ -104,8 +104,10 @@ export async function GET(
 		// Sort cards within each column
 		const sortedColumns = (columns || []).map((column) => ({
 			...column,
-			// biome-ignore lint/suspicious/noExplicitAny: hmm
-			cards: column.cards.sort((a: any, b: any) => a.position - b.position),
+			cards: column.cards.sort(
+				(a: { position: number }, b: { position: number }) =>
+					a.position - b.position,
+			),
 		}));
 
 		return NextResponse.json({ board, columns: sortedColumns });

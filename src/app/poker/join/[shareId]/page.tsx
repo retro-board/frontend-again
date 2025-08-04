@@ -156,7 +156,7 @@ export default function JoinPokerSessionPage() {
 					<CardHeader>
 						<CardTitle>Join Poker Session</CardTitle>
 						<CardDescription>
-							You've been invited to "{sessionData.session.name}"
+							You&apos;ve been invited to &quot;{sessionData.session.name}&quot;
 						</CardDescription>
 					</CardHeader>
 					<CardContent className="space-y-4">

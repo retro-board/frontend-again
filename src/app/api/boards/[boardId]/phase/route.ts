@@ -54,8 +54,11 @@ export async function POST(
 			);
 		}
 
-		// biome-ignore lint/suspicious/noExplicitAny: hmm
-		let updateData: any = {};
+		let updateData: {
+			phase?: BoardPhase;
+			phase_started_at?: string;
+			phase_ends_at?: string | null;
+		} = {};
 
 		switch (action) {
 			case "start": {

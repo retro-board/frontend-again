@@ -25,8 +25,30 @@ export function BoardTimer({ board, isOwner }: BoardTimerProps) {
 	const queryClient = useQueryClient();
 	const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
 
+	// Phase advance mutation
+	const advancePhaseMutation = useMutation({
+		mutationFn: async () => {
+			const response = await fetch(`/api/boards/${board.id}/phase`, {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify({ action: "advance" }),
+			});
+
+			if (!response.ok) {
+				const error = await response.json();
+				throw new Error(error.error || "Failed to advance phase");
+			}
+
+			return response.json();
+		},
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ["board", board.id] });
+		},
+	});
+
 	// Calculate time remaining
-	// biome-ignore lint/correctness/useExhaustiveDependencies: hmm
 	useEffect(() => {
 		if (!board.phase_ends_at) {
 			setTimeRemaining(null);
@@ -57,30 +79,7 @@ export function BoardTimer({ board, isOwner }: BoardTimerProps) {
 		const interval = setInterval(updateTimer, 1000);
 
 		return () => clearInterval(interval);
-	}, [board.phase_ends_at, isOwner]);
-
-	// Phase advance mutation
-	const advancePhaseMutation = useMutation({
-		mutationFn: async () => {
-			const response = await fetch(`/api/boards/${board.id}/phase`, {
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
-				},
-				body: JSON.stringify({ action: "advance" }),
-			});
-
-			if (!response.ok) {
-				const error = await response.json();
-				throw new Error(error.error || "Failed to advance phase");
-			}
-
-			return response.json();
-		},
-		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: ["board", board.id] });
-		},
-	});
+	}, [board.phase_ends_at, board.phase, isOwner, advancePhaseMutation]);
 
 	// Pause/Resume mutation
 	const pauseResumeMutation = useMutation({

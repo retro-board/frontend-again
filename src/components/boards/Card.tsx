@@ -74,12 +74,15 @@ export function Card({
 			const previousBoard = queryClient.getQueryData(["board", boardId]);
 
 			// Optimistically update to the new value
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			queryClient.setQueryData(["board", boardId], (old: any) => {
 				if (!old) return old;
 				return {
 					...old,
+					// eslint-disable-next-line @typescript-eslint/no-explicit-any
 					columns: old.columns.map((col: any) => ({
 						...col,
+						// eslint-disable-next-line @typescript-eslint/no-explicit-any
 						cards: col.cards.map((c: any) =>
 							c.id === card.id ? { ...c, content: newContent } : c,
 						),
