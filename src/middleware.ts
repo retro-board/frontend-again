@@ -1,6 +1,8 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 
-const isProtectedRoute = createRouteMatcher(["/boards(.*)", "/poker(.*)"]);
+// Only protect the listing pages and creation pages
+// Individual board/session pages handle their own auth
+const isProtectedRoute = createRouteMatcher(["/boards", "/poker"]);
 
 export default clerkMiddleware(async (auth, req) => {
 	if (isProtectedRoute(req)) {

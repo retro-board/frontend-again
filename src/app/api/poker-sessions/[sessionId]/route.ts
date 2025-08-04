@@ -1,4 +1,5 @@
 import { auth } from "@clerk/nextjs/server";
+import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
 import { supabaseAdmin } from "~/lib/supabase/admin";
@@ -8,31 +9,65 @@ export async function GET(
 ) {
 	try {
 		const { userId } = await auth();
+		const cookieStore = await cookies();
+		const anonymousSessionId = cookieStore.get("anonymous_session_id")?.value;
 
-		if (!userId) {
+		if (!userId && !anonymousSessionId) {
 			return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 		}
 
-		// Get user from database
-		const { data: dbUser } = await supabaseAdmin
-			.from("users")
-			.select("id")
-			.eq("clerk_id", userId)
-			.maybeSingle();
+		let isAuthorized = false;
+		let _participantRole = null;
 
-		if (!dbUser) {
-			return NextResponse.json({ error: "User not found" }, { status: 404 });
+		if (userId) {
+			// Get user from database
+			const { data: dbUser } = await supabaseAdmin
+				.from("users")
+				.select("id")
+				.eq("clerk_id", userId)
+				.maybeSingle();
+
+			if (!dbUser) {
+				return NextResponse.json({ error: "User not found" }, { status: 404 });
+			}
+
+			// Check if user is a participant of this session
+			const { data: participant } = await supabaseAdmin
+				.from("poker_participants")
+				.select("*")
+				.eq("session_id", params.sessionId)
+				.eq("user_id", dbUser.id)
+				.maybeSingle();
+
+			if (participant) {
+				isAuthorized = true;
+				_participantRole = participant.role;
+			}
+		} else if (anonymousSessionId) {
+			// Get anonymous user
+			const { data: anonymousUser } = await supabaseAdmin
+				.from("anonymous_users")
+				.select("id")
+				.eq("session_id", anonymousSessionId)
+				.maybeSingle();
+
+			if (anonymousUser) {
+				// Check if anonymous user is a participant
+				const { data: participant } = await supabaseAdmin
+					.from("poker_anonymous_participants")
+					.select("*")
+					.eq("session_id", params.sessionId)
+					.eq("anonymous_user_id", anonymousUser.id)
+					.maybeSingle();
+
+				if (participant) {
+					isAuthorized = true;
+					_participantRole = "voter"; // Anonymous users are always voters
+				}
+			}
 		}
 
-		// Check if user is a participant of this session
-		const { data: participant } = await supabaseAdmin
-			.from("poker_participants")
-			.select("*")
-			.eq("session_id", params.sessionId)
-			.eq("user_id", dbUser.id)
-			.maybeSingle();
-
-		if (!participant) {
+		if (!isAuthorized) {
 			return NextResponse.json(
 				{ error: "Not authorized to view this session" },
 				{ status: 403 },
@@ -48,12 +83,16 @@ export async function GET(
           *,
           votes:poker_votes(
             *,
-            user:users(*)
+            user:users(*),
+            anonymous_user:anonymous_users(*)
           )
         ),
         participants:poker_participants(
           user:users(*),
           role
+        ),
+        anonymous_participants:poker_anonymous_participants(
+          anonymous_user:anonymous_users(*)
         )
       `)
 			.eq("id", params.sessionId)

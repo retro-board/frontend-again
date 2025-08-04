@@ -2,9 +2,18 @@
 
 import { useUser } from "@clerk/nextjs";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, ChevronRight, Eye, EyeOff, Plus } from "lucide-react";
+import {
+	Check,
+	ChevronRight,
+	Copy,
+	Eye,
+	EyeOff,
+	Plus,
+	Share2,
+} from "lucide-react";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { ParticipantList } from "~/components/poker/ParticipantList";
 import { VoteCard } from "~/components/poker/VoteCard";
 import { Badge } from "~/components/ui/badge";
@@ -30,16 +39,25 @@ import { Label } from "~/components/ui/label";
 import { Textarea } from "~/components/ui/textarea";
 import { useUserSync } from "~/hooks/useUserSync";
 import { supabase } from "~/lib/supabase/client";
-import type { PokerSession, PokerVote, Story, User } from "~/types/database";
+import type {
+	AnonymousUser,
+	PokerSession,
+	PokerVote,
+	Story,
+	User,
+} from "~/types/database";
 import { ESTIMATION_VALUES } from "~/types/database";
 
 interface SessionData extends PokerSession {
 	stories: (Story & {
-		votes: (PokerVote & { user: User })[];
+		votes: (PokerVote & { user?: User; anonymous_user?: AnonymousUser })[];
 	})[];
 	participants: {
 		user: User;
 		role: string;
+	}[];
+	anonymous_participants?: {
+		anonymous_user: AnonymousUser;
 	}[];
 }
 
@@ -54,6 +72,19 @@ export default function PokerSessionPage() {
 	const [storyTitle, setStoryTitle] = useState("");
 	const [storyDescription, setStoryDescription] = useState("");
 	const [selectedVote, setSelectedVote] = useState<string | null>(null);
+	const [shareDialogOpen, setShareDialogOpen] = useState(false);
+	const [copied, setCopied] = useState(false);
+
+	// Get anonymous user if not logged in
+	const { data: anonymousData } = useQuery({
+		queryKey: ["anonymous-user"],
+		queryFn: async () => {
+			const response = await fetch("/api/anonymous/current");
+			if (!response.ok) throw new Error("Failed to fetch anonymous user");
+			return response.json();
+		},
+		enabled: !user,
+	});
 
 	// Get current user from database
 	const { data: currentUser } = useQuery({
@@ -76,9 +107,9 @@ export default function PokerSessionPage() {
 		isLoading,
 		error: sessionError,
 	} = useQuery({
-		queryKey: ["poker-session", sessionId, user?.id],
+		queryKey: ["poker-session", sessionId, user?.id, anonymousData?.user?.id],
 		queryFn: async () => {
-			if (!user) throw new Error("Not authenticated");
+			if (!user && !anonymousData?.user) throw new Error("Not authenticated");
 
 			const response = await fetch(`/api/poker-sessions/${sessionId}`);
 
@@ -89,7 +120,7 @@ export default function PokerSessionPage() {
 
 			return response.json();
 		},
-		enabled: !!user && isLoaded,
+		enabled: (!!user && isLoaded) || !!anonymousData?.user,
 	});
 
 	const session = sessionData?.session as SessionData | undefined;
@@ -153,9 +184,15 @@ export default function PokerSessionPage() {
 	);
 
 	// Get user's vote for current story
-	const userVote = currentStory?.votes.find(
-		(v) => v.user_id === currentUser?.id,
-	);
+	const userVote = currentStory?.votes.find((v) => {
+		if (currentUser) {
+			return v.user_id === currentUser.id;
+		}
+		if (anonymousData?.user) {
+			return v.anonymous_user_id === anonymousData.user.id;
+		}
+		return false;
+	});
 
 	// Create story mutation
 	const createStoryMutation = useMutation({
@@ -303,7 +340,7 @@ export default function PokerSessionPage() {
 	});
 
 	const handleVote = (vote: string) => {
-		if (currentStory && currentUser) {
+		if (currentStory && (currentUser || anonymousData?.user)) {
 			setSelectedVote(vote);
 			voteMutation.mutate({ storyId: currentStory.id, vote });
 		}
@@ -311,6 +348,20 @@ export default function PokerSessionPage() {
 
 	const estimationValues =
 		ESTIMATION_VALUES[session?.estimation_type || "fibonacci"];
+
+	// Generate share URL
+	const shareUrl = session?.share_id
+		? `${typeof window !== "undefined" ? window.location.origin : ""}/poker/join/${session.share_id}`
+		: "";
+
+	const copyShareUrl = () => {
+		if (shareUrl) {
+			navigator.clipboard.writeText(shareUrl);
+			setCopied(true);
+			toast("Link copied!");
+			setTimeout(() => setCopied(false), 2000);
+		}
+	};
 
 	if (!isLoaded || isLoading || (user && !syncedUser)) {
 		return (
@@ -322,12 +373,12 @@ export default function PokerSessionPage() {
 		);
 	}
 
-	if (!user) {
+	if (!user && !anonymousData?.user) {
 		return (
 			<div className="container mx-auto py-8">
 				<div className="flex h-64 items-center justify-center">
 					<p className="text-muted-foreground">
-						Please sign in to view this session
+						Please sign in or join via share link to view this session
 					</p>
 				</div>
 			</div>
@@ -363,64 +414,94 @@ export default function PokerSessionPage() {
 						<p className="mt-1 text-muted-foreground">{session.description}</p>
 					)}
 				</div>
-				{isFacilitator && (
-					<Dialog open={storyDialogOpen} onOpenChange={setStoryDialogOpen}>
+				<div className="flex gap-2">
+					<Dialog open={shareDialogOpen} onOpenChange={setShareDialogOpen}>
 						<DialogTrigger asChild>
-							<Button>
-								<Plus className="mr-2 h-4 w-4" />
-								Add Story
+							<Button variant="outline">
+								<Share2 className="mr-2 h-4 w-4" />
+								Share
 							</Button>
 						</DialogTrigger>
 						<DialogContent>
 							<DialogHeader>
-								<DialogTitle>Add Story</DialogTitle>
+								<DialogTitle>Share Poker Session</DialogTitle>
 								<DialogDescription>
-									Add a new story for estimation.
+									Share this link with others to let them join this session
 								</DialogDescription>
 							</DialogHeader>
-							<div className="grid gap-4 py-4">
-								<div className="grid gap-2">
-									<Label htmlFor="title">Story Title</Label>
-									<Input
-										id="title"
-										value={storyTitle}
-										onChange={(e) => setStoryTitle(e.target.value)}
-										placeholder="As a user, I want to..."
-									/>
-								</div>
-								<div className="grid gap-2">
-									<Label htmlFor="description">Description (optional)</Label>
-									<Textarea
-										id="description"
-										value={storyDescription}
-										onChange={(e) => setStoryDescription(e.target.value)}
-										placeholder="Additional details about the story"
-										rows={3}
-									/>
-								</div>
+							<div className="mt-4 flex gap-2">
+								<Input value={shareUrl} readOnly className="flex-1" />
+								<Button variant="outline" size="icon" onClick={copyShareUrl}>
+									{copied ? (
+										<Check className="h-4 w-4" />
+									) : (
+										<Copy className="h-4 w-4" />
+									)}
+								</Button>
 							</div>
-							<DialogFooter>
-								<Button
-									variant="outline"
-									onClick={() => setStoryDialogOpen(false)}
-								>
-									Cancel
-								</Button>
-								<Button
-									onClick={() =>
-										createStoryMutation.mutate({
-											title: storyTitle,
-											description: storyDescription,
-										})
-									}
-									disabled={!storyTitle.trim() || createStoryMutation.isPending}
-								>
-									{createStoryMutation.isPending ? "Adding..." : "Add Story"}
-								</Button>
-							</DialogFooter>
 						</DialogContent>
 					</Dialog>
-				)}
+					{isFacilitator && (
+						<Dialog open={storyDialogOpen} onOpenChange={setStoryDialogOpen}>
+							<DialogTrigger asChild>
+								<Button>
+									<Plus className="mr-2 h-4 w-4" />
+									Add Story
+								</Button>
+							</DialogTrigger>
+							<DialogContent>
+								<DialogHeader>
+									<DialogTitle>Add Story</DialogTitle>
+									<DialogDescription>
+										Add a new story for estimation.
+									</DialogDescription>
+								</DialogHeader>
+								<div className="grid gap-4 py-4">
+									<div className="grid gap-2">
+										<Label htmlFor="title">Story Title</Label>
+										<Input
+											id="title"
+											value={storyTitle}
+											onChange={(e) => setStoryTitle(e.target.value)}
+											placeholder="As a user, I want to..."
+										/>
+									</div>
+									<div className="grid gap-2">
+										<Label htmlFor="description">Description (optional)</Label>
+										<Textarea
+											id="description"
+											value={storyDescription}
+											onChange={(e) => setStoryDescription(e.target.value)}
+											placeholder="Additional details about the story"
+											rows={3}
+										/>
+									</div>
+								</div>
+								<DialogFooter>
+									<Button
+										variant="outline"
+										onClick={() => setStoryDialogOpen(false)}
+									>
+										Cancel
+									</Button>
+									<Button
+										onClick={() =>
+											createStoryMutation.mutate({
+												title: storyTitle,
+												description: storyDescription,
+											})
+										}
+										disabled={
+											!storyTitle.trim() || createStoryMutation.isPending
+										}
+									>
+										{createStoryMutation.isPending ? "Adding..." : "Add Story"}
+									</Button>
+								</DialogFooter>
+							</DialogContent>
+						</Dialog>
+					)}
+				</div>
 			</div>
 
 			<div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
@@ -497,7 +578,9 @@ export default function PokerSessionPage() {
 													className="flex items-center justify-between"
 												>
 													<span className="text-sm">
-														{vote.user.name || vote.user.email}
+														{vote.user
+															? vote.user.name || vote.user.email
+															: vote.anonymous_user?.display_name}
 													</span>
 													<Badge>{vote.vote_value}</Badge>
 												</div>
@@ -579,6 +662,7 @@ export default function PokerSessionPage() {
 				<div>
 					<ParticipantList
 						participants={session.participants}
+						anonymousParticipants={session.anonymous_participants}
 						currentStory={currentStory}
 						showVotes={session.reveal_votes}
 					/>

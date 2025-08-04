@@ -64,10 +64,9 @@ export default function JoinBoardPage() {
 
 			return response.json();
 		},
-		onSuccess: (boardData) => {
-			if (boardData?.board?.id) {
-				router.push(`/boards/${boardData.board.id}`);
-			}
+		onSuccess: () => {
+			// After creating anonymous user, join the board
+			joinBoardMutation.mutate();
 		},
 	});
 

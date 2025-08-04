@@ -61,7 +61,8 @@ export interface Card {
 export interface CardVote {
 	id: string;
 	card_id: string;
-	user_id: string;
+	user_id?: string;
+	anonymous_user_id?: string;
 	created_at: Date;
 }
 
@@ -105,7 +106,8 @@ export interface Story {
 export interface PokerVote {
 	id: string;
 	story_id: string;
-	user_id: string;
+	user_id?: string;
+	anonymous_user_id?: string;
 	vote_value: string;
 	created_at: Date;
 }

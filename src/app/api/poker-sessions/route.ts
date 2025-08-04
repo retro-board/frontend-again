@@ -74,8 +74,14 @@ export async function GET() {
 
 		if (participantSessions) {
 			for (const ps of participantSessions) {
-				if (ps.session && !participantSessionIds.has(ps.session.id)) {
-					allSessions.push(ps.session);
+				// @ts-ignore - Supabase types don't properly handle nested selects
+				if (
+					ps.session &&
+					typeof ps.session === "object" &&
+					"id" in ps.session &&
+					!participantSessionIds.has(ps.session.id)
+				) {
+					allSessions.push(ps.session as any);
 				}
 			}
 		}
