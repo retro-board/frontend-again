@@ -3,13 +3,12 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Check, Edit2, Eye, EyeOff, ThumbsUp, Trash2, X } from "lucide-react";
+import { Check, Edit2, EyeOff, ThumbsUp, Trash2, X } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "~/components/ui/button";
 import { CardContent, Card as UICard } from "~/components/ui/card";
 import { Textarea } from "~/components/ui/textarea";
-import { supabase } from "~/lib/supabase/client";
 import { cn } from "~/lib/utils";
 import type { Board, Card as CardType, CardVote } from "~/types/database";
 

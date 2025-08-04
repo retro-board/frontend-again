@@ -65,6 +65,7 @@ export async function PATCH(
 		}
 
 		// Update board
+		// biome-ignore lint/suspicious/noExplicitAny: hmm
 		const updateData: any = {
 			updated_at: new Date().toISOString(),
 		};
@@ -103,7 +104,7 @@ export async function PATCH(
 }
 
 export async function DELETE(
-	request: Request,
+	_request: Request,
 	{ params }: { params: { boardId: string } },
 ) {
 	try {

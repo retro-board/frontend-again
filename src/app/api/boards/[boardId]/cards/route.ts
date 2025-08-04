@@ -143,10 +143,7 @@ export async function POST(
 	}
 }
 
-export async function PATCH(
-	request: Request,
-	{ params }: { params: { boardId: string } },
-) {
+export async function PATCH(request: Request) {
 	try {
 		const { userId } = await auth();
 
@@ -169,6 +166,7 @@ export async function PATCH(
 		}
 
 		// Build update object
+		// biome-ignore lint/suspicious/noExplicitAny: hmm
 		const updateData: any = { updated_at: new Date().toISOString() };
 		if (content !== undefined) updateData.content = content;
 		if (column_id !== undefined) updateData.column_id = column_id;
@@ -204,10 +202,7 @@ export async function PATCH(
 	}
 }
 
-export async function DELETE(
-	request: Request,
-	{ params }: { params: { boardId: string } },
-) {
+export async function DELETE(request: Request) {
 	try {
 		const { userId } = await auth();
 

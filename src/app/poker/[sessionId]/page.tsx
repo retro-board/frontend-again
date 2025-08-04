@@ -2,7 +2,7 @@
 
 import { useUser } from "@clerk/nextjs";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, ChevronRight, Eye, EyeOff, Plus, Users } from "lucide-react";
+import { Check, ChevronRight, Eye, EyeOff, Plus } from "lucide-react";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ParticipantList } from "~/components/poker/ParticipantList";
@@ -27,17 +27,10 @@ import {
 } from "~/components/ui/dialog";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
-import { Separator } from "~/components/ui/separator";
 import { Textarea } from "~/components/ui/textarea";
 import { useUserSync } from "~/hooks/useUserSync";
 import { supabase } from "~/lib/supabase/client";
-import type {
-	EstimationType,
-	PokerSession,
-	PokerVote,
-	Story,
-	User,
-} from "~/types/database";
+import type { PokerSession, PokerVote, Story, User } from "~/types/database";
 import { ESTIMATION_VALUES } from "~/types/database";
 
 interface SessionData extends PokerSession {
@@ -534,6 +527,8 @@ export default function PokerSessionPage() {
 						<CardContent>
 							<div className="space-y-2">
 								{session.stories.map((story) => (
+									// biome-ignore lint/a11y/useKeyWithClickEvents: hmm
+									// biome-ignore lint/a11y/noStaticElementInteractions: hmm
 									<div
 										key={story.id}
 										className={`cursor-pointer rounded-lg border p-3 transition-colors ${

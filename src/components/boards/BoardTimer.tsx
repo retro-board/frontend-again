@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Clock, Pause, Play, SkipForward } from "lucide-react";
+import { Pause, Play, SkipForward } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
@@ -21,19 +21,12 @@ const PHASE_LABELS: Record<BoardPhase, string> = {
 	completed: "Completed",
 };
 
-const NEXT_PHASE: Record<BoardPhase, BoardPhase> = {
-	setup: "creation",
-	creation: "voting",
-	voting: "discussion",
-	discussion: "completed",
-	completed: "completed",
-};
-
 export function BoardTimer({ board, isOwner }: BoardTimerProps) {
 	const queryClient = useQueryClient();
 	const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
 
 	// Calculate time remaining
+	// biome-ignore lint/correctness/useExhaustiveDependencies: hmm
 	useEffect(() => {
 		if (!board.phase_ends_at) {
 			setTimeRemaining(null);
@@ -42,6 +35,7 @@ export function BoardTimer({ board, isOwner }: BoardTimerProps) {
 
 		const updateTimer = () => {
 			const now = new Date();
+			// biome-ignore lint/style/noNonNullAssertion: null1
 			const endsAt = new Date(board.phase_ends_at!);
 			const remaining = Math.max(
 				0,

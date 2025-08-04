@@ -1,6 +1,5 @@
 import { useUser } from "@clerk/nextjs";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect } from "react";
 
 export function useUserSync() {
 	const { user, isLoaded } = useUser();

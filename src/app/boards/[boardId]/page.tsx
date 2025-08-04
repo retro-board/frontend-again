@@ -7,20 +7,15 @@ import {
 	type DragEndEvent,
 	DragOverlay,
 } from "@dnd-kit/core";
-import {
-	arrayMove,
-	SortableContext,
-	verticalListSortingStrategy,
-} from "@dnd-kit/sortable";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, Copy, Plus, Settings, Share2, Trash2 } from "lucide-react";
+import { Check, Copy, Plus, Share2 } from "lucide-react";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { BoardColumn } from "~/components/boards/BoardColumn";
+import { BoardSettings } from "~/components/boards/BoardSettings";
 import { BoardTimer } from "~/components/boards/BoardTimer";
 import { Card as CardComponent } from "~/components/boards/Card";
-import { BoardSettings } from "~/components/boards/BoardSettings";
 import { Button } from "~/components/ui/button";
 import {
 	Dialog,
@@ -35,14 +30,7 @@ import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { useUserSync } from "~/hooks/useUserSync";
 import { supabase } from "~/lib/supabase/client";
-import type {
-	AnonymousUser,
-	Board,
-	Card,
-	Column,
-	ColumnWithCards,
-	User,
-} from "~/types/database";
+import type { Card, User } from "~/types/database";
 
 export default function BoardPage() {
 	const params = useParams();
@@ -249,7 +237,7 @@ export default function BoardPage() {
 		const overId = over.id as string;
 		const overColumn = columns.find(
 			// biome-ignore lint/suspicious/noExplicitAny: any
-			(col: { id: string; cards: any[]; }) =>
+			(col: { id: string; cards: any[] }) =>
 				col.id === overId || col.cards.some((card) => card.id === overId),
 		);
 

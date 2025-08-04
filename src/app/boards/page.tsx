@@ -28,7 +28,7 @@ import { Label } from "~/components/ui/label";
 import { Textarea } from "~/components/ui/textarea";
 import { useUserSync } from "~/hooks/useUserSync";
 import { supabase } from "~/lib/supabase/client";
-import type { Board, BoardWithParticipants } from "~/types/database";
+import type { BoardWithParticipants } from "~/types/database";
 
 export default function BoardsPage() {
 	const router = useRouter();

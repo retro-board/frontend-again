@@ -34,7 +34,7 @@ import type { EstimationType, PokerSession } from "~/types/database";
 export default function PokerPage() {
 	const router = useRouter();
 	const { user, isLoaded } = useUser();
-	const { syncedUser, syncError } = useUserSync();
+	const { syncedUser } = useUserSync();
 	const queryClient = useQueryClient();
 	const [open, setOpen] = useState(false);
 	const [name, setName] = useState("");

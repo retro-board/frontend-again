@@ -17,7 +17,7 @@ const supabaseAdmin = createClient(
 );
 
 export async function POST(
-	request: Request,
+	_request: Request,
 	{ params }: { params: { boardId: string } },
 ) {
 	try {

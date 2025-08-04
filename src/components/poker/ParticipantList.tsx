@@ -72,17 +72,14 @@ export function ParticipantList({
 									</div>
 								</div>
 								<div>
-									{currentStory && (
-										<>
-											{showVotes && vote ? (
-												<Badge>{vote.vote_value}</Badge>
-											) : hasVoted ? (
-												<Check className="h-4 w-4 text-green-500" />
-											) : (
-												<Clock className="h-4 w-4 text-muted-foreground" />
-											)}
-										</>
-									)}
+									{currentStory &&
+										(showVotes && vote ? (
+											<Badge>{vote.vote_value}</Badge>
+										) : hasVoted ? (
+											<Check className="h-4 w-4 text-green-500" />
+										) : (
+											<Clock className="h-4 w-4 text-muted-foreground" />
+										))}
 								</div>
 							</div>
 						);

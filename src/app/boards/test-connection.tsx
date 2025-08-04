@@ -19,10 +19,7 @@ export default function TestConnection() {
 				}
 
 				// Test basic connection
-				const { data, error } = await supabase
-					.from("users")
-					.select("count")
-					.limit(1);
+				const { error } = await supabase.from("users").select("count").limit(1);
 
 				if (error) {
 					setError(`Connection error: ${error.message}`);

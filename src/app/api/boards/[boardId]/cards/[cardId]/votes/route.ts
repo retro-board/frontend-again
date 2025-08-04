@@ -17,7 +17,7 @@ const supabaseAdmin = createClient(
 );
 
 export async function POST(
-	request: Request,
+	_request: Request,
 	{ params }: { params: { boardId: string; cardId: string } },
 ) {
 	try {
@@ -150,6 +150,7 @@ export async function POST(
 		}
 
 		// Add vote
+		// biome-ignore lint/suspicious/noExplicitAny: hmm
 		const voteData: any = {
 			card_id: params.cardId,
 		};

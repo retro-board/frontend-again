@@ -16,7 +16,7 @@ const supabaseAdmin = createClient(
 );
 
 export async function GET(
-	request: Request,
+	_request: Request,
 	{ params }: { params: { sessionId: string } },
 ) {
 	try {
@@ -78,6 +78,7 @@ export async function GET(
 
 		// Sort stories by position
 		if (session.stories) {
+			// biome-ignore lint/suspicious/noExplicitAny: hmm
 			session.stories.sort((a: any, b: any) => a.position - b.position);
 		}
 
@@ -135,6 +136,7 @@ export async function PATCH(
 		}
 
 		// Update session
+		// biome-ignore lint/suspicious/noExplicitAny: hmm
 		const updateData: any = {};
 		if (current_story_id !== undefined)
 			updateData.current_story_id = current_story_id;

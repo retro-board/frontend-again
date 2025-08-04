@@ -16,7 +16,6 @@ import {
 	Card as UICard,
 } from "~/components/ui/card";
 import { Input } from "~/components/ui/input";
-import { supabase } from "~/lib/supabase/client";
 import type { AnonymousUser, Board, ColumnWithCards } from "~/types/database";
 import { Card } from "./Card";
 
@@ -99,7 +98,9 @@ export function BoardColumn({
 							{column.is_action && (
 								<div className="flex items-center gap-1">
 									<Target className="h-4 w-4" />
-									<span className="text-xs font-medium text-muted-foreground">(Required)</span>
+									<span className="font-medium text-muted-foreground text-xs">
+										(Required)
+									</span>
 								</div>
 							)}
 							<CardTitle className="text-lg">{column.name}</CardTitle>

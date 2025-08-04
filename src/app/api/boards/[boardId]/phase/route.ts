@@ -67,6 +67,7 @@ export async function POST(
 			);
 		}
 
+		// biome-ignore lint/suspicious/noExplicitAny: hmm
 		let updateData: any = {};
 
 		switch (action) {

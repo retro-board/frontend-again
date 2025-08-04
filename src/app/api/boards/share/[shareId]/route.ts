@@ -15,7 +15,7 @@ const supabaseAdmin = createClient(
 );
 
 export async function GET(
-	request: Request,
+	_request: Request,
 	{ params }: { params: { shareId: string } },
 ) {
 	try {

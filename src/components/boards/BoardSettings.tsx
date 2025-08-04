@@ -1,21 +1,10 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Button } from "~/components/ui/button";
-import {
-	Dialog,
-	DialogContent,
-	DialogDescription,
-	DialogFooter,
-	DialogHeader,
-	DialogTitle,
-} from "~/components/ui/dialog";
-import { Input } from "~/components/ui/input";
-import { Label } from "~/components/ui/label";
-import { Textarea } from "~/components/ui/textarea";
-import { Slider } from "~/components/ui/slider";
+import { Settings, Trash2 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { toast } from "sonner";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -27,8 +16,19 @@ import {
 	AlertDialogTitle,
 	AlertDialogTrigger,
 } from "~/components/ui/alert-dialog";
-import { Settings, Trash2 } from "lucide-react";
-import { toast } from "sonner";
+import { Button } from "~/components/ui/button";
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
+} from "~/components/ui/dialog";
+import { Input } from "~/components/ui/input";
+import { Label } from "~/components/ui/label";
+import { Slider } from "~/components/ui/slider";
+import { Textarea } from "~/components/ui/textarea";
 import type { Board } from "~/types/database";
 
 interface BoardSettingsProps {
@@ -41,7 +41,7 @@ export function BoardSettings({ board, isOwner }: BoardSettingsProps) {
 	const queryClient = useQueryClient();
 	const [open, setOpen] = useState(false);
 	const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-	
+
 	const [name, setName] = useState(board.name);
 	const [description, setDescription] = useState(board.description || "");
 	const [creationTime, setCreationTime] = useState(board.creation_time_minutes);
@@ -187,7 +187,10 @@ export function BoardSettings({ board, isOwner }: BoardSettingsProps) {
 					</div>
 
 					<DialogFooter className="flex-col gap-2 sm:flex-row">
-						<AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+						<AlertDialog
+							open={deleteDialogOpen}
+							onOpenChange={setDeleteDialogOpen}
+						>
 							<AlertDialogTrigger asChild>
 								<Button variant="destructive" className="w-full sm:w-auto">
 									<Trash2 className="mr-2 h-4 w-4" />
@@ -198,8 +201,8 @@ export function BoardSettings({ board, isOwner }: BoardSettingsProps) {
 								<AlertDialogHeader>
 									<AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
 									<AlertDialogDescription>
-										This action cannot be undone. This will permanently delete your
-										board and remove all associated data.
+										This action cannot be undone. This will permanently delete
+										your board and remove all associated data.
 									</AlertDialogDescription>
 								</AlertDialogHeader>
 								<AlertDialogFooter>
@@ -214,7 +217,7 @@ export function BoardSettings({ board, isOwner }: BoardSettingsProps) {
 							</AlertDialogContent>
 						</AlertDialog>
 
-						<div className="flex gap-2 w-full sm:w-auto">
+						<div className="flex w-full gap-2 sm:w-auto">
 							<Button
 								variant="outline"
 								onClick={() => {

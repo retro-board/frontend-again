@@ -17,7 +17,7 @@ const supabaseAdmin = createClient(
 );
 
 export async function GET(
-	request: Request,
+	_request: Request,
 	{ params }: { params: { boardId: string } },
 ) {
 	try {
@@ -115,6 +115,7 @@ export async function GET(
 		// Sort cards within each column
 		const sortedColumns = (columns || []).map((column) => ({
 			...column,
+			// biome-ignore lint/suspicious/noExplicitAny: hmm
 			cards: column.cards.sort((a: any, b: any) => a.position - b.position),
 		}));
 

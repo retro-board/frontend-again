@@ -1,4 +1,4 @@
-import { ArrowRight, MessageSquare, Users, Vote, Zap } from "lucide-react";
+import { ArrowRight, MessageSquare, Vote, Zap } from "lucide-react";
 import Link from "next/link";
 import { Button } from "~/components/ui/button";
 import {

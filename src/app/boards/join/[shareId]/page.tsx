@@ -64,7 +64,7 @@ export default function JoinBoardPage() {
 
 			return response.json();
 		},
-		onSuccess: (data) => {
+		onSuccess: (boardData) => {
 			if (boardData?.board?.id) {
 				router.push(`/boards/${boardData.board.id}`);
 			}
