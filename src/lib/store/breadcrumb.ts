@@ -54,7 +54,7 @@ const initialState = {
 // Create the store
 export const useBreadcrumbStore = create<BreadcrumbState>()(
 	devtools(
-		(set, _get) => ({
+		(set) => ({
 			// Initial state
 			...initialState,
 

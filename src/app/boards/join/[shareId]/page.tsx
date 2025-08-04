@@ -92,7 +92,6 @@ export default function JoinBoardPage() {
 		},
 	});
 
-	// biome-ignore lint/correctness/useExhaustiveDependencies: not all needed
 	useEffect(() => {
 		// If user is logged in and synced, join directly
 		if (user && syncedUser && boardData?.board?.id) {
@@ -102,7 +101,7 @@ export default function JoinBoardPage() {
 		else if (anonymousData?.user && boardData?.board?.id) {
 			joinBoardMutation.mutate();
 		}
-	}, [user, syncedUser, anonymousData, boardData]);
+	}, [user, syncedUser, anonymousData, boardData, joinBoardMutation]);
 
 	const handleJoin = () => {
 		if (!user && !anonymousData?.user) {
@@ -150,7 +149,8 @@ export default function JoinBoardPage() {
 					<CardHeader>
 						<CardTitle>Join Retro Board</CardTitle>
 						<CardDescription>
-							You've been invited to join "{boardData.board.name}"
+							You&apos;ve been invited to join &quot;{boardData.board.name}
+							&quot;
 						</CardDescription>
 					</CardHeader>
 					<CardContent>
@@ -171,7 +171,7 @@ export default function JoinBoardPage() {
 									required
 								/>
 								<p className="mt-1 text-muted-foreground text-sm">
-									This is how you'll appear to other participants
+									This is how you&apos;ll appear to other participants
 								</p>
 							</div>
 							<Button

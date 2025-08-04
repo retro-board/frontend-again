@@ -17,7 +17,6 @@ export async function GET(
 		}
 
 		let isAuthorized = false;
-		let _participantRole = null;
 
 		if (userId) {
 			// Get user from database
@@ -41,7 +40,6 @@ export async function GET(
 
 			if (participant) {
 				isAuthorized = true;
-				_participantRole = participant.role;
 			}
 		} else if (anonymousSessionId) {
 			// Get anonymous user
@@ -62,7 +60,7 @@ export async function GET(
 
 				if (participant) {
 					isAuthorized = true;
-					_participantRole = "voter"; // Anonymous users are always voters
+					// Anonymous users are always voters
 				}
 			}
 		}
@@ -104,8 +102,10 @@ export async function GET(
 
 		// Sort stories by position
 		if (session.stories) {
-			// biome-ignore lint/suspicious/noExplicitAny: hmm
-			session.stories.sort((a: any, b: any) => a.position - b.position);
+			session.stories.sort(
+				(a: { position: number }, b: { position: number }) =>
+					a.position - b.position,
+			);
 		}
 
 		return NextResponse.json({ session });
@@ -162,8 +162,10 @@ export async function PATCH(
 		}
 
 		// Update session
-		// biome-ignore lint/suspicious/noExplicitAny: hmm
-		const updateData: any = {};
+		const updateData: {
+			current_story_id?: string;
+			reveal_votes?: boolean;
+		} = {};
 		if (current_story_id !== undefined)
 			updateData.current_story_id = current_story_id;
 		if (reveal_votes !== undefined) updateData.reveal_votes = reveal_votes;

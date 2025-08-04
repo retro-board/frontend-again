@@ -185,8 +185,12 @@ export async function PATCH(request: Request) {
 		}
 
 		// Build update object
-		// biome-ignore lint/suspicious/noExplicitAny: hmm
-		const updateData: any = { updated_at: new Date().toISOString() };
+		const updateData: {
+			updated_at: string;
+			content?: string;
+			column_id?: string;
+			position?: number;
+		} = { updated_at: new Date().toISOString() };
 		if (content !== undefined) updateData.content = content;
 		if (column_id !== undefined) updateData.column_id = column_id;
 		if (position !== undefined) updateData.position = position;

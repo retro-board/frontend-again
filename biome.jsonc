@@ -37,5 +37,17 @@
 				"noUselessElse": "error"
 			}
 		}
-	}
+	},
+	"overrides": [
+		{
+			"includes": ["src/test/setup.ts", "src/components/boards/Card.tsx"],
+			"linter": {
+				"rules": {
+					"suspicious": {
+						"noExplicitAny": "off"
+					}
+				}
+			}
+		}
+	]
 }
