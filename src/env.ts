@@ -18,6 +18,8 @@ export const env = createEnv({
 		UPLOADTHING_TOKEN: z.string().optional(),
 
 		CLERK_SECRET_KEY: z.string().optional(),
+
+		SUPABASE_SERVICE_ROLE_KEY: z.string().optional(),
 	},
 
 	/**
@@ -29,6 +31,9 @@ export const env = createEnv({
 		NEXT_PUBLIC_FLAGS_ENVIRONMENT: z.string().optional(),
 
 		NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: z.string().optional(),
+
+		NEXT_PUBLIC_SUPABASE_URL: z.string().url(),
+		NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string(),
 	},
 
 	/**
@@ -46,6 +51,10 @@ export const env = createEnv({
 			process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
 
 		CLERK_SECRET_KEY: process.env.CLERK_SECRET_KEY,
+
+		NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
+		NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+		SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
 	},
 	/**
 	 * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation. This is especially
