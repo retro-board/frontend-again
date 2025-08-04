@@ -29,7 +29,7 @@ export async function POST(request: Request) {
 		}
 
 		// Get or create session ID
-		const cookieStore = cookies();
+		const cookieStore = await cookies();
 		let sessionId = cookieStore.get("anonymous_session_id")?.value;
 
 		if (!sessionId) {

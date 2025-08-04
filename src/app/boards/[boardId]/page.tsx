@@ -20,6 +20,7 @@ import { toast } from "sonner";
 import { BoardColumn } from "~/components/boards/BoardColumn";
 import { BoardTimer } from "~/components/boards/BoardTimer";
 import { Card as CardComponent } from "~/components/boards/Card";
+import { BoardSettings } from "~/components/boards/BoardSettings";
 import { Button } from "~/components/ui/button";
 import {
 	Dialog,
@@ -118,10 +119,7 @@ export default function BoardPage() {
 		if (shareUrl) {
 			navigator.clipboard.writeText(shareUrl);
 			setCopied(true);
-			toast({
-				title: "Link copied!",
-				description: "Share link has been copied to clipboard",
-			});
+			toast("Link copied!");
 			setTimeout(() => setCopied(false), 2000);
 		}
 	};
@@ -250,7 +248,8 @@ export default function BoardPage() {
 
 		const overId = over.id as string;
 		const overColumn = columns.find(
-			(col) =>
+			// biome-ignore lint/suspicious/noExplicitAny: any
+			(col: { id: string; cards: any[]; }) =>
 				col.id === overId || col.cards.some((card) => card.id === overId),
 		);
 
@@ -434,11 +433,7 @@ export default function BoardPage() {
 								</div>
 							</DialogContent>
 						</Dialog>
-						{isOwner && (
-							<Button variant="outline" size="icon">
-								<Settings className="h-4 w-4" />
-							</Button>
-						)}
+						<BoardSettings board={board} isOwner={isOwner} />
 					</div>
 				</div>
 			</div>
