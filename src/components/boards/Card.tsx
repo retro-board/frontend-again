@@ -64,8 +64,37 @@ export function Card({
 
 			return response.json();
 		},
-		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: ["board"] });
+		onMutate: async (newContent) => {
+			// Cancel any outgoing refetches
+			await queryClient.cancelQueries({ queryKey: ["board", boardId] });
+
+			// Snapshot the previous value
+			const previousBoard = queryClient.getQueryData(["board", boardId]);
+
+			// Optimistically update to the new value
+			queryClient.setQueryData(["board", boardId], (old: any) => {
+				if (!old) return old;
+				return {
+					...old,
+					columns: old.columns.map((col: any) => ({
+						...col,
+						cards: col.cards.map((c: any) =>
+							c.id === card.id ? { ...c, content: newContent } : c
+						),
+					})),
+				};
+			});
+
+			// Return a context object with the snapshotted value
+			return { previousBoard };
+		},
+		onError: (err, newContent, context) => {
+			// If the mutation fails, use the context returned from onMutate to roll back
+			queryClient.setQueryData(["board", boardId], context?.previousBoard);
+		},
+		onSettled: () => {
+			// Always refetch after error or success
+			queryClient.invalidateQueries({ queryKey: ["board", boardId] });
 			setIsEditing(false);
 		},
 	});

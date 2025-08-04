@@ -98,6 +98,8 @@ export default function BoardPage() {
 			return response.json();
 		},
 		enabled: (!!user && isLoaded) || !!anonymousData?.user,
+		staleTime: 5000, // Consider data fresh for 5 seconds
+		refetchInterval: false, // Disable automatic refetching
 	});
 
 	const board = boardData?.board as Board | undefined;
@@ -141,6 +143,18 @@ export default function BoardPage() {
 				{ event: "*", schema: "public", table: "cards" },
 				(payload) => {
 					console.log("Card changed:", payload);
+					// Only invalidate if the card belongs to a column in this board
+					if (payload.record || payload.old_record) {
+						queryClient.invalidateQueries({ queryKey: ["board", boardId] });
+					}
+				},
+			)
+			.on(
+				"postgres_changes",
+				{ event: "*", schema: "public", table: "card_votes" },
+				(payload) => {
+					console.log("Vote changed:", payload);
+					// Invalidate to update vote counts
 					queryClient.invalidateQueries({ queryKey: ["board", boardId] });
 				},
 			)
