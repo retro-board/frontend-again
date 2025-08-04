@@ -1,0 +1,135 @@
+import { auth } from "@clerk/nextjs/server";
+import { createClient } from "@supabase/supabase-js";
+import { cookies } from "next/headers";
+import { NextResponse } from "next/server";
+import { env } from "~/env";
+
+// Create admin client with service role key
+const supabaseAdmin = createClient(
+	env.NEXT_PUBLIC_SUPABASE_URL,
+	env.SUPABASE_SERVICE_ROLE_KEY,
+	{
+		auth: {
+			autoRefreshToken: false,
+			persistSession: false,
+		},
+	},
+);
+
+export async function POST(
+	request: Request,
+	{ params }: { params: { boardId: string } },
+) {
+	try {
+		const { userId } = await auth();
+		const cookieStore = cookies();
+		const anonymousSessionId = cookieStore.get("anonymous_session_id")?.value;
+
+		// Must be either logged in or have anonymous session
+		if (!userId && !anonymousSessionId) {
+			return NextResponse.json(
+				{ error: "Authentication required" },
+				{ status: 401 },
+			);
+		}
+
+		// Check if board exists and is active
+		const { data: board } = await supabaseAdmin
+			.from("boards")
+			.select("id")
+			.eq("id", params.boardId)
+			.eq("is_active", true)
+			.maybeSingle();
+
+		if (!board) {
+			return NextResponse.json(
+				{ error: "Board not found or inactive" },
+				{ status: 404 },
+			);
+		}
+
+		if (userId) {
+			// Handle logged-in user
+			const { data: dbUser } = await supabaseAdmin
+				.from("users")
+				.select("id")
+				.eq("clerk_id", userId)
+				.maybeSingle();
+
+			if (!dbUser) {
+				return NextResponse.json({ error: "User not found" }, { status: 404 });
+			}
+
+			// Check if already participant
+			const { data: existingParticipant } = await supabaseAdmin
+				.from("board_participants")
+				.select("id")
+				.eq("board_id", params.boardId)
+				.eq("user_id", dbUser.id)
+				.maybeSingle();
+
+			if (!existingParticipant) {
+				// Add as participant
+				const { error } = await supabaseAdmin
+					.from("board_participants")
+					.insert({
+						board_id: params.boardId,
+						user_id: dbUser.id,
+						role: "participant",
+					});
+
+				if (error) {
+					console.error("Error adding participant:", error);
+					return NextResponse.json({ error: error.message }, { status: 500 });
+				}
+			}
+		} else if (anonymousSessionId) {
+			// Handle anonymous user
+			const { data: anonymousUser } = await supabaseAdmin
+				.from("anonymous_users")
+				.select("id")
+				.eq("session_id", anonymousSessionId)
+				.maybeSingle();
+
+			if (!anonymousUser) {
+				return NextResponse.json(
+					{ error: "Anonymous user not found" },
+					{ status: 404 },
+				);
+			}
+
+			// Check if already participant
+			const { data: existingParticipant } = await supabaseAdmin
+				.from("board_anonymous_participants")
+				.select("id")
+				.eq("board_id", params.boardId)
+				.eq("anonymous_user_id", anonymousUser.id)
+				.maybeSingle();
+
+			if (!existingParticipant) {
+				// Add as anonymous participant
+				const { error } = await supabaseAdmin
+					.from("board_anonymous_participants")
+					.insert({
+						board_id: params.boardId,
+						anonymous_user_id: anonymousUser.id,
+					});
+
+				if (error) {
+					console.error("Error adding anonymous participant:", error);
+					return NextResponse.json({ error: error.message }, { status: 500 });
+				}
+			}
+		}
+
+		return NextResponse.json({ success: true });
+	} catch (error) {
+		console.error("Join board error:", error);
+		return NextResponse.json(
+			{
+				error: error instanceof Error ? error.message : "Internal server error",
+			},
+			{ status: 500 },
+		);
+	}
+}

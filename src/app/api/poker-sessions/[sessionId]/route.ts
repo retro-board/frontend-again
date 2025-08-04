@@ -1,58 +1,61 @@
-import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { createClient } from "@supabase/supabase-js";
+import { NextResponse } from "next/server";
 import { env } from "~/env";
 
 // Create admin client with service role key
 const supabaseAdmin = createClient(
-  env.NEXT_PUBLIC_SUPABASE_URL,
-  env.SUPABASE_SERVICE_ROLE_KEY,
-  {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-    },
-  }
+	env.NEXT_PUBLIC_SUPABASE_URL,
+	env.SUPABASE_SERVICE_ROLE_KEY,
+	{
+		auth: {
+			autoRefreshToken: false,
+			persistSession: false,
+		},
+	},
 );
 
 export async function GET(
-  request: Request,
-  { params }: { params: { sessionId: string } }
+	request: Request,
+	{ params }: { params: { sessionId: string } },
 ) {
-  try {
-    const { userId } = await auth();
-    
-    if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+	try {
+		const { userId } = await auth();
 
-    // Get user from database
-    const { data: dbUser } = await supabaseAdmin
-      .from("users")
-      .select("id")
-      .eq("clerk_id", userId)
-      .maybeSingle();
+		if (!userId) {
+			return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+		}
 
-    if (!dbUser) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
-    }
+		// Get user from database
+		const { data: dbUser } = await supabaseAdmin
+			.from("users")
+			.select("id")
+			.eq("clerk_id", userId)
+			.maybeSingle();
 
-    // Check if user is a participant of this session
-    const { data: participant } = await supabaseAdmin
-      .from("poker_participants")
-      .select("*")
-      .eq("session_id", params.sessionId)
-      .eq("user_id", dbUser.id)
-      .maybeSingle();
+		if (!dbUser) {
+			return NextResponse.json({ error: "User not found" }, { status: 404 });
+		}
 
-    if (!participant) {
-      return NextResponse.json({ error: "Not authorized to view this session" }, { status: 403 });
-    }
+		// Check if user is a participant of this session
+		const { data: participant } = await supabaseAdmin
+			.from("poker_participants")
+			.select("*")
+			.eq("session_id", params.sessionId)
+			.eq("user_id", dbUser.id)
+			.maybeSingle();
 
-    // Fetch session with all related data
-    const { data: session, error: sessionError } = await supabaseAdmin
-      .from("poker_sessions")
-      .select(`
+		if (!participant) {
+			return NextResponse.json(
+				{ error: "Not authorized to view this session" },
+				{ status: 403 },
+			);
+		}
+
+		// Fetch session with all related data
+		const { data: session, error: sessionError } = await supabaseAdmin
+			.from("poker_sessions")
+			.select(`
         *,
         stories(
           *,
@@ -66,89 +69,97 @@ export async function GET(
           role
         )
       `)
-      .eq("id", params.sessionId)
-      .single();
+			.eq("id", params.sessionId)
+			.single();
 
-    if (sessionError || !session) {
-      return NextResponse.json({ error: "Session not found" }, { status: 404 });
-    }
+		if (sessionError || !session) {
+			return NextResponse.json({ error: "Session not found" }, { status: 404 });
+		}
 
-    // Sort stories by position
-    if (session.stories) {
-      session.stories.sort((a: any, b: any) => a.position - b.position);
-    }
+		// Sort stories by position
+		if (session.stories) {
+			session.stories.sort((a: any, b: any) => a.position - b.position);
+		}
 
-    return NextResponse.json({ session });
-  } catch (error) {
-    console.error("Get session error:", error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Internal server error" },
-      { status: 500 }
-    );
-  }
+		return NextResponse.json({ session });
+	} catch (error) {
+		console.error("Get session error:", error);
+		return NextResponse.json(
+			{
+				error: error instanceof Error ? error.message : "Internal server error",
+			},
+			{ status: 500 },
+		);
+	}
 }
 
 export async function PATCH(
-  request: Request,
-  { params }: { params: { sessionId: string } }
+	request: Request,
+	{ params }: { params: { sessionId: string } },
 ) {
-  try {
-    const { userId } = await auth();
-    
-    if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+	try {
+		const { userId } = await auth();
 
-    const body = await request.json();
-    const { current_story_id, reveal_votes } = body;
+		if (!userId) {
+			return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+		}
 
-    // Get user from database
-    const { data: dbUser } = await supabaseAdmin
-      .from("users")
-      .select("id")
-      .eq("clerk_id", userId)
-      .maybeSingle();
+		const body = await request.json();
+		const { current_story_id, reveal_votes } = body;
 
-    if (!dbUser) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
-    }
+		// Get user from database
+		const { data: dbUser } = await supabaseAdmin
+			.from("users")
+			.select("id")
+			.eq("clerk_id", userId)
+			.maybeSingle();
 
-    // Check if user is facilitator
-    const { data: facilitator } = await supabaseAdmin
-      .from("poker_participants")
-      .select("*")
-      .eq("session_id", params.sessionId)
-      .eq("user_id", dbUser.id)
-      .eq("role", "facilitator")
-      .maybeSingle();
+		if (!dbUser) {
+			return NextResponse.json({ error: "User not found" }, { status: 404 });
+		}
 
-    if (!facilitator) {
-      return NextResponse.json({ error: "Only facilitators can modify sessions" }, { status: 403 });
-    }
+		// Check if user is facilitator
+		const { data: facilitator } = await supabaseAdmin
+			.from("poker_participants")
+			.select("*")
+			.eq("session_id", params.sessionId)
+			.eq("user_id", dbUser.id)
+			.eq("role", "facilitator")
+			.maybeSingle();
 
-    // Update session
-    const updateData: any = {};
-    if (current_story_id !== undefined) updateData.current_story_id = current_story_id;
-    if (reveal_votes !== undefined) updateData.reveal_votes = reveal_votes;
+		if (!facilitator) {
+			return NextResponse.json(
+				{ error: "Only facilitators can modify sessions" },
+				{ status: 403 },
+			);
+		}
 
-    const { data: session, error } = await supabaseAdmin
-      .from("poker_sessions")
-      .update(updateData)
-      .eq("id", params.sessionId)
-      .select()
-      .single();
+		// Update session
+		const updateData: any = {};
+		if (current_story_id !== undefined)
+			updateData.current_story_id = current_story_id;
+		if (reveal_votes !== undefined) updateData.reveal_votes = reveal_votes;
 
-    if (error) {
-      console.error("Error updating session:", error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
+		const { data: session, error } = await supabaseAdmin
+			.from("poker_sessions")
+			.update(updateData)
+			.eq("id", params.sessionId)
+			.select()
+			.single();
 
-    return NextResponse.json({ session });
-  } catch (error) {
-    console.error("Update session error:", error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Internal server error" },
-      { status: 500 }
-    );
-  }
+		if (error) {
+			console.error("Error updating session:", error);
+			return NextResponse.json({ error: error.message }, { status: 500 });
+		}
+
+		return NextResponse.json({ session });
+	} catch (error) {
+		console.error("Update session error:", error);
+		return NextResponse.json(
+			{
+				error: error instanceof Error ? error.message : "Internal server error",
+			},
+			{ status: 500 },
+		);
+	}
 }
