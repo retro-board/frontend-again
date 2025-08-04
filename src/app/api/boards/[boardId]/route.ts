@@ -85,6 +85,8 @@ export async function GET(
         *,
         cards(
           *,
+          author:users(*),
+          anonymous_author:anonymous_users(*),
           votes:card_votes(*)
         )
       `)

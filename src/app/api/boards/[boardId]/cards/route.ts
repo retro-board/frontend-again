@@ -100,16 +100,24 @@ export async function POST(
 		}
 
 		// Create card
+		const cardData: any = {
+			column_id,
+			content,
+			position,
+			is_anonymous: is_anonymous || !!anonymousSessionId,
+			is_masked: column.board.phase === "creation", // Mask cards during creation phase
+		};
+
+		// Set the appropriate author field based on user type
+		if (userId) {
+			cardData.author_id = authorId;
+		} else if (anonymousSessionId) {
+			cardData.anonymous_author_id = authorId;
+		}
+
 		const { data: card, error } = await supabaseAdmin
 			.from("cards")
-			.insert({
-				column_id,
-				content,
-				author_id: authorId,
-				position,
-				is_anonymous: is_anonymous || !!anonymousSessionId,
-				is_masked: column.board.phase === "creation", // Mask cards during creation phase
-			})
+			.insert(cardData)
 			.select()
 			.single();
 
@@ -133,23 +141,42 @@ export async function POST(
 export async function PATCH(request: Request) {
 	try {
 		const { userId } = await auth();
+		const cookieStore = await cookies();
+		const anonymousSessionId = cookieStore.get("anonymous_session_id")?.value;
 
-		if (!userId) {
+		if (!userId && !anonymousSessionId) {
 			return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 		}
 
 		const body = await request.json();
 		const { cardId, content, column_id, position } = body;
 
-		// Get user from database
-		const { data: dbUser } = await supabaseAdmin
-			.from("users")
-			.select("id")
-			.eq("clerk_id", userId)
-			.maybeSingle();
+		let authorId: string | null = null;
 
-		if (!dbUser) {
-			return NextResponse.json({ error: "User not found" }, { status: 404 });
+		if (userId) {
+			// Get user from database
+			const { data: dbUser } = await supabaseAdmin
+				.from("users")
+				.select("id")
+				.eq("clerk_id", userId)
+				.maybeSingle();
+
+			if (!dbUser) {
+				return NextResponse.json({ error: "User not found" }, { status: 404 });
+			}
+			authorId = dbUser.id;
+		} else if (anonymousSessionId) {
+			// Get anonymous user
+			const { data: anonymousUser } = await supabaseAdmin
+				.from("anonymous_users")
+				.select("id")
+				.eq("session_id", anonymousSessionId)
+				.maybeSingle();
+
+			if (!anonymousUser) {
+				return NextResponse.json({ error: "Anonymous user not found" }, { status: 404 });
+			}
+			authorId = anonymousUser.id;
 		}
 
 		// Build update object
@@ -160,14 +187,18 @@ export async function PATCH(request: Request) {
 		if (position !== undefined) updateData.position = position;
 
 		// Update card (only author can update content)
-		const query = supabaseAdmin
+		let query = supabaseAdmin
 			.from("cards")
 			.update(updateData)
 			.eq("id", cardId);
 
 		// If updating content, ensure user is author
 		if (content !== undefined) {
-			query.eq("author_id", dbUser.id);
+			if (userId) {
+				query = query.eq("author_id", authorId);
+			} else if (anonymousSessionId) {
+				query = query.eq("anonymous_author_id", authorId);
+			}
 		}
 
 		const { data: card, error } = await query.select().single();
@@ -192,8 +223,10 @@ export async function PATCH(request: Request) {
 export async function DELETE(request: Request) {
 	try {
 		const { userId } = await auth();
+		const cookieStore = await cookies();
+		const anonymousSessionId = cookieStore.get("anonymous_session_id")?.value;
 
-		if (!userId) {
+		if (!userId && !anonymousSessionId) {
 			return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 		}
 
@@ -204,23 +237,42 @@ export async function DELETE(request: Request) {
 			return NextResponse.json({ error: "Card ID required" }, { status: 400 });
 		}
 
-		// Get user from database
-		const { data: dbUser } = await supabaseAdmin
-			.from("users")
-			.select("id")
-			.eq("clerk_id", userId)
-			.maybeSingle();
-
-		if (!dbUser) {
-			return NextResponse.json({ error: "User not found" }, { status: 404 });
-		}
-
-		// Delete card (only author can delete)
-		const { error } = await supabaseAdmin
+		let deleteQuery = supabaseAdmin
 			.from("cards")
 			.delete()
-			.eq("id", cardId)
-			.eq("author_id", dbUser.id);
+			.eq("id", cardId);
+
+		if (userId) {
+			// Get user from database
+			const { data: dbUser } = await supabaseAdmin
+				.from("users")
+				.select("id")
+				.eq("clerk_id", userId)
+				.maybeSingle();
+
+			if (!dbUser) {
+				return NextResponse.json({ error: "User not found" }, { status: 404 });
+			}
+
+			// Delete card (only author can delete)
+			deleteQuery = deleteQuery.eq("author_id", dbUser.id);
+		} else if (anonymousSessionId) {
+			// Get anonymous user
+			const { data: anonymousUser } = await supabaseAdmin
+				.from("anonymous_users")
+				.select("id")
+				.eq("session_id", anonymousSessionId)
+				.maybeSingle();
+
+			if (!anonymousUser) {
+				return NextResponse.json({ error: "Anonymous user not found" }, { status: 404 });
+			}
+
+			// Delete card (only anonymous author can delete)
+			deleteQuery = deleteQuery.eq("anonymous_author_id", anonymousUser.id);
+		}
+
+		const { error } = await deleteQuery;
 
 		if (error) {
 			console.error("Error deleting card:", error);

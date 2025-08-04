@@ -50,7 +50,8 @@ export interface Card {
 	id: string;
 	column_id: string;
 	content: string;
-	author_id: string;
+	author_id?: string;
+	anonymous_author_id?: string;
 	position: number;
 	is_anonymous: boolean;
 	is_masked: boolean;

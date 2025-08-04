@@ -15,6 +15,7 @@ import type { Board, Card as CardType, CardVote } from "~/types/database";
 interface CardProps {
 	card: CardType & { votes?: CardVote[] };
 	currentUserId?: string;
+	currentAnonymousUserId?: string;
 	boardId: string;
 	isDragging?: boolean;
 	boardPhase?: Board["phase"];
@@ -23,6 +24,7 @@ interface CardProps {
 export function Card({
 	card,
 	currentUserId,
+	currentAnonymousUserId,
 	boardId,
 	isDragging,
 	boardPhase,
@@ -39,7 +41,10 @@ export function Card({
 		transition,
 	};
 
-	const userVoted = card.votes?.some((vote) => vote.user_id === currentUserId);
+	const userVoted = card.votes?.some((vote) => 
+		(currentUserId && vote.user_id === currentUserId) ||
+		(currentAnonymousUserId && vote.anonymous_user_id === currentAnonymousUserId)
+	);
 	const voteCount = card.votes?.length || 0;
 
 	const updateCardMutation = useMutation({
@@ -88,7 +93,7 @@ export function Card({
 
 	const toggleVoteMutation = useMutation({
 		mutationFn: async () => {
-			if (!currentUserId) throw new Error("User not authenticated");
+			if (!currentUserId && !currentAnonymousUserId) throw new Error("User not authenticated");
 
 			const response = await fetch(
 				`/api/boards/${boardId}/cards/${card.id}/votes`,
@@ -124,7 +129,8 @@ export function Card({
 		}
 	};
 
-	const isOwner = currentUserId === card.author_id;
+	const isOwner = (currentUserId && currentUserId === card.author_id) || 
+		(currentAnonymousUserId && currentAnonymousUserId === card.anonymous_author_id);
 	const isMasked = card.is_masked && boardPhase === "creation" && !isOwner;
 
 	return (

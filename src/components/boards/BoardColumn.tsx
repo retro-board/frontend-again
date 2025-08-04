@@ -129,6 +129,7 @@ export function BoardColumn({
 									key={card.id}
 									card={card}
 									currentUserId={currentUserId}
+									currentAnonymousUserId={anonymousUser?.id}
 									boardId={boardId}
 									boardPhase={boardPhase}
 								/>

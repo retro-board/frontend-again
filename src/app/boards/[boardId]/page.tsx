@@ -120,6 +120,7 @@ export default function BoardPage() {
 
 	// Subscribe to realtime updates
 	useEffect(() => {
+		console.log("Setting up real-time subscription for board:", boardId);
 		const channel = supabase
 			.channel(`board:${boardId}`)
 			.on(
@@ -130,18 +131,22 @@ export default function BoardPage() {
 					table: "columns",
 					filter: `board_id=eq.${boardId}`,
 				},
-				() => {
+				(payload) => {
+					console.log("Column changed:", payload);
 					queryClient.invalidateQueries({ queryKey: ["board", boardId] });
 				},
 			)
 			.on(
 				"postgres_changes",
 				{ event: "*", schema: "public", table: "cards" },
-				() => {
+				(payload) => {
+					console.log("Card changed:", payload);
 					queryClient.invalidateQueries({ queryKey: ["board", boardId] });
 				},
 			)
-			.subscribe();
+			.subscribe((status) => {
+				console.log("Board subscription status:", status);
+			});
 
 		return () => {
 			supabase.removeChannel(channel);
