@@ -1,18 +1,5 @@
-import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
-import { env } from "~/env";
-
-// Create admin client with service role key
-const supabaseAdmin = createClient(
-	env.NEXT_PUBLIC_SUPABASE_URL,
-	env.SUPABASE_SERVICE_ROLE_KEY,
-	{
-		auth: {
-			autoRefreshToken: false,
-			persistSession: false,
-		},
-	},
-);
+import { supabaseAdmin } from "~/lib/supabase/admin";
 
 export async function GET(
 	_request: Request,

@@ -44,7 +44,11 @@ export function BoardTimer({ board, isOwner }: BoardTimerProps) {
 			setTimeRemaining(remaining);
 
 			// Auto advance to next phase when timer expires
-			if (remaining === 0 && isOwner && board.phase !== "completed") {
+			if (
+				remaining === 0 &&
+				isOwner &&
+				board.phase !== ("completed" as BoardPhase)
+			) {
 				advancePhaseMutation.mutate();
 			}
 		};
@@ -53,57 +57,16 @@ export function BoardTimer({ board, isOwner }: BoardTimerProps) {
 		const interval = setInterval(updateTimer, 1000);
 
 		return () => clearInterval(interval);
-	}, [board.phase_ends_at, board.phase, isOwner]);
+	}, [board.phase_ends_at, isOwner]);
 
-	// Start phase mutation
-	const startPhaseMutation = useMutation({
-		mutationFn: async () => {
-			const response = await fetch(`/api/boards/${board.id}/phase`, {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ action: "start" }),
-			});
-
-			if (!response.ok) {
-				const error = await response.json();
-				throw new Error(error.error || "Failed to start phase");
-			}
-
-			return response.json();
-		},
-		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: ["board", board.id] });
-		},
-	});
-
-	// Pause phase mutation
-	const pausePhaseMutation = useMutation({
-		mutationFn: async () => {
-			const response = await fetch(`/api/boards/${board.id}/phase`, {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ action: "pause" }),
-			});
-
-			if (!response.ok) {
-				const error = await response.json();
-				throw new Error(error.error || "Failed to pause phase");
-			}
-
-			return response.json();
-		},
-		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: ["board", board.id] });
-		},
-	});
-
-	// Advance phase mutation
+	// Phase advance mutation
 	const advancePhaseMutation = useMutation({
 		mutationFn: async () => {
 			const response = await fetch(`/api/boards/${board.id}/phase`, {
 				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ action: "advance" }),
+				headers: {
+					"Content-Type": "application/json",
+				},
 			});
 
 			if (!response.ok) {
@@ -118,103 +81,123 @@ export function BoardTimer({ board, isOwner }: BoardTimerProps) {
 		},
 	});
 
-	const formatTime = (seconds: number) => {
+	// Pause/Resume mutation
+	const pauseResumeMutation = useMutation({
+		mutationFn: async () => {
+			const response = await fetch(`/api/boards/${board.id}/phase`, {
+				method: "PATCH",
+				headers: {
+					"Content-Type": "application/json",
+				},
+			});
+
+			if (!response.ok) {
+				const error = await response.json();
+				throw new Error(error.error || "Failed to pause/resume timer");
+			}
+
+			return response.json();
+		},
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ["board", board.id] });
+		},
+	});
+
+	const formatTime = (seconds: number | null) => {
+		if (seconds === null) return "--:--";
 		const mins = Math.floor(seconds / 60);
 		const secs = seconds % 60;
-		return `${mins}:${secs.toString().padStart(2, "0")}`;
+		return `${mins.toString().padStart(2, "0")}:${secs
+			.toString()
+			.padStart(2, "0")}`;
 	};
 
-	const getPhaseTime = () => {
-		if (board.phase === "creation") return board.creation_time_minutes;
-		if (board.phase === "voting") return board.voting_time_minutes;
-		return 0;
+	// Get phase duration based on current phase
+	const getPhaseDuration = () => {
+		switch (board.phase) {
+			case "creation":
+				return board.creation_time_minutes;
+			case "voting":
+				return board.voting_time_minutes;
+			default:
+				return null;
+		}
 	};
 
-	const isTimerActive =
-		board.phase_ends_at && timeRemaining !== null && timeRemaining > 0;
+	const phaseDuration = getPhaseDuration();
 
 	return (
 		<Card>
-			<CardHeader className="pb-3">
-				<div className="flex items-center justify-between">
-					<CardTitle className="text-lg">Board Timer</CardTitle>
-					<Badge variant={isTimerActive ? "default" : "secondary"}>
-						{PHASE_LABELS[board.phase]}
-					</Badge>
-				</div>
+			<CardHeader>
+				<CardTitle className="flex items-center justify-between">
+					<span>Board Timer</span>
+					<Badge variant="secondary">{PHASE_LABELS[board.phase]}</Badge>
+				</CardTitle>
 			</CardHeader>
-			<CardContent>
-				<div className="space-y-4">
-					{timeRemaining !== null && (
-						<div className="text-center font-mono text-3xl">
+			<CardContent className="space-y-4">
+				{board.phase_ends_at && (
+					<div className="text-center">
+						<div className="font-bold font-mono text-4xl">
 							{formatTime(timeRemaining)}
 						</div>
-					)}
+						{phaseDuration && timeRemaining !== null && (
+							<div className="mt-2">
+								<div className="h-2 w-full rounded-full bg-gray-200">
+									<div
+										className="h-2 rounded-full bg-primary transition-all"
+										style={{
+											width: `${Math.max(
+												0,
+												100 - (timeRemaining / (phaseDuration * 60)) * 100,
+											)}%`,
+										}}
+									/>
+								</div>
+							</div>
+						)}
+					</div>
+				)}
 
-					{isOwner && board.phase !== "completed" && (
-						<div className="flex gap-2">
-							{!isTimerActive &&
-								board.phase !== "setup" &&
-								board.phase !== "discussion" && (
-									<Button
-										size="sm"
-										className="flex-1"
-										onClick={() => startPhaseMutation.mutate()}
-										disabled={startPhaseMutation.isPending}
-									>
+				{isOwner && board.phase !== ("completed" as BoardPhase) && (
+					<div className="flex gap-2">
+						{board.phase_ends_at && (
+							<Button
+								size="sm"
+								variant="outline"
+								className="flex-1"
+								onClick={() => pauseResumeMutation.mutate()}
+								disabled={pauseResumeMutation.isPending}
+							>
+								{timeRemaining !== null ? (
+									<>
+										<Pause className="mr-1 h-4 w-4" />
+										Pause
+									</>
+								) : (
+									<>
 										<Play className="mr-1 h-4 w-4" />
-										Start {getPhaseTime()} min timer
-									</Button>
+										Resume
+									</>
 								)}
-
-							{isTimerActive && (
-								<Button
-									size="sm"
-									variant="secondary"
-									className="flex-1"
-									onClick={() => pausePhaseMutation.mutate()}
-									disabled={pausePhaseMutation.isPending}
-								>
-									<Pause className="mr-1 h-4 w-4" />
-									Pause
-								</Button>
-							)}
-
+							</Button>
+						)}
+						{board.phase !== "setup" && (
 							<Button
 								size="sm"
 								variant="outline"
 								className="flex-1"
 								onClick={() => advancePhaseMutation.mutate()}
 								disabled={
-									advancePhaseMutation.isPending || board.phase === "completed"
+									advancePhaseMutation.isPending ||
+									board.phase === ("completed" as BoardPhase)
 								}
 							>
 								<SkipForward className="mr-1 h-4 w-4" />
 								Next Phase
 							</Button>
-						</div>
-					)}
-
-					{board.phase === "creation" && (
-						<p className="text-muted-foreground text-sm">
-							Add your items to the board. They will remain hidden until the
-							creation phase ends.
-						</p>
-					)}
-
-					{board.phase === "voting" && (
-						<p className="text-muted-foreground text-sm">
-							Vote on items you find important. You have {board.votes_per_user}{" "}
-							votes.
-						</p>
-					)}
-
-					{board.phase === "discussion" && (
-						<p className="text-muted-foreground text-sm">
-							Discuss the items and create action items.
-						</p>
-					)}
-				</div>
+						)}
+					</div>
+				)}
 			</CardContent>
 		</Card>
 	);

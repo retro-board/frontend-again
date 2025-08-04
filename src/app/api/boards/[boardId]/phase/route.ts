@@ -1,20 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
-import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
-import { env } from "~/env";
+import { supabaseAdmin } from "~/lib/supabase/admin";
 import type { BoardPhase } from "~/types/database";
-
-// Create admin client with service role key
-const supabaseAdmin = createClient(
-	env.NEXT_PUBLIC_SUPABASE_URL,
-	env.SUPABASE_SERVICE_ROLE_KEY,
-	{
-		auth: {
-			autoRefreshToken: false,
-			persistSession: false,
-		},
-	},
-);
 
 const NEXT_PHASE: Record<BoardPhase, BoardPhase> = {
 	setup: "creation",

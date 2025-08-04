@@ -30,7 +30,13 @@ import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { useUserSync } from "~/hooks/useUserSync";
 import { supabase } from "~/lib/supabase/client";
-import type { Card, User } from "~/types/database";
+import type {
+	Board,
+	Card,
+	CardVote,
+	ColumnWithCards,
+	User,
+} from "~/types/database";
 
 export default function BoardPage() {
 	const params = useParams();
@@ -94,7 +100,7 @@ export default function BoardPage() {
 		enabled: (!!user && isLoaded) || !!anonymousData?.user,
 	});
 
-	const board = boardData?.board;
+	const board = boardData?.board as Board | undefined;
 	const columns = boardData?.columns || [];
 	const isOwner = board?.owner_id === currentUser?.id;
 
@@ -229,16 +235,18 @@ export default function BoardPage() {
 		if (!over) return;
 
 		const activeCard = columns
-			.flatMap((col) => col.cards)
-			.find((card) => card.id === active.id);
+			.flatMap((col: ColumnWithCards) => col.cards)
+			.find((card: Card & { votes: CardVote[] }) => card.id === active.id);
 
 		if (!activeCard) return;
 
 		const overId = over.id as string;
 		const overColumn = columns.find(
-			// biome-ignore lint/suspicious/noExplicitAny: any
-			(col: { id: string; cards: any[] }) =>
-				col.id === overId || col.cards.some((card) => card.id === overId),
+			(col: ColumnWithCards) =>
+				col.id === overId ||
+				col.cards.some(
+					(card: Card & { votes: CardVote[] }) => card.id === overId,
+				),
 		);
 
 		if (!overColumn) return;
@@ -253,14 +261,14 @@ export default function BoardPage() {
 		} else {
 			// Dropped on a card
 			const overCardIndex = overColumn.cards.findIndex(
-				(card) => card.id === overId,
+				(card: Card & { votes: CardVote[] }) => card.id === overId,
 			);
 			targetPosition = overCardIndex;
 
 			// If moving within same column and dragging down, adjust position
 			if (activeCard.column_id === overColumn.id) {
 				const activeIndex = overColumn.cards.findIndex(
-					(card) => card.id === active.id,
+					(card: Card & { votes: CardVote[] }) => card.id === active.id,
 				);
 				if (activeIndex < overCardIndex) {
 					targetPosition--;
@@ -433,14 +441,17 @@ export default function BoardPage() {
 							collisionDetection={closestCenter}
 							onDragStart={(event) => {
 								const card = columns
-									.flatMap((col) => col.cards)
-									.find((card) => card.id === event.active.id);
+									.flatMap((col: ColumnWithCards) => col.cards)
+									.find(
+										(card: Card & { votes: CardVote[] }) =>
+											card.id === event.active.id,
+									);
 								setActiveCard(card || null);
 							}}
 							onDragEnd={handleDragEnd}
 						>
 							<div className="flex h-full gap-4">
-								{columns.map((column) => (
+								{columns.map((column: ColumnWithCards) => (
 									<BoardColumn
 										key={column.id}
 										column={column}

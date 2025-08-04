@@ -1,20 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
-import { createClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-import { env } from "~/env";
-
-// Create admin client with service role key
-const supabaseAdmin = createClient(
-	env.NEXT_PUBLIC_SUPABASE_URL,
-	env.SUPABASE_SERVICE_ROLE_KEY,
-	{
-		auth: {
-			autoRefreshToken: false,
-			persistSession: false,
-		},
-	},
-);
+import { supabaseAdmin } from "~/lib/supabase/admin";
 
 export async function POST(
 	_request: Request,
@@ -22,7 +9,7 @@ export async function POST(
 ) {
 	try {
 		const { userId } = await auth();
-		const cookieStore = cookies();
+		const cookieStore = await cookies();
 		const anonymousSessionId = cookieStore.get("anonymous_session_id")?.value;
 
 		// Must be either logged in or have anonymous session

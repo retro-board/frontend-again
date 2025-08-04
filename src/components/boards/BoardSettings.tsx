@@ -153,7 +153,9 @@ export function BoardSettings({ board, isOwner }: BoardSettingsProps) {
 							<Label>Creation Phase Duration: {creationTime} minutes</Label>
 							<Slider
 								value={[creationTime]}
-								onValueChange={([value]) => setCreationTime(value)}
+								onValueChange={([value]) =>
+									setCreationTime(value ?? creationTime)
+								}
 								min={1}
 								max={30}
 								step={1}
@@ -165,7 +167,7 @@ export function BoardSettings({ board, isOwner }: BoardSettingsProps) {
 							<Label>Voting Phase Duration: {votingTime} minutes</Label>
 							<Slider
 								value={[votingTime]}
-								onValueChange={([value]) => setVotingTime(value)}
+								onValueChange={([value]) => setVotingTime(value ?? votingTime)}
 								min={1}
 								max={30}
 								step={1}
@@ -177,7 +179,9 @@ export function BoardSettings({ board, isOwner }: BoardSettingsProps) {
 							<Label>Votes Per User: {votesPerUser}</Label>
 							<Slider
 								value={[votesPerUser]}
-								onValueChange={([value]) => setVotesPerUser(value)}
+								onValueChange={([value]) =>
+									setVotesPerUser(value ?? votesPerUser)
+								}
 								min={1}
 								max={10}
 								step={1}
