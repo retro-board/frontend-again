@@ -81,7 +81,7 @@ export async function GET() {
 					"id" in ps.session &&
 					!participantSessionIds.has(ps.session.id)
 				) {
-					allSessions.push(ps.session as any);
+					allSessions.push(ps.session);
 				}
 			}
 		}

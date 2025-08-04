@@ -90,7 +90,7 @@ export async function POST(
 				// Move to next phase
 				const nextPhase = NEXT_PHASE[board.phase as BoardPhase];
 				const now = new Date();
-				
+
 				// Calculate phase end time for timed phases
 				let phaseEndsAt = null;
 				if (nextPhase === "creation" || nextPhase === "voting") {
@@ -98,12 +98,14 @@ export async function POST(
 						nextPhase === "creation"
 							? board.creation_time_minutes
 							: board.voting_time_minutes;
-					
+
 					if (duration > 0) {
-						phaseEndsAt = new Date(now.getTime() + duration * 60 * 1000).toISOString();
+						phaseEndsAt = new Date(
+							now.getTime() + duration * 60 * 1000,
+						).toISOString();
 					}
 				}
-				
+
 				updateData = {
 					phase: nextPhase,
 					phase_started_at: now.toISOString(),
@@ -196,7 +198,12 @@ export async function PATCH(
 			);
 		}
 
-		let updateData: any = {};
+		let updateData: {
+			phase_ends_at: string | null;
+			phase_started_at?: string;
+		} = {
+			phase_ends_at: null,
+		};
 
 		if (board.phase_ends_at) {
 			// Timer is running, pause it

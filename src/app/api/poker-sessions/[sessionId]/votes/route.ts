@@ -60,7 +60,10 @@ export async function POST(
 				.maybeSingle();
 
 			if (!anonymousUser) {
-				console.error("Anonymous user not found for session:", anonymousSessionId);
+				console.error(
+					"Anonymous user not found for session:",
+					anonymousSessionId,
+				);
 				return NextResponse.json(
 					{ error: "Anonymous user not found" },
 					{ status: 404 },
@@ -82,7 +85,10 @@ export async function POST(
 				isAuthorized = true;
 				console.log("Anonymous user is participant");
 			} else {
-				console.log("Anonymous user is NOT participant of session:", params.sessionId);
+				console.log(
+					"Anonymous user is NOT participant of session:",
+					params.sessionId,
+				);
 			}
 		}
 
@@ -150,11 +156,14 @@ export async function POST(
 			if (error) {
 				console.error("Error creating vote:", error);
 				console.error("Vote data that failed:", voteData);
-				return NextResponse.json({ 
-					error: error.message,
-					details: error.details || error.hint || "No additional details",
-					code: error.code 
-				}, { status: 500 });
+				return NextResponse.json(
+					{
+						error: error.message,
+						details: error.details || error.hint || "No additional details",
+						code: error.code,
+					},
+					{ status: 500 },
+				);
 			}
 		}
 

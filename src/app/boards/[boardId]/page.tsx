@@ -144,7 +144,7 @@ export default function BoardPage() {
 				(payload) => {
 					console.log("Card changed:", payload);
 					// Only invalidate if the card belongs to a column in this board
-					if (payload.record || payload.old_record) {
+					if ("record" in payload || "old_record" in payload) {
 						queryClient.invalidateQueries({ queryKey: ["board", boardId] });
 					}
 				},

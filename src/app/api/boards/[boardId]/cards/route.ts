@@ -100,12 +100,14 @@ export async function POST(
 		}
 
 		// Create card
-		const cardData: any = {
+		const cardData = {
 			column_id,
 			content,
 			position,
 			is_anonymous: is_anonymous || !!anonymousSessionId,
 			is_masked: column.board.phase === "creation", // Mask cards during creation phase
+			author_id: undefined as string | undefined,
+			anonymous_author_id: undefined as string | undefined,
 		};
 
 		// Set the appropriate author field based on user type
@@ -174,7 +176,10 @@ export async function PATCH(request: Request) {
 				.maybeSingle();
 
 			if (!anonymousUser) {
-				return NextResponse.json({ error: "Anonymous user not found" }, { status: 404 });
+				return NextResponse.json(
+					{ error: "Anonymous user not found" },
+					{ status: 404 },
+				);
 			}
 			authorId = anonymousUser.id;
 		}
@@ -187,10 +192,7 @@ export async function PATCH(request: Request) {
 		if (position !== undefined) updateData.position = position;
 
 		// Update card (only author can update content)
-		let query = supabaseAdmin
-			.from("cards")
-			.update(updateData)
-			.eq("id", cardId);
+		let query = supabaseAdmin.from("cards").update(updateData).eq("id", cardId);
 
 		// If updating content, ensure user is author
 		if (content !== undefined) {
@@ -237,10 +239,7 @@ export async function DELETE(request: Request) {
 			return NextResponse.json({ error: "Card ID required" }, { status: 400 });
 		}
 
-		let deleteQuery = supabaseAdmin
-			.from("cards")
-			.delete()
-			.eq("id", cardId);
+		let deleteQuery = supabaseAdmin.from("cards").delete().eq("id", cardId);
 
 		if (userId) {
 			// Get user from database
@@ -265,7 +264,10 @@ export async function DELETE(request: Request) {
 				.maybeSingle();
 
 			if (!anonymousUser) {
-				return NextResponse.json({ error: "Anonymous user not found" }, { status: 404 });
+				return NextResponse.json(
+					{ error: "Anonymous user not found" },
+					{ status: 404 },
+				);
 			}
 
 			// Delete card (only anonymous author can delete)

@@ -41,9 +41,11 @@ export function Card({
 		transition,
 	};
 
-	const userVoted = card.votes?.some((vote) => 
-		(currentUserId && vote.user_id === currentUserId) ||
-		(currentAnonymousUserId && vote.anonymous_user_id === currentAnonymousUserId)
+	const userVoted = card.votes?.some(
+		(vote) =>
+			(currentUserId && vote.user_id === currentUserId) ||
+			(currentAnonymousUserId &&
+				vote.anonymous_user_id === currentAnonymousUserId),
 	);
 	const voteCount = card.votes?.length || 0;
 
@@ -79,7 +81,7 @@ export function Card({
 					columns: old.columns.map((col: any) => ({
 						...col,
 						cards: col.cards.map((c: any) =>
-							c.id === card.id ? { ...c, content: newContent } : c
+							c.id === card.id ? { ...c, content: newContent } : c,
 						),
 					})),
 				};
@@ -88,7 +90,7 @@ export function Card({
 			// Return a context object with the snapshotted value
 			return { previousBoard };
 		},
-		onError: (err, newContent, context) => {
+		onError: (_err, _newContent, context) => {
 			// If the mutation fails, use the context returned from onMutate to roll back
 			queryClient.setQueryData(["board", boardId], context?.previousBoard);
 		},
@@ -122,7 +124,8 @@ export function Card({
 
 	const toggleVoteMutation = useMutation({
 		mutationFn: async () => {
-			if (!currentUserId && !currentAnonymousUserId) throw new Error("User not authenticated");
+			if (!currentUserId && !currentAnonymousUserId)
+				throw new Error("User not authenticated");
 
 			const response = await fetch(
 				`/api/boards/${boardId}/cards/${card.id}/votes`,
@@ -158,8 +161,10 @@ export function Card({
 		}
 	};
 
-	const isOwner = (currentUserId && currentUserId === card.author_id) || 
-		(currentAnonymousUserId && currentAnonymousUserId === card.anonymous_author_id);
+	const isOwner =
+		(currentUserId && currentUserId === card.author_id) ||
+		(currentAnonymousUserId &&
+			currentAnonymousUserId === card.anonymous_author_id);
 	const isMasked = card.is_masked && boardPhase === "creation" && !isOwner;
 
 	return (

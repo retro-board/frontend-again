@@ -164,9 +164,9 @@ export default function PokerSessionPage() {
 			)
 			.on(
 				"postgres_changes",
-				{ 
-					event: "*", 
-					schema: "public", 
+				{
+					event: "*",
+					schema: "public",
 					table: "poker_votes",
 					// Note: Can't filter poker_votes by session_id directly, but the query will refetch all data
 				},

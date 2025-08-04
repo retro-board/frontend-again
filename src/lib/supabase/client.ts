@@ -16,5 +16,5 @@ export const supabase = createClient(
 		auth: {
 			persistSession: false, // We're using Clerk for auth
 		},
-	}
+	},
 );
