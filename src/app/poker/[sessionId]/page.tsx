@@ -108,6 +108,8 @@ export default function PokerSessionPage() {
 		error: sessionError,
 	} = useQuery({
 		queryKey: ["poker-session", sessionId, user?.id, anonymousData?.user?.id],
+		refetchInterval: false,
+		staleTime: 1000,
 		queryFn: async () => {
 			if (!user && !anonymousData?.user) throw new Error("Not authenticated");
 
@@ -127,6 +129,7 @@ export default function PokerSessionPage() {
 
 	// Subscribe to realtime updates
 	useEffect(() => {
+		console.log("Setting up real-time subscription for session:", sessionId);
 		const channel = supabase
 			.channel(`poker:${sessionId}`)
 			.on(
@@ -137,7 +140,8 @@ export default function PokerSessionPage() {
 					table: "poker_sessions",
 					filter: `id=eq.${sessionId}`,
 				},
-				() => {
+				(payload) => {
+					console.log("Poker session changed:", payload);
 					queryClient.invalidateQueries({
 						queryKey: ["poker-session", sessionId],
 					});
@@ -151,7 +155,8 @@ export default function PokerSessionPage() {
 					table: "stories",
 					filter: `session_id=eq.${sessionId}`,
 				},
-				() => {
+				(payload) => {
+					console.log("Story changed:", payload);
 					queryClient.invalidateQueries({
 						queryKey: ["poker-session", sessionId],
 					});
@@ -159,14 +164,22 @@ export default function PokerSessionPage() {
 			)
 			.on(
 				"postgres_changes",
-				{ event: "*", schema: "public", table: "poker_votes" },
-				() => {
+				{ 
+					event: "*", 
+					schema: "public", 
+					table: "poker_votes",
+					// Note: Can't filter poker_votes by session_id directly, but the query will refetch all data
+				},
+				(payload) => {
+					console.log("Vote changed:", payload);
 					queryClient.invalidateQueries({
 						queryKey: ["poker-session", sessionId],
 					});
 				},
 			)
-			.subscribe();
+			.subscribe((status) => {
+				console.log("Subscription status:", status);
+			});
 
 		return () => {
 			supabase.removeChannel(channel);
@@ -252,6 +265,10 @@ export default function PokerSessionPage() {
 		},
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["poker-session", sessionId] });
+		},
+		onError: (error) => {
+			console.error("Vote error:", error);
+			toast.error(error.message || "Failed to vote");
 		},
 	});
 
