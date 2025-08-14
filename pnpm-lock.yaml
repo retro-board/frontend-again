@@ -70,7 +70,7 @@ importers:
         version: 5.85.0(react@19.1.1)
       '@uploadthing/react':
         specifier: ^7.3.2
-        version: 7.3.2(next@15.4.6(@babel/core@7.28.0)(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(react@19.1.1)(uploadthing@7.7.3(next@15.4.6(@babel/core@7.28.0)(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(tailwindcss@4.1.11))
+        version: 7.3.2(next@15.4.6(@babel/core@7.28.0)(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(react@19.1.1)(uploadthing@7.7.3(next@15.4.6(@babel/core@7.28.0)(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(tailwindcss@4.1.12))
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1
@@ -112,7 +112,7 @@ importers:
         version: 3.3.1
       uploadthing:
         specifier: ^7.7.3
-        version: 7.7.3(next@15.4.6(@babel/core@7.28.0)(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(tailwindcss@4.1.11)
+        version: 7.7.3(next@15.4.6(@babel/core@7.28.0)(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(tailwindcss@4.1.12)
       zod:
         specifier: ^4.0.17
         version: 4.0.17
@@ -169,8 +169,8 @@ importers:
         specifier: ^8.5.6
         version: 8.5.6
       tailwindcss:
-        specifier: ^4.1.11
-        version: 4.1.11
+        specifier: ^4.1.12
+        version: 4.1.12
       ts-jest:
         specifier: ^29.4.1
         version: 29.4.1(@babel/core@7.28.0)(@jest/transform@30.0.5)(@jest/types@30.0.5)(babel-jest@30.0.5(@babel/core@7.28.0))(jest-util@30.0.5)(jest@30.0.5(@types/node@24.2.1))(typescript@5.9.2)
@@ -351,8 +351,8 @@ packages:
     resolution: {integrity: sha512-vbavdySgbTTrmFE+EsiqUTzlOr5bzlnJtUv9PynGCAKvfQqjIXbvFdumPM/GxMDfyuGMJaJAU6TO4zc1Jf1i8Q==}
     engines: {node: '>=6.9.0'}
 
-  '@babel/runtime@7.28.2':
-    resolution: {integrity: sha512-KHp2IflsnGywDjBWDkR9iEqiWSpc8GIi0lgTT3mOElT0PP1tG26P4tmFI2YvAdzgq9RGyoHZQEIEdZy6Ec5xCA==}
+  '@babel/runtime@7.28.3':
+    resolution: {integrity: sha512-9uIQ10o0WGdpP6GDhXcdOJPJuDgFtIDtN/9+ArJQ2NAfAmiuhTQdzkaTGR33v43GYS2UrSA0eX2pPPHoFVvpxA==}
     engines: {node: '>=6.9.0'}
 
   '@babel/template@7.27.2':
@@ -3875,6 +3875,9 @@ packages:
   tailwindcss@4.1.11:
     resolution: {integrity: sha512-2E9TBm6MDD/xKYe+dvJZAmg3yxIEDNRc0jwlNyDg/4Fil2QcSLjFKGVff0lAf1jjeaArlG/M75Ey/EYr/OJtBA==}
 
+  tailwindcss@4.1.12:
+    resolution: {integrity: sha512-DzFtxOi+7NsFf7DBtI3BJsynR+0Yp6etH+nRPTbpWnS2pZBaSksv/JGctNwSWzbFjp0vxSqknaUylseZqMDGrA==}
+
   tapable@2.2.2:
     resolution: {integrity: sha512-Re10+NauLTMCudc7T5WLFLAwDhQ0JWdrMK+9B2M8zR5hRExKmsRDCBA7/aV/pNJFltmBFO5BAMlQFi/vq3nKOg==}
     engines: {node: '>=6'}
@@ -4389,7 +4392,7 @@ snapshots:
 
   '@babel/runtime@7.27.6': {}
 
-  '@babel/runtime@7.28.2': {}
+  '@babel/runtime@7.28.3': {}
 
   '@babel/template@7.27.2':
     dependencies:
@@ -5619,7 +5622,7 @@ snapshots:
   '@testing-library/dom@10.4.0':
     dependencies:
       '@babel/code-frame': 7.27.1
-      '@babel/runtime': 7.28.2
+      '@babel/runtime': 7.28.3
       '@types/aria-query': 5.0.4
       aria-query: 5.3.0
       chalk: 4.1.2
@@ -5890,12 +5893,12 @@ snapshots:
 
   '@uploadthing/mime-types@0.3.5': {}
 
-  '@uploadthing/react@7.3.2(next@15.4.6(@babel/core@7.28.0)(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(react@19.1.1)(uploadthing@7.7.3(next@15.4.6(@babel/core@7.28.0)(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(tailwindcss@4.1.11))':
+  '@uploadthing/react@7.3.2(next@15.4.6(@babel/core@7.28.0)(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(react@19.1.1)(uploadthing@7.7.3(next@15.4.6(@babel/core@7.28.0)(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(tailwindcss@4.1.12))':
     dependencies:
       '@uploadthing/shared': 7.1.9
       file-selector: 0.6.0
       react: 19.1.1
-      uploadthing: 7.7.3(next@15.4.6(@babel/core@7.28.0)(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(tailwindcss@4.1.11)
+      uploadthing: 7.7.3(next@15.4.6(@babel/core@7.28.0)(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(tailwindcss@4.1.12)
     optionalDependencies:
       next: 15.4.6(@babel/core@7.28.0)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
 
@@ -8346,6 +8349,8 @@ snapshots:
 
   tailwindcss@4.1.11: {}
 
+  tailwindcss@4.1.12: {}
+
   tapable@2.2.2: {}
 
   tar@7.4.3:
@@ -8512,7 +8517,7 @@ snapshots:
       escalade: 3.2.0
       picocolors: 1.1.1
 
-  uploadthing@7.7.3(next@15.4.6(@babel/core@7.28.0)(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(tailwindcss@4.1.11):
+  uploadthing@7.7.3(next@15.4.6(@babel/core@7.28.0)(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(tailwindcss@4.1.12):
     dependencies:
       '@effect/platform': 0.85.2(effect@3.16.8)
       '@standard-schema/spec': 1.0.0-beta.4
@@ -8521,7 +8526,7 @@ snapshots:
       effect: 3.16.8
     optionalDependencies:
       next: 15.4.6(@babel/core@7.28.0)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
-      tailwindcss: 4.1.11
+      tailwindcss: 4.1.12
 
   uri-js@4.4.1:
     dependencies:
