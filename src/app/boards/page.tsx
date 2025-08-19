@@ -4,7 +4,7 @@ import { useUser } from "@clerk/nextjs";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Calendar, Plus, Users } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useId, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "~/components/ui/button";
 import {
@@ -38,6 +38,8 @@ export default function BoardsPage() {
 	const [open, setOpen] = useState(false);
 	const [name, setName] = useState("");
 	const [description, setDescription] = useState("");
+
+	const elemId = useId();
 
 	const { data: boards, isLoading } = useQuery({
 		queryKey: ["boards", user?.id, syncedUser?.id],
@@ -171,7 +173,7 @@ export default function BoardsPage() {
 							<div className="grid gap-2">
 								<Label htmlFor="name">Board Name</Label>
 								<Input
-									id="name"
+									id={`${elemId}-name`}
 									value={name}
 									onChange={(e) => setName(e.target.value)}
 									placeholder="Sprint 23 Retrospective"
@@ -180,7 +182,7 @@ export default function BoardsPage() {
 							<div className="grid gap-2">
 								<Label htmlFor="description">Description (optional)</Label>
 								<Textarea
-									id="description"
+									id={`${elemId}-description`}
 									value={description}
 									onChange={(e) => setDescription(e.target.value)}
 									placeholder="Retrospective for the end of Sprint 23"

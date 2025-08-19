@@ -77,6 +77,7 @@ class MockHeaders {
 
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	forEach(callbackfn: (value: string, key: string, parent: any) => void) {
+		// biome-ignore lint/suspicious/useIterableCallbackReturn: This is a custom implementation
 		this.headers.forEach((value, key) => callbackfn(value, key, this));
 	}
 }

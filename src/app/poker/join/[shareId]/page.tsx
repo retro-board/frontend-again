@@ -3,7 +3,7 @@
 import { useUser } from "@clerk/nextjs";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { Button } from "~/components/ui/button";
 import {
 	Card,
@@ -23,6 +23,8 @@ export default function JoinPokerSessionPage() {
 	const { user, isLoaded } = useUser();
 	const { syncedUser } = useUserSync();
 	const [displayName, setDisplayName] = useState("");
+
+	const elemId = useId();
 
 	// Check for existing anonymous user
 	const { data: anonymousData } = useQuery({
@@ -163,7 +165,7 @@ export default function JoinPokerSessionPage() {
 						<div className="space-y-2">
 							<Label htmlFor="name">Your Name</Label>
 							<Input
-								id="name"
+								id={`${elemId}-name`}
 								value={displayName}
 								onChange={(e) => setDisplayName(e.target.value)}
 								placeholder="Enter your name"

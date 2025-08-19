@@ -3,7 +3,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Settings, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useId, useState } from "react";
 import { toast } from "sonner";
 import {
 	AlertDialog,
@@ -47,6 +47,8 @@ export function BoardSettings({ board, isOwner }: BoardSettingsProps) {
 	const [creationTime, setCreationTime] = useState(board.creation_time_minutes);
 	const [votingTime, setVotingTime] = useState(board.voting_time_minutes);
 	const [votesPerUser, setVotesPerUser] = useState(board.votes_per_user);
+
+	const elemId = useId();
 
 	// Update board mutation
 	const updateBoardMutation = useMutation({
@@ -131,7 +133,7 @@ export function BoardSettings({ board, isOwner }: BoardSettingsProps) {
 						<div className="space-y-2">
 							<Label htmlFor="name">Board Name</Label>
 							<Input
-								id="name"
+								id={`${elemId}-name`}
 								value={name}
 								onChange={(e) => setName(e.target.value)}
 								placeholder="Board name"
@@ -141,7 +143,7 @@ export function BoardSettings({ board, isOwner }: BoardSettingsProps) {
 						<div className="space-y-2">
 							<Label htmlFor="description">Description (optional)</Label>
 							<Textarea
-								id="description"
+								id={`${elemId}-description`}
 								value={description}
 								onChange={(e) => setDescription(e.target.value)}
 								placeholder="Board description"
