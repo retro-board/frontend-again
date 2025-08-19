@@ -1,0 +1,3 @@
+ancestorEntries = ["package.json", "pnpm-lock.yaml"]
+ourEntries = ["package.json", "pnpm-lock.yaml"]
+theirEntries = ["package.json", "pnpm-lock.yaml"]
