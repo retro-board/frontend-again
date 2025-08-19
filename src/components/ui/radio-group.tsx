@@ -14,7 +14,6 @@ const RadioGroup = React.forwardRef<
 		<RadioGroupPrimitive.Root
 			className={cn("grid gap-2", className)}
 			{...props}
-			// biome-ignore lint/style/noParameterAssign: This is a common pattern for React components
 			ref={ref}
 		/>
 	);
@@ -27,7 +26,6 @@ const RadioGroupItem = React.forwardRef<
 >(({ className, ...props }, ref) => {
 	return (
 		<RadioGroupPrimitive.Item
-			// biome-ignore lint/style/noParameterAssign: This is a common pattern for React components
 			ref={ref}
 			className={cn(
 				"aspect-square h-4 w-4 rounded-full border border-primary text-primary shadow focus:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50",

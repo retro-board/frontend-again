@@ -12,7 +12,7 @@ import {
 	Share2,
 } from "lucide-react";
 import { useParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { toast } from "sonner";
 import { ParticipantList } from "~/components/poker/ParticipantList";
 import { VoteCard } from "~/components/poker/VoteCard";
@@ -74,6 +74,8 @@ export default function PokerSessionPage() {
 	const [selectedVote, setSelectedVote] = useState<string | null>(null);
 	const [shareDialogOpen, setShareDialogOpen] = useState(false);
 	const [copied, setCopied] = useState(false);
+
+	const elemId = useId();
 
 	// Get anonymous user if not logged in
 	const { data: anonymousData } = useQuery({
@@ -477,7 +479,7 @@ export default function PokerSessionPage() {
 									<div className="grid gap-2">
 										<Label htmlFor="title">Story Title</Label>
 										<Input
-											id="title"
+											id={`${elemId}-title`}
 											value={storyTitle}
 											onChange={(e) => setStoryTitle(e.target.value)}
 											placeholder="As a user, I want to..."
@@ -486,7 +488,7 @@ export default function PokerSessionPage() {
 									<div className="grid gap-2">
 										<Label htmlFor="description">Description (optional)</Label>
 										<Textarea
-											id="description"
+											id={`${elemId}-description`}
 											value={storyDescription}
 											onChange={(e) => setStoryDescription(e.target.value)}
 											placeholder="Additional details about the story"

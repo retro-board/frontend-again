@@ -4,7 +4,7 @@ import { useUser } from "@clerk/nextjs";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Calendar, Hash, Plus, Users } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useId, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "~/components/ui/button";
 import {
@@ -40,6 +40,8 @@ export default function PokerPage() {
 	const [description, setDescription] = useState("");
 	const [estimationType, setEstimationType] =
 		useState<EstimationType>("fibonacci");
+
+	const elemId = useId();
 
 	const { data: sessions, isLoading } = useQuery({
 		queryKey: ["poker-sessions", user?.id],
@@ -188,7 +190,7 @@ export default function PokerPage() {
 							<div className="grid gap-2">
 								<Label htmlFor="name">Session Name</Label>
 								<Input
-									id="name"
+									id={`${elemId}-name`}
 									value={name}
 									onChange={(e) => setName(e.target.value)}
 									placeholder="Sprint 23 Planning"
@@ -197,7 +199,7 @@ export default function PokerPage() {
 							<div className="grid gap-2">
 								<Label htmlFor="description">Description (optional)</Label>
 								<Textarea
-									id="description"
+									id={`${elemId}-description`}
 									value={description}
 									onChange={(e) => setDescription(e.target.value)}
 									placeholder="Planning session for upcoming sprint"
@@ -213,19 +215,25 @@ export default function PokerPage() {
 									}
 								>
 									<div className="flex items-center space-x-2">
-										<RadioGroupItem value="fibonacci" id="fibonacci" />
+										<RadioGroupItem
+											value="fibonacci"
+											id={`${elemId}-fibonacci`}
+										/>
 										<Label htmlFor="fibonacci">
 											Fibonacci (1, 2, 3, 5, 8, 13, 21...)
 										</Label>
 									</div>
 									<div className="flex items-center space-x-2">
-										<RadioGroupItem value="tshirt" id="tshirt" />
+										<RadioGroupItem value="tshirt" id={`${elemId}-tshirt`} />
 										<Label htmlFor="tshirt">
 											T-Shirt Sizes (XS, S, M, L, XL, XXL)
 										</Label>
 									</div>
 									<div className="flex items-center space-x-2">
-										<RadioGroupItem value="oneToTen" id="oneToTen" />
+										<RadioGroupItem
+											value="oneToTen"
+											id={`${elemId}-oneToTen`}
+										/>
 										<Label htmlFor="oneToTen">1-10 Scale</Label>
 									</div>
 								</RadioGroup>

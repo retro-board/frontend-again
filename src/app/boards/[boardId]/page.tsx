@@ -10,7 +10,7 @@ import {
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Check, Copy, Plus, Share2 } from "lucide-react";
 import { useParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { toast } from "sonner";
 import { BoardColumn } from "~/components/boards/BoardColumn";
 import { BoardSettings } from "~/components/boards/BoardSettings";
@@ -51,6 +51,8 @@ export default function BoardPage() {
 	const [activeCard, setActiveCard] = useState<Card | null>(null);
 	const [shareDialogOpen, setShareDialogOpen] = useState(false);
 	const [copied, setCopied] = useState(false);
+
+	const elemId = useId();
 
 	// Get current user from database
 	const { data: currentUser } = useQuery({
@@ -380,7 +382,7 @@ export default function BoardPage() {
 										<div className="grid gap-2">
 											<Label htmlFor="name">Column Name</Label>
 											<Input
-												id="name"
+												id={`${elemId}-name`}
 												value={columnName}
 												onChange={(e) => setColumnName(e.target.value)}
 												placeholder="What went well?"
@@ -389,7 +391,7 @@ export default function BoardPage() {
 										<div className="grid gap-2">
 											<Label htmlFor="color">Color</Label>
 											<Input
-												id="color"
+												id={`${elemId}-color`}
 												type="color"
 												value={columnColor}
 												onChange={(e) => setColumnColor(e.target.value)}

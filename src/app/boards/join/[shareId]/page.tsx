@@ -3,7 +3,7 @@
 import { useUser } from "@clerk/nextjs";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { Button } from "~/components/ui/button";
 import {
 	Card,
@@ -23,6 +23,8 @@ export default function JoinBoardPage() {
 	const { user, isLoaded } = useUser();
 	const { syncedUser } = useUserSync();
 	const [displayName, setDisplayName] = useState("");
+
+	const elemId = useId();
 
 	// Check for existing anonymous user
 	const { data: anonymousData } = useQuery({
@@ -164,7 +166,7 @@ export default function JoinBoardPage() {
 							<div>
 								<Label htmlFor="displayName">Your Name</Label>
 								<Input
-									id="displayName"
+									id={`${elemId}-displayName`}
 									value={displayName}
 									onChange={(e) => setDisplayName(e.target.value)}
 									placeholder="Enter your name"
