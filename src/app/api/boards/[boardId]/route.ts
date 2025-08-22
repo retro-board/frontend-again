@@ -6,9 +6,10 @@ import { createAuthenticatedSupabaseClient } from "~/lib/supabase/server";
 
 export async function GET(
 	_request: Request,
-	{ params }: { params: { boardId: string } },
+	{ params }: { params: Promise<{ boardId: string }> },
 ) {
 	try {
+		const resolvedParams = await params;
 		const { userId } = await auth();
 		const cookieStore = await cookies();
 		const anonymousSessionId = cookieStore.get("anonymous_session_id")?.value;
@@ -39,7 +40,7 @@ export async function GET(
 			const { data: participant } = await supabase
 				.from("board_participants")
 				.select("*")
-				.eq("board_id", params.boardId)
+				.eq("board_id", resolvedParams.boardId)
 				.eq("user_id", dbUser.id)
 				.maybeSingle();
 
@@ -57,7 +58,7 @@ export async function GET(
 				const { data: participant } = await supabaseAdmin
 					.from("board_anonymous_participants")
 					.select("*")
-					.eq("board_id", params.boardId)
+					.eq("board_id", resolvedParams.boardId)
 					.eq("anonymous_user_id", anonymousUser.id)
 					.maybeSingle();
 
@@ -76,7 +77,7 @@ export async function GET(
 		const { data: board, error: boardError } = await supabase
 			.from("boards")
 			.select("*")
-			.eq("id", params.boardId)
+			.eq("id", resolvedParams.boardId)
 			.single();
 
 		if (boardError || !board) {
@@ -95,7 +96,7 @@ export async function GET(
           votes:card_votes(*)
         )
       `)
-			.eq("board_id", params.boardId)
+			.eq("board_id", resolvedParams.boardId)
 			.order("position");
 
 		if (columnsError) {

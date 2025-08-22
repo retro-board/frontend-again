@@ -5,9 +5,10 @@ import { NextResponse } from "next/server";
 import { supabaseAdmin } from "~/lib/supabase/admin";
 export async function POST(
 	request: Request,
-	{ params }: { params: { sessionId: string } },
+	{ params }: { params: Promise<{ sessionId: string }> },
 ) {
 	try {
+		const resolvedParams = await params;
 		const { userId } = await auth();
 		const cookieStore = await cookies();
 		const anonymousSessionId = cookieStore.get("anonymous_session_id")?.value;
@@ -44,7 +45,7 @@ export async function POST(
 			const { data: participant } = await supabaseAdmin
 				.from("poker_participants")
 				.select("*")
-				.eq("session_id", params.sessionId)
+				.eq("session_id", resolvedParams.sessionId)
 				.eq("user_id", dbUser.id)
 				.maybeSingle();
 
@@ -77,7 +78,7 @@ export async function POST(
 			const { data: participant } = await supabaseAdmin
 				.from("poker_anonymous_participants")
 				.select("*")
-				.eq("session_id", params.sessionId)
+				.eq("session_id", resolvedParams.sessionId)
 				.eq("anonymous_user_id", anonymousUser.id)
 				.maybeSingle();
 
@@ -87,7 +88,7 @@ export async function POST(
 			} else {
 				console.log(
 					"Anonymous user is NOT participant of session:",
-					params.sessionId,
+					resolvedParams.sessionId,
 				);
 			}
 		}

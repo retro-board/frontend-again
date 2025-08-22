@@ -19,16 +19,16 @@ export async function createAuthenticatedSupabaseClient() {
 		.maybeSingle();
 
 	if (!dbUser) {
-		// Create user if they don't exist
-		const { getUser } = await auth();
-		const user = await getUser(userId);
+		// User should exist from sync, but create a minimal entry if not
+		const { error } = await supabaseAdmin.from("users").insert({
+			clerk_id: userId,
+			email: "",
+			name: "User",
+		});
 		
-		if (user) {
-			await supabaseAdmin.from("users").insert({
-				clerk_id: userId,
-				email: user.emailAddresses[0]?.emailAddress || "",
-				name: `${user.firstName || ""} ${user.lastName || ""}`.trim() || "Anonymous",
-			});
+		// Ignore conflict errors if user already exists
+		if (error && error.code !== "23505") {
+			throw error;
 		}
 	}
 
@@ -41,7 +41,7 @@ export async function createAuthenticatedSupabaseClient() {
 			iat: Math.floor(Date.now() / 1000),
 			exp: Math.floor(Date.now() / 1000) + 60 * 60, // 1 hour expiry
 		},
-		env.SUPABASE_JWT_SECRET || env.SUPABASE_SERVICE_ROLE_KEY,
+		env.SUPABASE_JWT_SECRET || env.SUPABASE_SERVICE_ROLE_KEY || "",
 		{ algorithm: "HS256" }
 	);
 

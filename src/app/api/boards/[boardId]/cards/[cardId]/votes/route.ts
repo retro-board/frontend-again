@@ -5,9 +5,10 @@ import { supabaseAdmin } from "~/lib/supabase/admin";
 
 export async function POST(
 	_request: Request,
-	{ params }: { params: { boardId: string; cardId: string } },
+	{ params }: { params: Promise<{ boardId: string; cardId: string }> },
 ) {
 	try {
+		const resolvedParams = await params;
 		const { userId } = await auth();
 		const cookieStore = await cookies();
 		const anonymousSessionId = cookieStore.get("anonymous_session_id")?.value;
@@ -55,7 +56,7 @@ export async function POST(
 		const { data: board } = await supabaseAdmin
 			.from("boards")
 			.select("votes_per_user, phase")
-			.eq("id", params.boardId)
+			.eq("id", resolvedParams.boardId)
 			.single();
 
 		if (!board) {
@@ -74,7 +75,7 @@ export async function POST(
 		const existingVoteQuery = supabaseAdmin
 			.from("card_votes")
 			.select("id")
-			.eq("card_id", params.cardId);
+			.eq("card_id", resolvedParams.cardId);
 
 		if (isAnonymous) {
 			existingVoteQuery.eq("anonymous_user_id", voterId);
@@ -112,7 +113,7 @@ export async function POST(
 						await supabaseAdmin
 							.from("columns")
 							.select("id")
-							.eq("board_id", params.boardId)
+							.eq("board_id", resolvedParams.boardId)
 							.then((res) => res.data?.map((col) => col.id) || []),
 					)
 					.then((res) => res.data?.map((card) => card.id) || []),
@@ -142,7 +143,7 @@ export async function POST(
 			user_id?: string;
 			anonymous_user_id?: string;
 		} = {
-			card_id: params.cardId,
+			card_id: resolvedParams.cardId,
 		};
 
 		if (isAnonymous) {

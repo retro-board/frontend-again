@@ -4,9 +4,10 @@ import { NextResponse } from "next/server";
 import { supabaseAdmin } from "~/lib/supabase/admin";
 export async function POST(
 	request: Request,
-	{ params }: { params: { sessionId: string } },
+	{ params }: { params: Promise<{ sessionId: string }> },
 ) {
 	try {
+		const resolvedParams = await params;
 		const { userId } = await auth();
 
 		if (!userId) {
@@ -31,7 +32,7 @@ export async function POST(
 		const { data: facilitator } = await supabaseAdmin
 			.from("poker_participants")
 			.select("*")
-			.eq("session_id", params.sessionId)
+			.eq("session_id", resolvedParams.sessionId)
 			.eq("user_id", dbUser.id)
 			.eq("role", "facilitator")
 			.maybeSingle();
@@ -47,13 +48,13 @@ export async function POST(
 		const { count } = await supabaseAdmin
 			.from("stories")
 			.select("*", { count: "exact", head: true })
-			.eq("session_id", params.sessionId);
+			.eq("session_id", resolvedParams.sessionId);
 
 		// Create story
 		const { data: story, error } = await supabaseAdmin
 			.from("stories")
 			.insert({
-				session_id: params.sessionId,
+				session_id: resolvedParams.sessionId,
 				title,
 				description,
 				position: count || 0,
@@ -80,9 +81,10 @@ export async function POST(
 
 export async function PATCH(
 	request: Request,
-	{ params }: { params: { sessionId: string } },
+	{ params }: { params: Promise<{ sessionId: string }> },
 ) {
 	try {
+		const resolvedParams = await params;
 		const { userId } = await auth();
 
 		if (!userId) {
@@ -107,7 +109,7 @@ export async function PATCH(
 		const { data: facilitator } = await supabaseAdmin
 			.from("poker_participants")
 			.select("*")
-			.eq("session_id", params.sessionId)
+			.eq("session_id", resolvedParams.sessionId)
 			.eq("user_id", dbUser.id)
 			.eq("role", "facilitator")
 			.maybeSingle();
@@ -128,7 +130,7 @@ export async function PATCH(
 				updated_at: new Date().toISOString(),
 			})
 			.eq("id", storyId)
-			.eq("session_id", params.sessionId)
+			.eq("session_id", resolvedParams.sessionId)
 			.select()
 			.single();
 

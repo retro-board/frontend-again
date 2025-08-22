@@ -3,13 +3,14 @@ import { supabaseAdmin } from "~/lib/supabase/admin";
 
 export async function GET(
 	_request: Request,
-	{ params }: { params: { shareId: string } },
+	{ params }: { params: Promise<{ shareId: string }> },
 ) {
 	try {
+		const resolvedParams = await params;
 		const { data: session, error } = await supabaseAdmin
 			.from("poker_sessions")
 			.select("id, name, description, estimation_type, is_active")
-			.eq("share_id", params.shareId)
+			.eq("share_id", resolvedParams.shareId)
 			.eq("is_active", true)
 			.single();
 
