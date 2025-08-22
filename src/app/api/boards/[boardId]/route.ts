@@ -24,7 +24,7 @@ export async function GET(
 		if (userId) {
 			// Use authenticated client for logged-in users
 			supabase = await createAuthenticatedSupabaseClient();
-			
+
 			// Get user from database
 			const { data: dbUser } = await supabase
 				.from("users")

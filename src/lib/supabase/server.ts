@@ -1,12 +1,12 @@
-import { createClient } from "@supabase/supabase-js";
 import { auth } from "@clerk/nextjs/server";
+import { createClient } from "@supabase/supabase-js";
 import jwt from "jsonwebtoken";
 import { env } from "~/env";
 import { supabaseAdmin } from "./admin";
 
 export async function createAuthenticatedSupabaseClient() {
 	const { userId } = await auth();
-	
+
 	if (!userId) {
 		throw new Error("User not authenticated");
 	}
@@ -25,7 +25,7 @@ export async function createAuthenticatedSupabaseClient() {
 			email: "",
 			name: "User",
 		});
-		
+
 		// Ignore conflict errors if user already exists
 		if (error && error.code !== "23505") {
 			throw error;
@@ -42,7 +42,7 @@ export async function createAuthenticatedSupabaseClient() {
 			exp: Math.floor(Date.now() / 1000) + 60 * 60, // 1 hour expiry
 		},
 		env.SUPABASE_JWT_SECRET || env.SUPABASE_SERVICE_ROLE_KEY || "",
-		{ algorithm: "HS256" }
+		{ algorithm: "HS256" },
 	);
 
 	// Create a Supabase client with the custom token
@@ -59,6 +59,6 @@ export async function createAuthenticatedSupabaseClient() {
 					Authorization: `Bearer ${supabaseToken}`,
 				},
 			},
-		}
+		},
 	);
 }
