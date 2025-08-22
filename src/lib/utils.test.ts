@@ -49,7 +49,8 @@ describe("cn utility", () => {
 
 	it("should preserve important Tailwind modifiers", () => {
 		const result = cn("!px-2", "px-3");
-		expect(result).toBe("!px-2");
+		// tailwind-merge doesn't override important modifiers
+		expect(result).toBe("!px-2 px-3");
 	});
 
 	it("should handle responsive Tailwind classes", () => {

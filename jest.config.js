@@ -23,7 +23,7 @@ const config = {
 			},
 		],
 	},
-	transformIgnorePatterns: ["node_modules/(?!(@clerk|nanoid)/)"],
+	transformIgnorePatterns: ["node_modules/(?!(@clerk|nanoid|@supabase)/)"],
 	collectCoverageFrom: [
 		"src/**/*.{ts,tsx}",
 		"!src/**/*.d.ts",

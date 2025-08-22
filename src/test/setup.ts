@@ -1,5 +1,22 @@
 import "@testing-library/jest-dom";
 
+// Mock nanoid before any imports
+jest.mock("nanoid", () => ({
+	nanoid: jest.fn(() => `test-id-${Math.random().toString(36).substr(2, 9)}`),
+}));
+
+// Mock Clerk modules before any imports
+jest.mock("@clerk/nextjs/server", () => ({
+	auth: jest.fn(() => Promise.resolve({ userId: null })),
+}));
+
+jest.mock("@clerk/nextjs", () => ({
+	useUser: jest.fn(() => ({ isLoaded: true, user: null })),
+	useAuth: jest.fn(() => ({ isLoaded: true, userId: null })),
+	useClerk: jest.fn(() => ({})),
+	ClerkProvider: ({ children }: { children: React.ReactNode }) => children,
+}));
+
 // Mock next/navigation
 jest.mock("next/navigation", () => ({
 	useRouter: () => ({
