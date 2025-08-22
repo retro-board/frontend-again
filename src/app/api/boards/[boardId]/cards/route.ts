@@ -5,9 +5,10 @@ import { supabaseAdmin } from "~/lib/supabase/admin";
 
 export async function POST(
 	request: Request,
-	{ params }: { params: { boardId: string } },
+	{ params }: { params: Promise<{ boardId: string }> },
 ) {
 	try {
+		const resolvedParams = await params;
 		const { userId } = await auth();
 		const cookieStore = await cookies();
 		const anonymousSessionId = cookieStore.get("anonymous_session_id")?.value;
@@ -40,7 +41,7 @@ export async function POST(
 			const { data: participant } = await supabaseAdmin
 				.from("board_participants")
 				.select("*")
-				.eq("board_id", params.boardId)
+				.eq("board_id", resolvedParams.boardId)
 				.eq("user_id", dbUser.id)
 				.maybeSingle();
 
@@ -66,7 +67,7 @@ export async function POST(
 			const { data: participant } = await supabaseAdmin
 				.from("board_anonymous_participants")
 				.select("*")
-				.eq("board_id", params.boardId)
+				.eq("board_id", resolvedParams.boardId)
 				.eq("anonymous_user_id", anonymousUser.id)
 				.maybeSingle();
 

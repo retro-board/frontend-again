@@ -5,9 +5,10 @@ import { NextResponse } from "next/server";
 import { supabaseAdmin } from "~/lib/supabase/admin";
 export async function GET(
 	_request: Request,
-	{ params }: { params: { sessionId: string } },
+	{ params }: { params: Promise<{ sessionId: string }> },
 ) {
 	try {
+		const resolvedParams = await params;
 		const { userId } = await auth();
 		const cookieStore = await cookies();
 		const anonymousSessionId = cookieStore.get("anonymous_session_id")?.value;
@@ -34,7 +35,7 @@ export async function GET(
 			const { data: participant } = await supabaseAdmin
 				.from("poker_participants")
 				.select("*")
-				.eq("session_id", params.sessionId)
+				.eq("session_id", resolvedParams.sessionId)
 				.eq("user_id", dbUser.id)
 				.maybeSingle();
 
@@ -54,7 +55,7 @@ export async function GET(
 				const { data: participant } = await supabaseAdmin
 					.from("poker_anonymous_participants")
 					.select("*")
-					.eq("session_id", params.sessionId)
+					.eq("session_id", resolvedParams.sessionId)
 					.eq("anonymous_user_id", anonymousUser.id)
 					.maybeSingle();
 
@@ -93,7 +94,7 @@ export async function GET(
           anonymous_user:anonymous_users(*)
         )
       `)
-			.eq("id", params.sessionId)
+			.eq("id", resolvedParams.sessionId)
 			.single();
 
 		if (sessionError || !session) {
@@ -122,9 +123,10 @@ export async function GET(
 
 export async function PATCH(
 	request: Request,
-	{ params }: { params: { sessionId: string } },
+	{ params }: { params: Promise<{ sessionId: string }> },
 ) {
 	try {
+		const resolvedParams = await params;
 		const { userId } = await auth();
 
 		if (!userId) {
@@ -149,7 +151,7 @@ export async function PATCH(
 		const { data: facilitator } = await supabaseAdmin
 			.from("poker_participants")
 			.select("*")
-			.eq("session_id", params.sessionId)
+			.eq("session_id", resolvedParams.sessionId)
 			.eq("user_id", dbUser.id)
 			.eq("role", "facilitator")
 			.maybeSingle();
@@ -173,7 +175,7 @@ export async function PATCH(
 		const { data: session, error } = await supabaseAdmin
 			.from("poker_sessions")
 			.update(updateData)
-			.eq("id", params.sessionId)
+			.eq("id", resolvedParams.sessionId)
 			.select()
 			.single();
 

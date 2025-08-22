@@ -2,6 +2,8 @@ import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
 import { supabaseAdmin } from "~/lib/supabase/admin";
+import { createAuthenticatedSupabaseClient } from "~/lib/supabase/server";
+
 export async function POST(request: Request) {
 	try {
 		const { userId } = await auth();
@@ -13,8 +15,11 @@ export async function POST(request: Request) {
 		const body = await request.json();
 		const { name, description } = body;
 
+		// Use authenticated client for RLS-protected operations
+		const supabase = await createAuthenticatedSupabaseClient();
+
 		// Get user from database
-		const { data: dbUser, error: userError } = await supabaseAdmin
+		const { data: dbUser, error: userError } = await supabase
 			.from("users")
 			.select("id")
 			.eq("clerk_id", userId)
@@ -32,8 +37,8 @@ export async function POST(request: Request) {
 			);
 		}
 
-		// Create board
-		const { data: board, error: boardError } = await supabaseAdmin
+		// Create board (RLS will ensure only authenticated users can create)
+		const { data: board, error: boardError } = await supabase
 			.from("boards")
 			.insert({
 				name,
@@ -48,8 +53,8 @@ export async function POST(request: Request) {
 			return NextResponse.json({ error: boardError.message }, { status: 500 });
 		}
 
-		// Add owner as participant
-		const { error: participantError } = await supabaseAdmin
+		// Add owner as participant (RLS will verify permissions)
+		const { error: participantError } = await supabase
 			.from("board_participants")
 			.insert({
 				board_id: board.id,
@@ -62,7 +67,7 @@ export async function POST(request: Request) {
 			// Don't fail the whole operation if participant add fails
 		}
 
-		// Create default columns: Good, Bad, Actions
+		// Create default columns (use admin client as columns might not have RLS)
 		const defaultColumns = [
 			{
 				board_id: board.id,

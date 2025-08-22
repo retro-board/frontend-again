@@ -4,9 +4,10 @@ import { NextResponse } from "next/server";
 import { supabaseAdmin } from "~/lib/supabase/admin";
 export async function POST(
 	request: Request,
-	{ params }: { params: { boardId: string } },
+	{ params }: { params: Promise<{ boardId: string }> },
 ) {
 	try {
+		const resolvedParams = await params;
 		const { userId } = await auth();
 
 		if (!userId) {
@@ -31,7 +32,7 @@ export async function POST(
 		const { data: board } = await supabaseAdmin
 			.from("boards")
 			.select("owner_id")
-			.eq("id", params.boardId)
+			.eq("id", resolvedParams.boardId)
 			.eq("owner_id", dbUser.id)
 			.single();
 
@@ -46,7 +47,7 @@ export async function POST(
 		const { data: column, error } = await supabaseAdmin
 			.from("columns")
 			.insert({
-				board_id: params.boardId,
+				board_id: resolvedParams.boardId,
 				name,
 				color,
 				position,
@@ -73,9 +74,10 @@ export async function POST(
 
 export async function DELETE(
 	request: Request,
-	{ params }: { params: { boardId: string } },
+	{ params }: { params: Promise<{ boardId: string }> },
 ) {
 	try {
+		const resolvedParams = await params;
 		const { userId } = await auth();
 
 		if (!userId) {
@@ -107,7 +109,7 @@ export async function DELETE(
 		const { data: board } = await supabaseAdmin
 			.from("boards")
 			.select("owner_id")
-			.eq("id", params.boardId)
+			.eq("id", resolvedParams.boardId)
 			.eq("owner_id", dbUser.id)
 			.single();
 
@@ -137,7 +139,7 @@ export async function DELETE(
 			.from("columns")
 			.delete()
 			.eq("id", columnId)
-			.eq("board_id", params.boardId);
+			.eq("board_id", resolvedParams.boardId);
 
 		if (error) {
 			console.error("Error deleting column:", error);

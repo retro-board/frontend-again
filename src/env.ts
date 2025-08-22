@@ -20,6 +20,7 @@ export const env = createEnv({
 		CLERK_SECRET_KEY: z.string().optional(),
 
 		SUPABASE_SERVICE_ROLE_KEY: z.string().optional(),
+		SUPABASE_JWT_SECRET: z.string().optional(),
 	},
 
 	/**
@@ -55,6 +56,7 @@ export const env = createEnv({
 		NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
 		NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
 		SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
+		SUPABASE_JWT_SECRET: process.env.SUPABASE_JWT_SECRET,
 	},
 	/**
 	 * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation. This is especially

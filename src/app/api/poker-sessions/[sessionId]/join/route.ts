@@ -5,9 +5,10 @@ import { supabaseAdmin } from "~/lib/supabase/admin";
 
 export async function POST(
 	_request: Request,
-	{ params }: { params: { sessionId: string } },
+	{ params }: { params: Promise<{ sessionId: string }> },
 ) {
 	try {
+		const resolvedParams = await params;
 		const { userId } = await auth();
 		const cookieStore = await cookies();
 		const anonymousSessionId = cookieStore.get("anonymous_session_id")?.value;
@@ -24,7 +25,7 @@ export async function POST(
 		const { data: session } = await supabaseAdmin
 			.from("poker_sessions")
 			.select("id")
-			.eq("id", params.sessionId)
+			.eq("id", resolvedParams.sessionId)
 			.eq("is_active", true)
 			.maybeSingle();
 
@@ -51,7 +52,7 @@ export async function POST(
 			const { data: existingParticipant } = await supabaseAdmin
 				.from("poker_participants")
 				.select("id")
-				.eq("session_id", params.sessionId)
+				.eq("session_id", resolvedParams.sessionId)
 				.eq("user_id", dbUser.id)
 				.maybeSingle();
 
@@ -60,7 +61,7 @@ export async function POST(
 				const { error } = await supabaseAdmin
 					.from("poker_participants")
 					.insert({
-						session_id: params.sessionId,
+						session_id: resolvedParams.sessionId,
 						user_id: dbUser.id,
 						role: "voter",
 					});
@@ -89,7 +90,7 @@ export async function POST(
 			const { data: existingParticipant } = await supabaseAdmin
 				.from("poker_anonymous_participants")
 				.select("id")
-				.eq("session_id", params.sessionId)
+				.eq("session_id", resolvedParams.sessionId)
 				.eq("anonymous_user_id", anonymousUser.id)
 				.maybeSingle();
 
@@ -98,7 +99,7 @@ export async function POST(
 				const { error } = await supabaseAdmin
 					.from("poker_anonymous_participants")
 					.insert({
-						session_id: params.sessionId,
+						session_id: resolvedParams.sessionId,
 						anonymous_user_id: anonymousUser.id,
 					});
 

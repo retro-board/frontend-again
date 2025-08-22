@@ -5,9 +5,10 @@ import { supabaseAdmin } from "~/lib/supabase/admin";
 
 export async function POST(
 	_request: Request,
-	{ params }: { params: { boardId: string } },
+	{ params }: { params: Promise<{ boardId: string }> },
 ) {
 	try {
+		const resolvedParams = await params;
 		const { userId } = await auth();
 		const cookieStore = await cookies();
 		const anonymousSessionId = cookieStore.get("anonymous_session_id")?.value;
@@ -24,7 +25,7 @@ export async function POST(
 		const { data: board } = await supabaseAdmin
 			.from("boards")
 			.select("id")
-			.eq("id", params.boardId)
+			.eq("id", resolvedParams.boardId)
 			.eq("is_active", true)
 			.maybeSingle();
 
@@ -51,7 +52,7 @@ export async function POST(
 			const { data: existingParticipant } = await supabaseAdmin
 				.from("board_participants")
 				.select("id")
-				.eq("board_id", params.boardId)
+				.eq("board_id", resolvedParams.boardId)
 				.eq("user_id", dbUser.id)
 				.maybeSingle();
 
@@ -60,7 +61,7 @@ export async function POST(
 				const { error } = await supabaseAdmin
 					.from("board_participants")
 					.insert({
-						board_id: params.boardId,
+						board_id: resolvedParams.boardId,
 						user_id: dbUser.id,
 						role: "participant",
 					});
@@ -89,7 +90,7 @@ export async function POST(
 			const { data: existingParticipant } = await supabaseAdmin
 				.from("board_anonymous_participants")
 				.select("id")
-				.eq("board_id", params.boardId)
+				.eq("board_id", resolvedParams.boardId)
 				.eq("anonymous_user_id", anonymousUser.id)
 				.maybeSingle();
 
@@ -98,7 +99,7 @@ export async function POST(
 				const { error } = await supabaseAdmin
 					.from("board_anonymous_participants")
 					.insert({
-						board_id: params.boardId,
+						board_id: resolvedParams.boardId,
 						anonymous_user_id: anonymousUser.id,
 					});
 

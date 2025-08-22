@@ -4,9 +4,10 @@ import { NextResponse } from "next/server";
 import { supabaseAdmin } from "~/lib/supabase/admin";
 export async function PATCH(
 	request: Request,
-	{ params }: { params: { boardId: string } },
+	{ params }: { params: Promise<{ boardId: string }> },
 ) {
 	try {
+		const resolvedParams = await params;
 		const { userId } = await auth();
 
 		if (!userId) {
@@ -37,7 +38,7 @@ export async function PATCH(
 		const { data: board } = await supabaseAdmin
 			.from("boards")
 			.select("owner_id")
-			.eq("id", params.boardId)
+			.eq("id", resolvedParams.boardId)
 			.single();
 
 		if (!board) {
@@ -75,7 +76,7 @@ export async function PATCH(
 		const { data: updatedBoard, error } = await supabaseAdmin
 			.from("boards")
 			.update(updateData)
-			.eq("id", params.boardId)
+			.eq("id", resolvedParams.boardId)
 			.select()
 			.single();
 
@@ -98,9 +99,10 @@ export async function PATCH(
 
 export async function DELETE(
 	_request: Request,
-	{ params }: { params: { boardId: string } },
+	{ params }: { params: Promise<{ boardId: string }> },
 ) {
 	try {
+		const resolvedParams = await params;
 		const { userId } = await auth();
 
 		if (!userId) {
@@ -122,7 +124,7 @@ export async function DELETE(
 		const { data: board } = await supabaseAdmin
 			.from("boards")
 			.select("owner_id")
-			.eq("id", params.boardId)
+			.eq("id", resolvedParams.boardId)
 			.single();
 
 		if (!board) {
@@ -140,7 +142,7 @@ export async function DELETE(
 		const { error } = await supabaseAdmin
 			.from("boards")
 			.delete()
-			.eq("id", params.boardId);
+			.eq("id", resolvedParams.boardId);
 
 		if (error) {
 			console.error("Error deleting board:", error);

@@ -13,9 +13,10 @@ const NEXT_PHASE: Record<BoardPhase, BoardPhase> = {
 
 export async function POST(
 	request: Request,
-	{ params }: { params: { boardId: string } },
+	{ params }: { params: Promise<{ boardId: string }> },
 ) {
 	try {
+		const resolvedParams = await params;
 		const { userId } = await auth();
 
 		if (!userId) {
@@ -40,7 +41,7 @@ export async function POST(
 		const { data: board } = await supabaseAdmin
 			.from("boards")
 			.select("*")
-			.eq("id", params.boardId)
+			.eq("id", resolvedParams.boardId)
 			.single();
 
 		if (!board) {
@@ -125,7 +126,7 @@ export async function POST(
 							await supabaseAdmin
 								.from("columns")
 								.select("id")
-								.eq("board_id", params.boardId)
+								.eq("board_id", resolvedParams.boardId)
 								.then((res) => res.data?.map((col) => col.id) || []),
 						);
 				}
@@ -140,7 +141,7 @@ export async function POST(
 		const { data: updatedBoard, error } = await supabaseAdmin
 			.from("boards")
 			.update(updateData)
-			.eq("id", params.boardId)
+			.eq("id", resolvedParams.boardId)
 			.select()
 			.single();
 
@@ -163,9 +164,10 @@ export async function POST(
 
 export async function PATCH(
 	_request: Request,
-	{ params }: { params: { boardId: string } },
+	{ params }: { params: Promise<{ boardId: string }> },
 ) {
 	try {
+		const resolvedParams = await params;
 		const { userId } = await auth();
 
 		if (!userId) {
@@ -187,7 +189,7 @@ export async function PATCH(
 		const { data: board } = await supabaseAdmin
 			.from("boards")
 			.select("*")
-			.eq("id", params.boardId)
+			.eq("id", resolvedParams.boardId)
 			.single();
 
 		if (!board) {
@@ -237,7 +239,7 @@ export async function PATCH(
 		const { data: updatedBoard, error } = await supabaseAdmin
 			.from("boards")
 			.update(updateData)
-			.eq("id", params.boardId)
+			.eq("id", resolvedParams.boardId)
 			.select()
 			.single();
 
