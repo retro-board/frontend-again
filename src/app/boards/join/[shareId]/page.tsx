@@ -92,6 +92,10 @@ export default function JoinBoardPage() {
 				router.push(`/boards/${boardData.board.id}`);
 			}
 		},
+		onError: (error) => {
+			// The error message from the API will be displayed
+			console.error("Failed to join board:", error);
+		},
 	});
 
 	useEffect(() => {
@@ -130,6 +134,114 @@ export default function JoinBoardPage() {
 					<p className="text-red-500">Board not found</p>
 				</div>
 			</div>
+		);
+	}
+
+	// Check if board is in setup phase
+	if (boardData.board.phase === "setup") {
+		return (
+			<div className="container mx-auto py-8">
+				<div className="mx-auto max-w-md">
+					<Card>
+						<CardHeader>
+							<CardTitle>Board Setup in Progress</CardTitle>
+							<CardDescription>
+								The board &quot;{boardData.board.name}&quot; is currently being
+								set up.
+							</CardDescription>
+						</CardHeader>
+						<CardContent>
+							<p className="text-muted-foreground">
+								Please wait for the board owner to complete the setup process.
+								You&apos;ll be able to join once the board moves to the join
+								phase.
+							</p>
+							<p className="mt-4 text-muted-foreground text-sm">
+								Try refreshing this page in a few moments, or contact the board
+								owner for an update.
+							</p>
+						</CardContent>
+					</Card>
+				</div>
+			</div>
+		);
+	}
+
+	// Show welcome message during join phase
+	if (boardData.board.phase === "join") {
+		return (
+			<>
+				{(user && syncedUser) || anonymousData?.user ? (
+					<div className="container mx-auto py-8">
+						<div className="flex h-64 items-center justify-center">
+							<p className="text-muted-foreground">Joining board...</p>
+						</div>
+					</div>
+				) : (
+					<div className="container mx-auto py-8">
+						<div className="mx-auto max-w-md">
+							<Card>
+								<CardHeader>
+									<CardTitle>Join Retro Board</CardTitle>
+									<CardDescription>
+										The board &quot;{boardData.board.name}&quot; is waiting for
+										participants to join. Join now to participate!
+									</CardDescription>
+								</CardHeader>
+								<CardContent>
+									{user ? (
+										<Button onClick={() => handleJoin()} className="w-full">
+											Join Board
+										</Button>
+									) : (
+										<form
+											onSubmit={(e) => {
+												e.preventDefault();
+												handleJoin();
+											}}
+											className="space-y-4"
+										>
+											<div>
+												<Label htmlFor="displayName">Your Name</Label>
+												<Input
+													id={`${elemId}-displayName`}
+													value={displayName}
+													onChange={(e) => setDisplayName(e.target.value)}
+													placeholder="Enter your name"
+													required
+												/>
+												<p className="mt-1 text-muted-foreground text-sm">
+													This is how you&apos;ll appear to other participants
+												</p>
+											</div>
+											<Button
+												type="submit"
+												className="w-full"
+												disabled={
+													!displayName.trim() ||
+													createAnonymousUserMutation.isPending ||
+													joinBoardMutation.isPending
+												}
+											>
+												{createAnonymousUserMutation.isPending ||
+												joinBoardMutation.isPending
+													? "Joining..."
+													: "Join Board"}
+											</Button>
+										</form>
+									)}
+									{joinBoardMutation.isError && (
+										<p className="mt-2 text-red-500 text-sm">
+											{joinBoardMutation.error?.message ||
+												"Failed to join board"}
+										</p>
+									)}
+								</CardContent>
+							</Card>
+						</div>
+					</div>
+				)}
+			</>
 		);
 	}
 
@@ -190,6 +302,11 @@ export default function JoinBoardPage() {
 									? "Joining..."
 									: "Join Board"}
 							</Button>
+							{joinBoardMutation.isError && (
+								<p className="mt-2 text-red-500 text-sm">
+									{joinBoardMutation.error?.message || "Failed to join board"}
+								</p>
+							)}
 						</form>
 					</CardContent>
 				</Card>

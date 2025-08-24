@@ -15,6 +15,7 @@ interface BoardTimerProps {
 
 const PHASE_LABELS: Record<BoardPhase, string> = {
 	setup: "Setup",
+	join: "Waiting for Participants",
 	creation: "Creating Items",
 	voting: "Voting",
 	discussion: "Discussion",

@@ -3,6 +3,7 @@ export type BoardRole = "owner" | "participant" | "observer";
 export type PokerRole = "facilitator" | "voter" | "observer";
 export type BoardPhase =
 	| "setup"
+	| "join"
 	| "creation"
 	| "voting"
 	| "discussion"
