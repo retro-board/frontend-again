@@ -1,8 +1,7 @@
-import { auth } from "@clerk/nextjs/server";
+import { auth, currentUser } from "@clerk/nextjs/server";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "~/lib/supabase/admin";
-import { createAuthenticatedSupabaseClient } from "~/lib/supabase/server";
 
 export async function GET(
 	_request: Request,
@@ -19,25 +18,40 @@ export async function GET(
 		}
 
 		let isAuthorized = false;
-		let supabase = supabaseAdmin; // Default to admin for anonymous users
 
 		if (userId) {
-			// Use authenticated client for logged-in users
-			supabase = await createAuthenticatedSupabaseClient();
-
-			// Get user from database
-			const { data: dbUser } = await supabase
+			// Get user from database using admin client
+			let { data: dbUser } = await supabaseAdmin
 				.from("users")
 				.select("id")
 				.eq("clerk_id", userId)
 				.maybeSingle();
 
+			// If user doesn't exist, sync them from Clerk
+			if (!dbUser) {
+				const clerkUser = await currentUser();
+				if (clerkUser) {
+					const { data: newUser } = await supabaseAdmin
+						.from("users")
+						.insert({
+							clerk_id: userId,
+							email: clerkUser.emailAddresses[0]?.emailAddress ?? "",
+							name: clerkUser.fullName ?? clerkUser.username ?? "",
+							avatar_url: clerkUser.imageUrl,
+						})
+						.select("id")
+						.single();
+
+					dbUser = newUser;
+				}
+			}
+
 			if (!dbUser) {
 				return NextResponse.json({ error: "User not found" }, { status: 404 });
 			}
 
-			// RLS will handle authorization for board_participants
-			const { data: participant } = await supabase
+			// Check authorization using admin client
+			const { data: participant } = await supabaseAdmin
 				.from("board_participants")
 				.select("*")
 				.eq("board_id", resolvedParams.boardId)
@@ -73,8 +87,8 @@ export async function GET(
 			);
 		}
 
-		// Fetch board (RLS will handle permissions for authenticated users)
-		const { data: board, error: boardError } = await supabase
+		// Fetch board using admin client
+		const { data: board, error: boardError } = await supabaseAdmin
 			.from("boards")
 			.select("*")
 			.eq("id", resolvedParams.boardId)

@@ -1,8 +1,7 @@
-import { auth } from "@clerk/nextjs/server";
+import { auth, currentUser } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
 import { supabaseAdmin } from "~/lib/supabase/admin";
-import { createAuthenticatedSupabaseClient } from "~/lib/supabase/server";
 
 export async function POST(request: Request) {
 	try {
@@ -15,30 +14,56 @@ export async function POST(request: Request) {
 		const body = await request.json();
 		const { name, description } = body;
 
-		// Use authenticated client for RLS-protected operations
-		const supabase = await createAuthenticatedSupabaseClient();
-
-		// Get user from database
-		const { data: dbUser, error: userError } = await supabase
+		// Get user from database using admin client (no RLS)
+		const userResult = await supabaseAdmin
 			.from("users")
 			.select("id")
 			.eq("clerk_id", userId)
 			.maybeSingle();
 
-		if (userError) {
+		let dbUser = userResult.data;
+		const userError = userResult.error;
+
+		if (userError && userError.code !== "PGRST116") {
 			console.error("Error fetching user:", userError);
 			return NextResponse.json({ error: userError.message }, { status: 500 });
 		}
 
+		// If user doesn't exist, sync them from Clerk
 		if (!dbUser) {
-			return NextResponse.json(
-				{ error: "User not found in database" },
-				{ status: 404 },
-			);
+			const clerkUser = await currentUser();
+			if (!clerkUser) {
+				return NextResponse.json(
+					{ error: "Could not fetch user details from Clerk" },
+					{ status: 500 },
+				);
+			}
+
+			// Create user in database
+			const { data: newUser, error: createError } = await supabaseAdmin
+				.from("users")
+				.insert({
+					clerk_id: userId,
+					email: clerkUser.emailAddresses[0]?.emailAddress ?? "",
+					name: clerkUser.fullName ?? clerkUser.username ?? "",
+					avatar_url: clerkUser.imageUrl,
+				})
+				.select("id")
+				.single();
+
+			if (createError) {
+				console.error("Error creating user:", createError);
+				return NextResponse.json(
+					{ error: "Failed to sync user to database" },
+					{ status: 500 },
+				);
+			}
+
+			dbUser = newUser;
 		}
 
-		// Create board (RLS will ensure only authenticated users can create)
-		const { data: board, error: boardError } = await supabase
+		// Create board using admin client
+		const { data: board, error: boardError } = await supabaseAdmin
 			.from("boards")
 			.insert({
 				name,
@@ -53,8 +78,8 @@ export async function POST(request: Request) {
 			return NextResponse.json({ error: boardError.message }, { status: 500 });
 		}
 
-		// Add owner as participant (RLS will verify permissions)
-		const { error: participantError } = await supabase
+		// Add owner as participant using admin client
+		const { error: participantError } = await supabaseAdmin
 			.from("board_participants")
 			.insert({
 				board_id: board.id,
