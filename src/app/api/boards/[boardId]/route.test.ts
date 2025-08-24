@@ -57,7 +57,7 @@ describe("/api/boards/[boardId] GET", () => {
 				error: null,
 			});
 
-			// Mock columns fetch
+			// Mock columns fetch - columns are returned as an array
 			const mockColumns = [
 				{
 					id: "col_1",
@@ -65,7 +65,9 @@ describe("/api/boards/[boardId] GET", () => {
 					cards: [],
 				},
 			];
-			supabaseMocks.selectMock.mockResolvedValueOnce({
+			// The columns query doesn't use maybeSingle/single, it returns array directly
+			// We need to mock the entire chain to return the data
+			supabaseMocks.orderMock.mockResolvedValueOnce({
 				data: mockColumns,
 				error: null,
 			});
@@ -113,7 +115,7 @@ describe("/api/boards/[boardId] GET", () => {
 				error: null,
 			});
 
-			// Mock columns fetch
+			// Mock columns fetch - columns are returned as an array
 			const mockColumns = [
 				{
 					id: "col_1",
@@ -121,7 +123,9 @@ describe("/api/boards/[boardId] GET", () => {
 					cards: [],
 				},
 			];
-			supabaseMocks.selectMock.mockResolvedValueOnce({
+			// The columns query doesn't use maybeSingle/single, it returns array directly
+			// We need to mock the entire chain to return the data
+			supabaseMocks.orderMock.mockResolvedValueOnce({
 				data: mockColumns,
 				error: null,
 			});
@@ -195,7 +199,7 @@ describe("/api/boards/[boardId] GET", () => {
 				error: null,
 			});
 
-			// Mock columns fetch
+			// Mock columns fetch - columns are returned as an array
 			const mockColumns = [
 				{
 					id: "col_1",
@@ -203,7 +207,9 @@ describe("/api/boards/[boardId] GET", () => {
 					cards: [],
 				},
 			];
-			supabaseMocks.selectMock.mockResolvedValueOnce({
+			// The columns query doesn't use maybeSingle/single, it returns array directly
+			// We need to mock the entire chain to return the data
+			supabaseMocks.orderMock.mockResolvedValueOnce({
 				data: mockColumns,
 				error: null,
 			});

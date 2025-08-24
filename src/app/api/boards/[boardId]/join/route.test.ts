@@ -106,6 +106,12 @@ describe("/api/boards/[boardId]/join POST", () => {
 				error: null,
 			});
 
+			// Mock checking if user exists in database (second check after board owner verification)
+			supabaseMocks.maybeSingleMock.mockResolvedValueOnce({
+				data: mockDbUser,
+				error: null,
+			});
+
 			// Mock checking existing participant
 			supabaseMocks.maybeSingleMock.mockResolvedValueOnce({
 				data: null,

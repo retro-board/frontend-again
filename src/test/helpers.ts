@@ -86,25 +86,19 @@ export function setupSupabaseMocks() {
 
 	// Create chainable object - define it after we have all the mocks
 	// biome-ignore lint/suspicious/noExplicitAny: Mock object needs to be flexible
-	const chain: any = {
-		select: jest.fn(),
-		insert: jest.fn(),
-		update: jest.fn(),
-		delete: jest.fn(),
-		eq: jest.fn(),
-		order: jest.fn(),
-		maybeSingle: maybeSingleMock,
-		single: singleMock,
-	};
+	const chain: any = {};
 
-	// Setup each method to return the chain
-	chain.select.mockImplementation(() => chain);
-	chain.insert.mockImplementation(() => chain);
-	chain.update.mockImplementation(() => chain);
-	chain.delete.mockImplementation(() => chain);
-	chain.eq.mockImplementation(() => chain);
-	chain.order.mockImplementation(() => chain);
+	// Create chain methods that return the chain
+	const createChainMethod = () => jest.fn().mockImplementation(() => chain);
 
+	chain.select = createChainMethod();
+	chain.insert = createChainMethod();
+	chain.update = createChainMethod();
+	chain.delete = createChainMethod();
+	chain.eq = createChainMethod();
+	chain.order = createChainMethod();
+	chain.maybeSingle = maybeSingleMock;
+	chain.single = singleMock;
 
 	// fromMock returns the chain
 	fromMock.mockImplementation(() => chain);
