@@ -178,14 +178,23 @@ export function BoardColumn({
 							</div>
 						</div>
 					) : (
-						<Button
-							variant="ghost"
-							className="mt-2 w-full justify-start"
-							onClick={() => setIsAddingCard(true)}
-						>
-							<Plus className="mr-2 h-4 w-4" />
-							Add a card
-						</Button>
+						<>
+							{/* During setup phase, only show add button for action columns */}
+							{boardPhase === "setup" && !column.is_action ? (
+								<div className="mt-2 rounded-md bg-muted p-2 text-center text-muted-foreground text-sm">
+									Cards can only be added to action columns during setup
+								</div>
+							) : (
+								<Button
+									variant="ghost"
+									className="mt-2 w-full justify-start"
+									onClick={() => setIsAddingCard(true)}
+								>
+									<Plus className="mr-2 h-4 w-4" />
+									Add a card
+								</Button>
+							)}
+						</>
 					)}
 				</CardContent>
 			</UICard>
