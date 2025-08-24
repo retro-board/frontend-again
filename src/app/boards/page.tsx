@@ -73,6 +73,7 @@ export default function BoardsPage() {
 			description?: string;
 		}) => {
 			if (!user) throw new Error("User not authenticated");
+			if (!syncedUser) throw new Error("User sync in progress, please wait");
 
 			// Use API route to create board (bypasses RLS)
 			const response = await fetch("/api/boards", {
