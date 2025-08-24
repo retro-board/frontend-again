@@ -298,7 +298,7 @@ describe("/api/boards/[boardId]/cards POST", () => {
 			const response = await POST(request, {
 				params: Promise.resolve({ boardId: "board_123" }),
 			});
-			const _data = await response.json();
+			await response.json();
 
 			expect(response.status).toBe(200);
 			expect(currentUser).toHaveBeenCalled();

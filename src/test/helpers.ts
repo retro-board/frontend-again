@@ -86,6 +86,7 @@ export function setupSupabaseMocks() {
 
 	// Create chainable object - define it after we have all the mocks
 	// biome-ignore lint/suspicious/noExplicitAny: Mock object needs to be flexible
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	const chain: any = {};
 
 	// Create chain methods that return the chain
