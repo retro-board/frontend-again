@@ -1,13 +1,48 @@
 import "@testing-library/jest-dom";
 
+// Set up test environment variables
+process.env.NEXT_PUBLIC_SUPABASE_URL = "https://test.supabase.co";
+process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "test-anon-key";
+process.env.SUPABASE_SERVICE_ROLE_KEY = "test-service-key";
+process.env.SUPABASE_JWT_SECRET = "test-jwt-secret";
+process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY = "test-clerk-key";
+process.env.CLERK_SECRET_KEY = "test-clerk-secret";
+process.env.UPLOADTHING_TOKEN = "test-uploadthing-token";
+
 // Mock nanoid before any imports
 jest.mock("nanoid", () => ({
 	nanoid: jest.fn(() => `test-id-${Math.random().toString(36).substr(2, 9)}`),
 }));
 
+// Mock env module
+jest.mock("~/env", () => ({
+	env: {
+		NEXT_PUBLIC_SUPABASE_URL: "https://test.supabase.co",
+		NEXT_PUBLIC_SUPABASE_ANON_KEY: "test-anon-key",
+		SUPABASE_SERVICE_ROLE_KEY: "test-service-key",
+		SUPABASE_JWT_SECRET: "test-jwt-secret",
+		NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: "test-clerk-key",
+		CLERK_SECRET_KEY: "test-clerk-secret",
+		UPLOADTHING_TOKEN: "test-uploadthing-token",
+	},
+}));
+
+// Mock Supabase admin client
+jest.mock("~/lib/supabase/admin", () => ({
+	supabaseAdmin: {
+		from: jest.fn(),
+	},
+}));
+
+// Mock Supabase server client
+jest.mock("~/lib/supabase/server", () => ({
+	createAuthenticatedSupabaseClient: jest.fn(),
+}));
+
 // Mock Clerk modules before any imports
 jest.mock("@clerk/nextjs/server", () => ({
 	auth: jest.fn(() => Promise.resolve({ userId: null })),
+	currentUser: jest.fn(() => Promise.resolve(null)),
 }));
 
 jest.mock("@clerk/nextjs", () => ({

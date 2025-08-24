@@ -1,4 +1,4 @@
-import { auth } from "@clerk/nextjs/server";
+import { auth, currentUser } from "@clerk/nextjs/server";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "~/lib/supabase/admin";
@@ -21,10 +21,10 @@ export async function POST(
 			);
 		}
 
-		// Check if board exists and is active
+		// Check if board exists, is active, and not in setup phase
 		const { data: board } = await supabaseAdmin
 			.from("boards")
-			.select("id")
+			.select("id, phase, owner_id")
 			.eq("id", resolvedParams.boardId)
 			.eq("is_active", true)
 			.maybeSingle();
@@ -36,13 +36,64 @@ export async function POST(
 			);
 		}
 
+		// Check if board is in setup phase
+		if (board.phase === "setup") {
+			// Only the owner can join during setup phase
+			if (userId) {
+				const { data: dbUser } = await supabaseAdmin
+					.from("users")
+					.select("id")
+					.eq("clerk_id", userId)
+					.maybeSingle();
+
+				if (!dbUser || dbUser.id !== board.owner_id) {
+					return NextResponse.json(
+						{
+							error:
+								"Board is still being set up. Please wait for the owner to complete setup.",
+						},
+						{ status: 403 },
+					);
+				}
+				// Owner can proceed to join (though they should already be a participant)
+			} else {
+				// Anonymous users cannot join during setup
+				return NextResponse.json(
+					{
+						error:
+							"Board is still being set up. Please wait for the owner to complete setup.",
+					},
+					{ status: 403 },
+				);
+			}
+		}
+
 		if (userId) {
 			// Handle logged-in user
-			const { data: dbUser } = await supabaseAdmin
+			let { data: dbUser } = await supabaseAdmin
 				.from("users")
 				.select("id")
 				.eq("clerk_id", userId)
 				.maybeSingle();
+
+			// If user doesn't exist, sync them from Clerk
+			if (!dbUser) {
+				const clerkUser = await currentUser();
+				if (clerkUser) {
+					const { data: newUser } = await supabaseAdmin
+						.from("users")
+						.insert({
+							clerk_id: userId,
+							email: clerkUser.emailAddresses[0]?.emailAddress ?? "",
+							name: clerkUser.fullName ?? clerkUser.username ?? "",
+							avatar_url: clerkUser.imageUrl,
+						})
+						.select("id")
+						.single();
+
+					dbUser = newUser;
+				}
+			}
 
 			if (!dbUser) {
 				return NextResponse.json({ error: "User not found" }, { status: 404 });

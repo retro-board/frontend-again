@@ -92,6 +92,10 @@ export default function JoinBoardPage() {
 				router.push(`/boards/${boardData.board.id}`);
 			}
 		},
+		onError: (error) => {
+			// The error message from the API will be displayed
+			console.error("Failed to join board:", error);
+		},
 	});
 
 	useEffect(() => {
@@ -128,6 +132,36 @@ export default function JoinBoardPage() {
 			<div className="container mx-auto py-8">
 				<div className="flex h-64 items-center justify-center">
 					<p className="text-red-500">Board not found</p>
+				</div>
+			</div>
+		);
+	}
+
+	// Check if board is in setup phase
+	if (boardData.board.phase === "setup") {
+		return (
+			<div className="container mx-auto py-8">
+				<div className="mx-auto max-w-md">
+					<Card>
+						<CardHeader>
+							<CardTitle>Board Setup in Progress</CardTitle>
+							<CardDescription>
+								The board &quot;{boardData.board.name}&quot; is currently being
+								set up.
+							</CardDescription>
+						</CardHeader>
+						<CardContent>
+							<p className="text-muted-foreground">
+								Please wait for the board owner to complete the setup process.
+								You&apos;ll be able to join once the board moves to the creation
+								phase.
+							</p>
+							<p className="mt-4 text-muted-foreground text-sm">
+								Try refreshing this page in a few moments, or contact the board
+								owner for an update.
+							</p>
+						</CardContent>
+					</Card>
 				</div>
 			</div>
 		);
@@ -190,6 +224,11 @@ export default function JoinBoardPage() {
 									? "Joining..."
 									: "Join Board"}
 							</Button>
+							{joinBoardMutation.isError && (
+								<p className="mt-2 text-red-500 text-sm">
+									{joinBoardMutation.error?.message || "Failed to join board"}
+								</p>
+							)}
 						</form>
 					</CardContent>
 				</Card>

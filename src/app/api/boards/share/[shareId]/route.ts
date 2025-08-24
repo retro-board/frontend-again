@@ -9,7 +9,7 @@ export async function GET(
 		const resolvedParams = await params;
 		const { data: board, error } = await supabaseAdmin
 			.from("boards")
-			.select("id, name, description, is_active")
+			.select("id, name, description, is_active, phase")
 			.eq("share_id", resolvedParams.shareId)
 			.eq("is_active", true)
 			.maybeSingle();
