@@ -1,6 +1,5 @@
-import { auth, currentUser } from "@clerk/nextjs/server";
+import { currentUser } from "@clerk/nextjs/server";
 import { cookies } from "next/headers";
-import { supabaseAdmin } from "~/lib/supabase/admin";
 import {
 	createMockRequest,
 	mockAnonymousUser,

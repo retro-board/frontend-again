@@ -1,6 +1,4 @@
-import { auth, currentUser } from "@clerk/nextjs/server";
-import { NextResponse } from "next/server";
-import { supabaseAdmin } from "~/lib/supabase/admin";
+import { currentUser } from "@clerk/nextjs/server";
 import {
 	createMockRequest,
 	mockBoard,

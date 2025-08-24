@@ -151,45 +151,49 @@ export function BoardSettings({ board, isOwner }: BoardSettingsProps) {
 							/>
 						</div>
 
-						<div className="space-y-2">
-							<Label>Creation Phase Duration: {creationTime} minutes</Label>
-							<Slider
-								value={[creationTime]}
-								onValueChange={([value]) =>
-									setCreationTime(value ?? creationTime)
-								}
-								min={1}
-								max={30}
-								step={1}
-								className="w-full"
-							/>
-						</div>
+						{ board.phase === "setup" && (
+							<>
+								<div className="space-y-2">
+									<Label>Creation Phase Duration: {creationTime} minutes</Label>
+									<Slider
+										value={[creationTime]}
+										onValueChange={([value]) =>
+											setCreationTime(value ?? creationTime)
+										}
+										min={1}
+										max={30}
+										step={1}
+										className="w-full"
+									/>
+								</div>
 
-						<div className="space-y-2">
-							<Label>Voting Phase Duration: {votingTime} minutes</Label>
-							<Slider
-								value={[votingTime]}
-								onValueChange={([value]) => setVotingTime(value ?? votingTime)}
-								min={1}
-								max={30}
-								step={1}
-								className="w-full"
-							/>
-						</div>
+								<div className="space-y-2">
+									<Label>Voting Phase Duration: {votingTime} minutes</Label>
+									<Slider
+										value={[votingTime]}
+										onValueChange={([value]) => setVotingTime(value ?? votingTime)}
+										min={1}
+										max={30}
+										step={1}
+										className="w-full"
+									/>
+								</div>
 
-						<div className="space-y-2">
-							<Label>Votes Per User: {votesPerUser}</Label>
-							<Slider
-								value={[votesPerUser]}
-								onValueChange={([value]) =>
-									setVotesPerUser(value ?? votesPerUser)
-								}
-								min={1}
-								max={10}
-								step={1}
-								className="w-full"
-							/>
-						</div>
+								<div className="space-y-2">
+									<Label>Votes Per User: {votesPerUser}</Label>
+									<Slider
+										value={[votesPerUser]}
+										onValueChange={([value]) =>
+											setVotesPerUser(value ?? votesPerUser)
+										}
+										min={1}
+										max={10}
+										step={1}
+										className="w-full"
+									/>
+								</div>
+							</>
+						)}
 					</div>
 
 					<DialogFooter className="flex-col gap-2 sm:flex-row">

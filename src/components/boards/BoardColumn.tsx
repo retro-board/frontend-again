@@ -184,6 +184,10 @@ export function BoardColumn({
 								<div className="mt-2 rounded-md bg-muted p-2 text-center text-muted-foreground text-sm">
 									Cards can only be added to action columns during setup
 								</div>
+							) : boardPhase === "join" ? (
+								<div className="mt-2 rounded-md bg-muted p-2 text-center text-muted-foreground text-sm">
+									Waiting for all participants to join
+								</div>
 							) : (
 								<Button
 									variant="ghost"

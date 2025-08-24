@@ -360,7 +360,7 @@ export default function BoardPage() {
 						)}
 					</div>
 					<div className="flex items-center gap-2">
-						{isOwner && (
+						{isOwner && board.phase === "setup" && (
 							<Dialog
 								open={columnDialogOpen}
 								onOpenChange={setColumnDialogOpen}

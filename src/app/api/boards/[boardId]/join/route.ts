@@ -38,7 +38,7 @@ export async function POST(
 
 		// Check if board is in setup phase
 		if (board.phase === "setup") {
-			// Only the owner can join during setup phase
+			// Only the owner can access during setup phase
 			if (userId) {
 				const { data: dbUser } = await supabaseAdmin
 					.from("users")
@@ -67,6 +67,9 @@ export async function POST(
 				);
 			}
 		}
+
+		// Join phase is specifically for allowing people to join
+		// No restrictions during join phase
 
 		if (userId) {
 			// Handle logged-in user

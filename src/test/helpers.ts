@@ -75,7 +75,6 @@ export function setupUnauthenticatedUser() {
 
 // Helper to setup Supabase mocks
 export function setupSupabaseMocks() {
-	const fromMock = jest.fn();
 	const selectMock = jest.fn();
 	const insertMock = jest.fn();
 	const updateMock = jest.fn();
@@ -85,31 +84,37 @@ export function setupSupabaseMocks() {
 	const singleMock = jest.fn();
 	const orderMock = jest.fn();
 
-	// Create chain object that's returned by most methods
-	const chainObj = {
-		select: selectMock,
-		insert: insertMock,
-		update: updateMock,
-		delete: deleteMock,
-		eq: eqMock,
-		maybeSingle: maybeSingleMock,
-		single: singleMock,
-		order: orderMock,
-	};
-
-	// Make each method return the chain object for chaining
-	fromMock.mockReturnValue(chainObj);
-	selectMock.mockReturnValue(chainObj);
-	insertMock.mockReturnValue(chainObj);
-	updateMock.mockReturnValue(chainObj);
-	deleteMock.mockReturnValue(chainObj);
-	eqMock.mockReturnValue(chainObj);
-	orderMock.mockReturnValue(chainObj);
-
 	// These return promises with data
 	maybeSingleMock.mockResolvedValue({ data: null, error: null });
 	singleMock.mockResolvedValue({ data: null, error: null });
 
+	// Create chainable object factory
+	const createChainableResponse = () => {
+		const chain = {
+			select: selectMock,
+			insert: insertMock,
+			update: updateMock,
+			delete: deleteMock,
+			eq: eqMock,
+			maybeSingle: maybeSingleMock,
+			single: singleMock,
+			order: orderMock,
+		};
+		return chain;
+	};
+
+	// Setup all mocks to return a new chainable response each time
+	selectMock.mockImplementation(() => createChainableResponse());
+	insertMock.mockImplementation(() => createChainableResponse());
+	updateMock.mockImplementation(() => createChainableResponse());
+	deleteMock.mockImplementation(() => createChainableResponse());
+	eqMock.mockImplementation(() => createChainableResponse());
+	orderMock.mockImplementation(() => createChainableResponse());
+
+	// Setup fromMock
+	const fromMock = jest
+		.fn()
+		.mockImplementation(() => createChainableResponse());
 	(supabaseAdmin.from as jest.Mock) = fromMock;
 
 	return {

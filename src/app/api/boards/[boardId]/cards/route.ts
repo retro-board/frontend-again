@@ -127,6 +127,17 @@ export async function POST(
 			);
 		}
 
+		// During join phase, no cards can be added
+		if (column.board.phase === "join") {
+			return NextResponse.json(
+				{
+					error:
+						"Cards cannot be added during the join phase. Please wait for all participants to join.",
+				},
+				{ status: 403 },
+			);
+		}
+
 		// Create card
 		const cardData = {
 			column_id,

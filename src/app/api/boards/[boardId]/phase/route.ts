@@ -4,7 +4,8 @@ import { supabaseAdmin } from "~/lib/supabase/admin";
 import type { BoardPhase } from "~/types/database";
 
 const NEXT_PHASE: Record<BoardPhase, BoardPhase> = {
-	setup: "creation",
+	setup: "join",
+	join: "creation",
 	creation: "voting",
 	voting: "discussion",
 	discussion: "completed",
@@ -96,6 +97,7 @@ export async function POST(
 				const now = new Date();
 
 				// Calculate phase end time for timed phases
+				// Note: Join phase doesn't have a timer - timer starts when moving to creation
 				let phaseEndsAt = null;
 				if (nextPhase === "creation" || nextPhase === "voting") {
 					const duration =
