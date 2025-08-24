@@ -8,7 +8,7 @@ jest.mock("@supabase/supabase-js", () => ({
 			signOut: jest.fn().mockResolvedValue({ error: null }),
 			getSession: jest.fn().mockResolvedValue({ data: null, error: null }),
 		},
-		from: jest.fn((_table: string) => ({
+		from: jest.fn(() => ({
 			select: jest.fn().mockReturnThis(),
 			insert: jest.fn().mockReturnThis(),
 			update: jest.fn().mockReturnThis(),
