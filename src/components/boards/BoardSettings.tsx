@@ -151,7 +151,7 @@ export function BoardSettings({ board, isOwner }: BoardSettingsProps) {
 							/>
 						</div>
 
-						{ board.phase === "setup" && (
+						{board.phase === "setup" && (
 							<>
 								<div className="space-y-2">
 									<Label>Creation Phase Duration: {creationTime} minutes</Label>
@@ -171,7 +171,9 @@ export function BoardSettings({ board, isOwner }: BoardSettingsProps) {
 									<Label>Voting Phase Duration: {votingTime} minutes</Label>
 									<Slider
 										value={[votingTime]}
-										onValueChange={([value]) => setVotingTime(value ?? votingTime)}
+										onValueChange={([value]) =>
+											setVotingTime(value ?? votingTime)
+										}
 										min={1}
 										max={30}
 										step={1}
