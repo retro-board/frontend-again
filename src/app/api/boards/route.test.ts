@@ -32,17 +32,14 @@ describe("/api/boards POST", () => {
 			error: null,
 		});
 
-		// Mock board creation
+		// Mock board creation - single() is called after insert().select()
 		supabaseMocks.singleMock.mockResolvedValueOnce({
 			data: mockBoard,
 			error: null,
 		});
 
-		// Mock participant insertion
-		supabaseMocks.insertMock.mockResolvedValueOnce({
-			data: null,
-			error: null,
-		});
+		// Don't override insertMock as it needs to return the chain
+		// The insert for board_participants doesn't return data, it's just inserted
 
 		const request = createMockRequest("http://localhost:3000/api/boards", {
 			method: "POST",

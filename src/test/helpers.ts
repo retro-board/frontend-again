@@ -75,58 +75,52 @@ export function setupUnauthenticatedUser() {
 
 // Helper to setup Supabase mocks
 export function setupSupabaseMocks() {
-	const selectMock = jest.fn();
-	const insertMock = jest.fn();
-	const updateMock = jest.fn();
-	const deleteMock = jest.fn();
-	const eqMock = jest.fn();
+	// Create mock functions
+	const fromMock = jest.fn();
 	const maybeSingleMock = jest.fn();
 	const singleMock = jest.fn();
-	const orderMock = jest.fn();
 
 	// These return promises with data
 	maybeSingleMock.mockResolvedValue({ data: null, error: null });
 	singleMock.mockResolvedValue({ data: null, error: null });
 
-	// Create chainable object factory
-	const createChainableResponse = () => {
-		const chain = {
-			select: selectMock,
-			insert: insertMock,
-			update: updateMock,
-			delete: deleteMock,
-			eq: eqMock,
-			maybeSingle: maybeSingleMock,
-			single: singleMock,
-			order: orderMock,
-		};
-		return chain;
+	// Create chainable object - define it after we have all the mocks
+	// biome-ignore lint/suspicious/noExplicitAny: Mock object needs to be flexible
+	const chain: any = {
+		select: jest.fn(),
+		insert: jest.fn(),
+		update: jest.fn(),
+		delete: jest.fn(),
+		eq: jest.fn(),
+		order: jest.fn(),
+		maybeSingle: maybeSingleMock,
+		single: singleMock,
 	};
 
-	// Setup all mocks to return a new chainable response each time
-	selectMock.mockImplementation(() => createChainableResponse());
-	insertMock.mockImplementation(() => createChainableResponse());
-	updateMock.mockImplementation(() => createChainableResponse());
-	deleteMock.mockImplementation(() => createChainableResponse());
-	eqMock.mockImplementation(() => createChainableResponse());
-	orderMock.mockImplementation(() => createChainableResponse());
+	// Setup each method to return the chain
+	chain.select.mockImplementation(() => chain);
+	chain.insert.mockImplementation(() => chain);
+	chain.update.mockImplementation(() => chain);
+	chain.delete.mockImplementation(() => chain);
+	chain.eq.mockImplementation(() => chain);
+	chain.order.mockImplementation(() => chain);
 
-	// Setup fromMock
-	const fromMock = jest
-		.fn()
-		.mockImplementation(() => createChainableResponse());
+
+	// fromMock returns the chain
+	fromMock.mockImplementation(() => chain);
+
 	(supabaseAdmin.from as jest.Mock) = fromMock;
 
 	return {
 		fromMock,
-		selectMock,
-		insertMock,
-		updateMock,
-		deleteMock,
-		eqMock,
+		selectMock: chain.select,
+		insertMock: chain.insert,
+		updateMock: chain.update,
+		deleteMock: chain.delete,
+		eqMock: chain.eq,
 		maybeSingleMock,
 		singleMock,
-		orderMock,
+		orderMock: chain.order,
 	};
 }
 

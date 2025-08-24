@@ -112,11 +112,7 @@ describe("/api/boards/[boardId]/join POST", () => {
 				error: null,
 			});
 
-			// Mock adding participant
-			supabaseMocks.insertMock.mockResolvedValueOnce({
-				data: null,
-				error: null,
-			});
+			// Don't override insertMock as it needs to return the chain
 
 			const request = createMockRequest(
 				"http://localhost:3000/api/boards/board_123/join",
@@ -157,11 +153,7 @@ describe("/api/boards/[boardId]/join POST", () => {
 				error: null,
 			});
 
-			// Mock adding participant
-			supabaseMocks.insertMock.mockResolvedValueOnce({
-				data: null,
-				error: null,
-			});
+			// Don't override insertMock as it needs to return the chain
 
 			const request = createMockRequest(
 				"http://localhost:3000/api/boards/board_123/join",
@@ -207,11 +199,7 @@ describe("/api/boards/[boardId]/join POST", () => {
 				error: null,
 			});
 
-			// Mock adding participant
-			supabaseMocks.insertMock.mockResolvedValueOnce({
-				data: null,
-				error: null,
-			});
+			// Don't override insertMock as it needs to return the chain
 
 			const request = createMockRequest(
 				"http://localhost:3000/api/boards/board_123/join",
@@ -260,11 +248,7 @@ describe("/api/boards/[boardId]/join POST", () => {
 				error: null,
 			});
 
-			// Mock adding participant
-			supabaseMocks.insertMock.mockResolvedValueOnce({
-				data: null,
-				error: null,
-			});
+			// Don't override insertMock as it needs to return the chain
 
 			const request = createMockRequest(
 				"http://localhost:3000/api/boards/board_123/join",
