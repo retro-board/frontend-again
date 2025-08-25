@@ -253,7 +253,15 @@ export default function PokerSessionPage() {
 
 			toast.success(`Story estimated: ${finalScore}`);
 		}
-	}, [currentStory, timer, stopTimer, sessionId, endVoting, announceScore, queryClient]);
+	}, [
+		currentStory,
+		timer,
+		stopTimer,
+		sessionId,
+		endVoting,
+		announceScore,
+		queryClient,
+	]);
 
 	// Handle automatic voting completion when all eligible voters have voted
 	useEffect(() => {
@@ -305,7 +313,7 @@ export default function PokerSessionPage() {
 	useEffect(() => {
 		console.log("Timer sync - sessionState.timer:", sessionState.timer);
 		console.log("Timer sync - local timer.isActive:", timer.isActive);
-		
+
 		if (sessionState.timer.isActive && sessionState.timer.endsAt) {
 			console.log("Starting timer until:", sessionState.timer.endsAt);
 			timer.startUntil(sessionState.timer.endsAt);
@@ -323,10 +331,11 @@ export default function PokerSessionPage() {
 		}
 
 		const updateDisplayTime = () => {
+			if (!sessionState.timer.endsAt) return;
 			const remaining = Math.max(
 				0,
 				Math.floor(
-					(new Date(sessionState.timer.endsAt!).getTime() - Date.now()) / 1000,
+					(new Date(sessionState.timer.endsAt).getTime() - Date.now()) / 1000,
 				),
 			);
 			const mins = Math.floor(remaining / 60);
