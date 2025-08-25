@@ -279,25 +279,48 @@ export default function PokerSessionPage() {
 		isFinalizingVoting,
 	]);
 
-	// Handle automatic voting completion when all eligible voters have voted
+	// Handle automatic voting completion with grace period
+	// biome-ignore lint/correctness/useExhaustiveDependencies: votesReceived needed to detect vote changes
 	useEffect(() => {
-		const handleVotingCompletion = async () => {
-			if (
-				!sessionState.votingState.allVoted ||
-				!isFacilitator ||
-				!currentStory
-			) {
-				return;
+		let graceTimeoutId: NodeJS.Timeout | null = null;
+
+		if (
+			!sessionState.votingState.allVoted ||
+			!isFacilitator ||
+			!currentStory ||
+			isFinalizingVoting ||
+			!sessionState.timer?.isActive // Don't auto-finalize if timer is not active
+		) {
+			// Clear any existing grace period timeout
+			if (graceTimeoutId) {
+				clearTimeout(graceTimeoutId);
 			}
+			return;
+		}
 
+		// Start/restart grace period
+		console.log(
+			"All votes received. Starting 10-second grace period for vote changes...",
+		);
+
+		graceTimeoutId = setTimeout(async () => {
+			console.log("Grace period ended. Calculating consensus...");
 			await handleFinalizeVoting();
-		};
+		}, 10000); // 10 seconds
 
-		handleVotingCompletion();
+		// Cleanup on unmount or when dependencies change
+		return () => {
+			if (graceTimeoutId) {
+				clearTimeout(graceTimeoutId);
+			}
+		};
 	}, [
 		sessionState.votingState.allVoted,
+		sessionState.votingState.votesReceived, // Reset grace period when votes change
 		isFacilitator,
 		currentStory,
+		isFinalizingVoting,
+		sessionState.timer?.isActive,
 		handleFinalizeVoting,
 	]);
 
