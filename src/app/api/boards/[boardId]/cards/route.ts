@@ -2,7 +2,10 @@ import { auth, currentUser } from "@clerk/nextjs/server";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "~/lib/supabase/admin";
-import { broadcastToBoard, type CardEventPayload } from "~/lib/supabase/channels";
+import {
+	broadcastToBoard,
+	type CardEventPayload,
+} from "~/lib/supabase/channels-server";
 
 export async function POST(
 	request: Request,
@@ -126,7 +129,9 @@ export async function POST(
 				// During setup, only owner can add action items
 				if (!column.is_action || column.board.owner_id !== authorId) {
 					return NextResponse.json(
-						{ error: "During setup phase, only the owner can add action items" },
+						{
+							error: "During setup phase, only the owner can add action items",
+						},
 						{ status: 403 },
 					);
 				}
@@ -169,7 +174,9 @@ export async function POST(
 			case "voting":
 				// No new cards during reveal or voting
 				return NextResponse.json(
-					{ error: `Cards cannot be added during the ${column.board.phase} phase` },
+					{
+						error: `Cards cannot be added during the ${column.board.phase} phase`,
+					},
 					{ status: 403 },
 				);
 
@@ -228,7 +235,11 @@ export async function POST(
 			position,
 			isAnonymous: cardData.is_anonymous,
 		};
-		await broadcastToBoard(resolvedParams.boardId, "card_created", eventPayload);
+		await broadcastToBoard(
+			resolvedParams.boardId,
+			"card_created",
+			eventPayload,
+		);
 
 		return NextResponse.json({ card });
 	} catch (error) {
@@ -387,7 +398,12 @@ export async function DELETE(
 
 		// Check phase restrictions
 		const board = card.column.board;
-		if (board.phase === "reveal" || board.phase === "voting" || board.phase === "discussion" || board.phase === "completed") {
+		if (
+			board.phase === "reveal" ||
+			board.phase === "voting" ||
+			board.phase === "discussion" ||
+			board.phase === "completed"
+		) {
 			return NextResponse.json(
 				{ error: `Cards cannot be deleted during the ${board.phase} phase` },
 				{ status: 403 },

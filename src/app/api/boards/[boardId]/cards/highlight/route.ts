@@ -1,7 +1,10 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "~/lib/supabase/admin";
-import { broadcastToBoard, type HighlightCardPayload } from "~/lib/supabase/channels";
+import {
+	broadcastToBoard,
+	type HighlightCardPayload,
+} from "~/lib/supabase/channels-server";
 
 export async function POST(
 	request: Request,
@@ -19,7 +22,10 @@ export async function POST(
 		const { cardId, duration } = body; // duration in seconds for discussion timer
 
 		if (!cardId) {
-			return NextResponse.json({ error: "Card ID is required" }, { status: 400 });
+			return NextResponse.json(
+				{ error: "Card ID is required" },
+				{ status: 400 },
+			);
 		}
 
 		// Get user from database
@@ -79,7 +85,7 @@ export async function POST(
 		// Optionally store the highlighted card in the board record
 		const { error: updateError } = await supabaseAdmin
 			.from("boards")
-			.update({ 
+			.update({
 				highlighted_card_id: cardId,
 				highlighted_at: new Date().toISOString(),
 			})
@@ -95,9 +101,13 @@ export async function POST(
 			cardId,
 			duration: duration || 60, // Default to 60 seconds if not specified
 		};
-		await broadcastToBoard(resolvedParams.boardId, "card_highlighted", highlightPayload);
+		await broadcastToBoard(
+			resolvedParams.boardId,
+			"card_highlighted",
+			highlightPayload,
+		);
 
-		return NextResponse.json({ 
+		return NextResponse.json({
 			success: true,
 			cardId,
 			duration: highlightPayload.duration,

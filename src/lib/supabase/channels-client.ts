@@ -1,4 +1,3 @@
-import { supabaseAdmin } from "./admin";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 
 // Channel event types
@@ -48,38 +47,14 @@ export interface HighlightCardPayload {
 	duration?: number; // Duration in seconds for discussion
 }
 
-// Server-side broadcasting
-export async function broadcastToBoard(
-	boardId: string,
-	event: ChannelEvent,
-	payload: unknown,
-) {
-	// Skip broadcasting in test environment
-	if (process.env.NODE_ENV === "test") {
-		return;
-	}
-
-	try {
-		const channel = supabaseAdmin.channel(`board:${boardId}`);
-		await channel.send({
-			type: "broadcast",
-			event,
-			payload,
-		});
-		console.log(`Broadcast sent: ${event} to board:${boardId}`, payload);
-	} catch (error) {
-		console.error("Failed to broadcast event:", error);
-	}
-}
-
 // Client-side channel management
 export class BoardChannel {
 	private channel: RealtimeChannel | null = null;
 	private boardId: string;
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	// biome-ignore lint/suspicious/noExplicitAny: Supabase client type is complex and varies
 	private supabase: any;
 
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	// biome-ignore lint/suspicious/noExplicitAny: Supabase client type is complex and varies
 	constructor(boardId: string, supabaseClient: any) {
 		this.boardId = boardId;
 		this.supabase = supabaseClient;
@@ -100,27 +75,25 @@ export class BoardChannel {
 		// Subscribe to card events
 		if (handlers.onCardCreated && this.channel) {
 			this.channel.on("broadcast", { event: "card_created" }, ({ payload }) =>
-				handlers.onCardCreated!(payload),
+				handlers.onCardCreated?.(payload),
 			);
 		}
 
 		if (handlers.onCardUpdated && this.channel) {
 			this.channel.on("broadcast", { event: "card_updated" }, ({ payload }) =>
-				handlers.onCardUpdated!(payload),
+				handlers.onCardUpdated?.(payload),
 			);
 		}
 
 		if (handlers.onCardDeleted && this.channel) {
 			this.channel.on("broadcast", { event: "card_deleted" }, ({ payload }) =>
-				handlers.onCardDeleted!(payload),
+				handlers.onCardDeleted?.(payload),
 			);
 		}
 
 		if (handlers.onCardsCombined && this.channel) {
-			this.channel.on(
-				"broadcast",
-				{ event: "cards_combined" },
-				({ payload }) => handlers.onCardsCombined!(payload),
+			this.channel.on("broadcast", { event: "cards_combined" }, ({ payload }) =>
+				handlers.onCardsCombined?.(payload),
 			);
 		}
 
@@ -128,7 +101,7 @@ export class BoardChannel {
 			this.channel.on(
 				"broadcast",
 				{ event: "card_highlighted" },
-				({ payload }) => handlers.onCardHighlighted!(payload),
+				({ payload }) => handlers.onCardHighlighted?.(payload),
 			);
 		}
 
@@ -142,26 +115,22 @@ export class BoardChannel {
 			];
 			for (const event of timerEvents) {
 				this.channel.on("broadcast", { event }, ({ payload }) =>
-					handlers.onTimerEvent!(payload),
+					handlers.onTimerEvent?.(payload),
 				);
 			}
 		}
 
 		// Subscribe to phase changes
 		if (handlers.onPhaseChanged && this.channel) {
-			this.channel.on(
-				"broadcast",
-				{ event: "phase_changed" },
-				({ payload }) => handlers.onPhaseChanged!(payload),
+			this.channel.on("broadcast", { event: "phase_changed" }, ({ payload }) =>
+				handlers.onPhaseChanged?.(payload),
 			);
 		}
 
 		// Subscribe to board updates
 		if (handlers.onBoardUpdated && this.channel) {
-			this.channel.on(
-				"broadcast",
-				{ event: "board_updated" },
-				({ payload }) => handlers.onBoardUpdated!(payload),
+			this.channel.on("broadcast", { event: "board_updated" }, ({ payload }) =>
+				handlers.onBoardUpdated?.(payload),
 			);
 		}
 

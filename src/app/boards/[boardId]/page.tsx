@@ -29,8 +29,8 @@ import {
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { useUserSync } from "~/hooks/useUserSync";
+import { BoardChannel } from "~/lib/supabase/channels-client";
 import { supabase } from "~/lib/supabase/client";
-import { BoardChannel } from "~/lib/supabase/channels";
 import type {
 	Board,
 	Card,
@@ -127,7 +127,7 @@ export default function BoardPage() {
 	useEffect(() => {
 		console.log("Setting up real-time subscription for board:", boardId);
 		const boardChannel = new BoardChannel(boardId, supabase);
-		
+
 		boardChannel.subscribe({
 			onCardCreated: (payload) => {
 				console.log("Card created:", payload);

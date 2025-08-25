@@ -1,7 +1,10 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "~/lib/supabase/admin";
-import { broadcastToBoard, type TimerEventPayload } from "~/lib/supabase/channels";
+import {
+	broadcastToBoard,
+	type TimerEventPayload,
+} from "~/lib/supabase/channels-server";
 
 export async function PATCH(
 	request: Request,
@@ -83,7 +86,11 @@ export async function PATCH(
 			action: "extend",
 			duration: duration * 60, // Convert to seconds
 		};
-		await broadcastToBoard(resolvedParams.boardId, "timer_extended", timerPayload);
+		await broadcastToBoard(
+			resolvedParams.boardId,
+			"timer_extended",
+			timerPayload,
+		);
 
 		return NextResponse.json({ board: updatedBoard });
 	} catch (error) {

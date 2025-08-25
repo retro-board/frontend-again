@@ -1,7 +1,10 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "~/lib/supabase/admin";
-import { broadcastToBoard, type CombineCardsPayload } from "~/lib/supabase/channels";
+import {
+	broadcastToBoard,
+	type CombineCardsPayload,
+} from "~/lib/supabase/channels-server";
 
 export async function POST(
 	request: Request,
@@ -18,7 +21,11 @@ export async function POST(
 		const body = await request.json();
 		const { sourceCardIds, targetCardId, newContent } = body;
 
-		if (!sourceCardIds || !Array.isArray(sourceCardIds) || sourceCardIds.length === 0) {
+		if (
+			!sourceCardIds ||
+			!Array.isArray(sourceCardIds) ||
+			sourceCardIds.length === 0
+		) {
 			return NextResponse.json(
 				{ error: "Source card IDs are required" },
 				{ status: 400 },
@@ -83,13 +90,13 @@ export async function POST(
 		}
 
 		// Verify all cards are from the same board
-		const columnIds = sourceCards.map(card => card.column_id);
+		const columnIds = sourceCards.map((card) => card.column_id);
 		const { data: columns } = await supabaseAdmin
 			.from("columns")
 			.select("board_id")
 			.in("id", columnIds);
 
-		const boardIds = new Set(columns?.map(col => col.board_id));
+		const boardIds = new Set(columns?.map((col) => col.board_id));
 		if (boardIds.size !== 1 || !boardIds.has(resolvedParams.boardId)) {
 			return NextResponse.json(
 				{ error: "All cards must be from the same board" },
@@ -104,12 +111,12 @@ export async function POST(
 			// Update existing target card with combined content
 			if (!finalContent) {
 				// Auto-generate combined content
-				finalContent = sourceCards.map(card => card.content).join("\n---\n");
+				finalContent = sourceCards.map((card) => card.content).join("\n---\n");
 			}
 
 			const { error: updateError } = await supabaseAdmin
 				.from("cards")
-				.update({ 
+				.update({
 					content: finalContent,
 					updated_at: new Date().toISOString(),
 				})
@@ -117,12 +124,15 @@ export async function POST(
 
 			if (updateError) {
 				console.error("Error updating target card:", updateError);
-				return NextResponse.json({ error: updateError.message }, { status: 500 });
+				return NextResponse.json(
+					{ error: updateError.message },
+					{ status: 500 },
+				);
 			}
 		} else {
 			// Create new card with combined content
 			const firstCard = sourceCards[0];
-			
+
 			const { data: newCard, error: createError } = await supabaseAdmin
 				.from("cards")
 				.insert({
@@ -138,14 +148,17 @@ export async function POST(
 
 			if (createError) {
 				console.error("Error creating combined card:", createError);
-				return NextResponse.json({ error: createError.message }, { status: 500 });
+				return NextResponse.json(
+					{ error: createError.message },
+					{ status: 500 },
+				);
 			}
 
 			finalCardId = newCard.id;
 		}
 
 		// Delete source cards (except target if it was one of them)
-		const cardsToDelete = sourceCardIds.filter(id => id !== targetCardId);
+		const cardsToDelete = sourceCardIds.filter((id) => id !== targetCardId);
 		if (cardsToDelete.length > 0) {
 			const { error: deleteError } = await supabaseAdmin
 				.from("cards")
@@ -164,9 +177,13 @@ export async function POST(
 			targetCardId: finalCardId,
 			newContent: finalContent,
 		};
-		await broadcastToBoard(resolvedParams.boardId, "cards_combined", combinePayload);
+		await broadcastToBoard(
+			resolvedParams.boardId,
+			"cards_combined",
+			combinePayload,
+		);
 
-		return NextResponse.json({ 
+		return NextResponse.json({
 			success: true,
 			cardId: finalCardId,
 			content: finalContent,
