@@ -141,7 +141,6 @@ export default function PokerSessionPage() {
 	// Memoize the message handler to prevent reconnections
 	const handlePokerMessage = useCallback(
 		(message: { type: string; storyId?: string }) => {
-
 			// Invalidate queries on relevant events
 			if (
 				message.type === "story_create" ||
@@ -181,7 +180,7 @@ export default function PokerSessionPage() {
 	// Log connection status - only log on actual changes
 	useEffect(() => {
 		if (isConnected !== undefined) {
-			console.log("Poker channel connection changed:", isConnected);
+			// Connection status handled silently
 		}
 	}, [isConnected]);
 
@@ -298,7 +297,9 @@ export default function PokerSessionPage() {
 		}
 
 		// Start/restart grace period
-		toast.info("All votes received. 10 seconds to change votes before consensus.");
+		toast.info(
+			"All votes received. 10 seconds to change votes before consensus.",
+		);
 
 		graceTimeoutId = setTimeout(async () => {
 			await handleFinalizeVoting();
@@ -862,7 +863,7 @@ export default function PokerSessionPage() {
 										)}
 									</div>
 									{sessionState.timer.isActive && (
-										<div 
+										<div
 											className="flex items-center gap-2 text-muted-foreground"
 											data-testid="timer-display"
 										>

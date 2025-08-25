@@ -1,10 +1,10 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
-import PokerSessionPage from "./page";
 import { usePokerChannel } from "~/hooks/usePokerChannel";
 import { usePokerTimer } from "~/hooks/usePokerTimer";
+import PokerSessionPage from "./page";
 
 // Mock dependencies
 jest.mock("@clerk/nextjs", () => ({
@@ -30,7 +30,9 @@ global.fetch = jest.fn();
 
 describe("Poker Timer Functionality", () => {
 	let queryClient: QueryClient;
+	// biome-ignore lint/suspicious/noExplicitAny: Mock object for testing
 	let mockChannelState: any;
+	// biome-ignore lint/suspicious/noExplicitAny: Mock object for testing
 	let mockTimerState: any;
 	let mockStartTimer: jest.Mock;
 	let mockStopTimer: jest.Mock;
@@ -241,7 +243,9 @@ describe("Poker Timer Functionality", () => {
 			});
 
 			// Click reveal votes (which should stop timer)
-			const revealButton = screen.getByRole("button", { name: /reveal votes/i });
+			const revealButton = screen.getByRole("button", {
+				name: /reveal votes/i,
+			});
 			await userEvent.click(revealButton);
 
 			// Verify stopTimer was called
@@ -319,7 +323,8 @@ describe("Poker Timer Functionality", () => {
 			// Simulate timer start from facilitator
 			const endsAt = new Date(Date.now() + 60000).toISOString();
 			act(() => {
-				const message = {
+				// Message for simulating timer start
+				const _message = {
 					type: "timer_start",
 					sessionId: "test-session",
 					userId: "facilitator-1",
@@ -385,6 +390,7 @@ describe("Poker Timer Functionality", () => {
 
 	describe("Timer Edge Cases", () => {
 		it("should handle timer expiry correctly", async () => {
+			// biome-ignore lint/correctness/noUnusedVariables: Used in mock implementation
 			const onExpire = jest.fn();
 			(usePokerTimer as jest.Mock).mockImplementation(({ onExpire: cb }) => {
 				// Simulate timer expiry
