@@ -14,8 +14,6 @@ export default function ClientProvider({ children }: { children: ReactNode }) {
 	flagsConfig.environmentId =
 		env.NEXT_PUBLIC_FLAGS_ENVIRONMENT ?? flagConfig.environmentId;
 
-	console.info("Flags", flagsConfig);
-
 	return (
 		<QueryClientProvider client={queryClient}>
 			<ThemeProvider

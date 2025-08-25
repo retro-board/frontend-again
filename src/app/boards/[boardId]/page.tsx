@@ -487,6 +487,7 @@ export default function BoardPage() {
 										anonymousUser={anonymousData?.user}
 										boardPhase={board.phase}
 										phaseStartedAt={board.phase_started_at}
+										phaseEndsAt={board.phase_ends_at}
 									/>
 								))}
 							</div>

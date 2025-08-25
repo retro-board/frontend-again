@@ -241,6 +241,61 @@ describe("/api/boards/[boardId]/cards POST", () => {
 				"Only board owners can add cards to action columns",
 			);
 		});
+
+		it("should reject card creation when timer is paused during creation phase", async () => {
+			setupAuthenticatedUser();
+
+			// Mock user fetch
+			supabaseMocks.maybeSingleMock.mockResolvedValueOnce({
+				data: mockDbUser,
+				error: null,
+			});
+
+			// Mock user is participant
+			supabaseMocks.maybeSingleMock.mockResolvedValueOnce({
+				data: { id: "participant_123", role: "participant" },
+				error: null,
+			});
+
+			// Mock column fetch - non-action column with paused timer
+			const mockColumn = {
+				id: "column_123",
+				name: "What went well",
+				is_action: false,
+				board: {
+					...mockBoard,
+					phase: "creation",
+					phase_started_at: new Date().toISOString(),
+					phase_ends_at: null, // Timer is paused
+				},
+			};
+			supabaseMocks.singleMock.mockResolvedValueOnce({
+				data: mockColumn,
+				error: null,
+			});
+
+			const request = createMockRequest(
+				"http://localhost:3000/api/boards/board_123/cards",
+				{
+					method: "POST",
+					body: {
+						column_id: "column_123",
+						content: "Test card",
+						position: 0,
+					},
+				},
+			);
+
+			const response = await POST(request, {
+				params: Promise.resolve({ boardId: "board_123" }),
+			});
+			const data = await response.json();
+
+			expect(response.status).toBe(403);
+			expect(data.error).toBe(
+				"Cards cannot be added while the timer is paused",
+			);
+		});
 	});
 
 	describe("User sync", () => {

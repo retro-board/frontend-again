@@ -72,6 +72,35 @@ export async function POST(
 			);
 		}
 
+		// Check if card is in an action column (cannot vote on action items)
+		const { data: card } = await supabaseAdmin
+			.from("cards")
+			.select(`
+				id,
+				column_id,
+				columns!inner(
+					id,
+					is_action
+				)
+			`)
+			.eq("id", resolvedParams.cardId)
+			.single();
+
+		if (!card) {
+			return NextResponse.json({ error: "Card not found" }, { status: 404 });
+		}
+
+		// Check if the column is an action column
+		// biome-ignore lint/suspicious/noExplicitAny: Supabase nested query result
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		const cardData = card as any;
+		if (cardData.columns?.is_action) {
+			return NextResponse.json(
+				{ error: "Cannot vote on action items" },
+				{ status: 400 },
+			);
+		}
+
 		// Check existing vote
 		const existingVoteQuery = supabaseAdmin
 			.from("card_votes")
