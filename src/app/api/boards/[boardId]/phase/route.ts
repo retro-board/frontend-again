@@ -1,12 +1,14 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "~/lib/supabase/admin";
+import { broadcastBoardEvent } from "~/lib/supabase/broadcast";
 import type { BoardPhase } from "~/types/database";
 
 const NEXT_PHASE: Record<BoardPhase, BoardPhase> = {
 	setup: "join",
 	join: "creation",
-	creation: "voting",
+	creation: "reveal",
+	reveal: "voting",
 	voting: "discussion",
 	discussion: "completed",
 	completed: "completed",
@@ -118,8 +120,8 @@ export async function POST(
 					phase_ends_at: phaseEndsAt,
 				};
 
-				// If advancing to voting phase, unmask all cards
-				if (nextPhase === "voting") {
+				// If advancing to reveal phase, unmask all cards
+				if (nextPhase === "reveal") {
 					await supabaseAdmin
 						.from("cards")
 						.update({ is_masked: false })
@@ -150,6 +152,22 @@ export async function POST(
 		if (error) {
 			console.error("Error updating board phase:", error);
 			return NextResponse.json({ error: error.message }, { status: 500 });
+		}
+
+		// Broadcast the appropriate event
+		if (action === "start") {
+			await broadcastBoardEvent(resolvedParams.boardId, "timer_started", {
+				action: "start",
+			});
+		} else if (action === "pause") {
+			await broadcastBoardEvent(resolvedParams.boardId, "timer_paused", {
+				action: "pause",
+			});
+		} else if (action === "advance") {
+			await broadcastBoardEvent(resolvedParams.boardId, "phase_changed", {
+				previousPhase: board.phase,
+				newPhase: updatedBoard.phase,
+			});
 		}
 
 		return NextResponse.json({ board: updatedBoard });
@@ -248,6 +266,17 @@ export async function PATCH(
 		if (error) {
 			console.error("Error updating board timer:", error);
 			return NextResponse.json({ error: error.message }, { status: 500 });
+		}
+
+		// Broadcast timer event
+		if (board.phase_ends_at) {
+			await broadcastBoardEvent(resolvedParams.boardId, "timer_paused", {
+				action: "pause",
+			});
+		} else {
+			await broadcastBoardEvent(resolvedParams.boardId, "timer_started", {
+				action: "resume",
+			});
 		}
 
 		return NextResponse.json({ board: updatedBoard });

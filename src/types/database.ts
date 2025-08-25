@@ -5,6 +5,7 @@ export type BoardPhase =
 	| "setup"
 	| "join"
 	| "creation"
+	| "reveal"
 	| "voting"
 	| "discussion"
 	| "completed";

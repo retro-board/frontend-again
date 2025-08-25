@@ -17,6 +17,7 @@ const PHASE_LABELS: Record<BoardPhase, string> = {
 	setup: "Setup",
 	join: "Waiting for Participants",
 	creation: "Creating Items",
+	reveal: "Revealing Cards",
 	voting: "Voting",
 	discussion: "Discussion",
 	completed: "Completed",

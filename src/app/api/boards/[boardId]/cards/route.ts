@@ -2,6 +2,10 @@ import { auth, currentUser } from "@clerk/nextjs/server";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "~/lib/supabase/admin";
+import {
+	broadcastToBoard,
+	type CardEventPayload,
+} from "~/lib/supabase/channels-server";
 
 export async function POST(
 	request: Request,
@@ -119,23 +123,78 @@ export async function POST(
 			);
 		}
 
-		// During setup phase, only action items can be added (even by owner)
-		if (column.board.phase === "setup" && !column.is_action) {
-			return NextResponse.json(
-				{ error: "During setup phase, only action items can be added" },
-				{ status: 403 },
-			);
-		}
+		// Phase-based restrictions
+		switch (column.board.phase) {
+			case "setup":
+				// During setup, only owner can add action items
+				if (!column.is_action || column.board.owner_id !== authorId) {
+					return NextResponse.json(
+						{
+							error: "During setup phase, only the owner can add action items",
+						},
+						{ status: 403 },
+					);
+				}
+				break;
 
-		// During join phase, no cards can be added
-		if (column.board.phase === "join") {
-			return NextResponse.json(
-				{
-					error:
-						"Cards cannot be added during the join phase. Please wait for all participants to join.",
-				},
-				{ status: 403 },
-			);
+			case "join":
+				// During join, only owner can add action items
+				if (column.is_action && column.board.owner_id !== authorId) {
+					return NextResponse.json(
+						{ error: "Only the owner can add action items" },
+						{ status: 403 },
+					);
+				}
+				if (!column.is_action) {
+					return NextResponse.json(
+						{ error: "Cards cannot be added during the join phase" },
+						{ status: 403 },
+					);
+				}
+				break;
+
+			case "creation":
+				// During creation, check timer for non-action columns
+				if (!column.is_action && !column.board.phase_started_at) {
+					return NextResponse.json(
+						{ error: "Cards cannot be added until the timer has started" },
+						{ status: 403 },
+					);
+				}
+				// Action columns still restricted to owner
+				if (column.is_action && column.board.owner_id !== authorId) {
+					return NextResponse.json(
+						{ error: "Only board owners can add action items" },
+						{ status: 403 },
+					);
+				}
+				break;
+
+			case "reveal":
+			case "voting":
+				// No new cards during reveal or voting
+				return NextResponse.json(
+					{
+						error: `Cards cannot be added during the ${column.board.phase} phase`,
+					},
+					{ status: 403 },
+				);
+
+			case "discussion":
+				// During discussion, only owner can add action items
+				if (!column.is_action || column.board.owner_id !== authorId) {
+					return NextResponse.json(
+						{ error: "During discussion, only the owner can add action items" },
+						{ status: 403 },
+					);
+				}
+				break;
+
+			case "completed":
+				return NextResponse.json(
+					{ error: "This board is completed and cannot be modified" },
+					{ status: 403 },
+				);
 		}
 
 		// Create card
@@ -166,6 +225,21 @@ export async function POST(
 			console.error("Error creating card:", error);
 			return NextResponse.json({ error: error.message }, { status: 500 });
 		}
+
+		// Broadcast card created event with full payload
+		const eventPayload: CardEventPayload = {
+			cardId: card.id,
+			columnId: column_id,
+			userId: userId || undefined,
+			content: cardData.is_masked ? undefined : content,
+			position,
+			isAnonymous: cardData.is_anonymous,
+		};
+		await broadcastToBoard(
+			resolvedParams.boardId,
+			"card_created",
+			eventPayload,
+		);
 
 		return NextResponse.json({ card });
 	} catch (error) {
@@ -284,8 +358,12 @@ export async function PATCH(request: Request) {
 	}
 }
 
-export async function DELETE(request: Request) {
+export async function DELETE(
+	request: Request,
+	{ params }: { params: Promise<{ boardId: string }> },
+) {
 	try {
+		const resolvedParams = await params;
 		const { userId } = await auth();
 		const cookieStore = await cookies();
 		const anonymousSessionId = cookieStore.get("anonymous_session_id")?.value;
@@ -299,6 +377,37 @@ export async function DELETE(request: Request) {
 
 		if (!cardId) {
 			return NextResponse.json({ error: "Card ID required" }, { status: 400 });
+		}
+
+		// Get card and board info to check phase
+		const { data: card } = await supabaseAdmin
+			.from("cards")
+			.select(`
+				*,
+				column:columns(
+					*,
+					board:boards(*)
+				)
+			`)
+			.eq("id", cardId)
+			.single();
+
+		if (!card || !card.column || !card.column.board) {
+			return NextResponse.json({ error: "Card not found" }, { status: 404 });
+		}
+
+		// Check phase restrictions
+		const board = card.column.board;
+		if (
+			board.phase === "reveal" ||
+			board.phase === "voting" ||
+			board.phase === "discussion" ||
+			board.phase === "completed"
+		) {
+			return NextResponse.json(
+				{ error: `Cards cannot be deleted during the ${board.phase} phase` },
+				{ status: 403 },
+			);
 		}
 
 		let deleteQuery = supabaseAdmin.from("cards").delete().eq("id", cardId);
@@ -361,6 +470,11 @@ export async function DELETE(request: Request) {
 			console.error("Error deleting card:", error);
 			return NextResponse.json({ error: error.message }, { status: 500 });
 		}
+
+		// Broadcast card deleted event
+		await broadcastToBoard(resolvedParams.boardId, "card_deleted", {
+			cardId,
+		});
 
 		return NextResponse.json({ success: true });
 	} catch (error) {

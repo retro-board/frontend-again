@@ -2,6 +2,7 @@ import { auth } from "@clerk/nextjs/server";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "~/lib/supabase/admin";
+import { broadcastBoardEvent } from "~/lib/supabase/broadcast";
 
 export async function POST(
 	_request: Request,
@@ -97,6 +98,11 @@ export async function POST(
 				return NextResponse.json({ error: error.message }, { status: 500 });
 			}
 
+			// Broadcast vote removed event
+			await broadcastBoardEvent(resolvedParams.boardId, "vote_removed", {
+				cardId: resolvedParams.cardId,
+			});
+
 			return NextResponse.json({ voted: false });
 		}
 		// Count user's votes for this board
@@ -158,6 +164,11 @@ export async function POST(
 			console.error("Error adding vote:", error);
 			return NextResponse.json({ error: error.message }, { status: 500 });
 		}
+
+		// Broadcast vote added event
+		await broadcastBoardEvent(resolvedParams.boardId, "vote_added", {
+			cardId: resolvedParams.cardId,
+		});
 
 		return NextResponse.json({
 			voted: true,
