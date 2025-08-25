@@ -502,13 +502,68 @@ export default function PokerSessionPage() {
 	// Toggle reveal votes mutation
 	const toggleRevealMutation = useMutation({
 		mutationFn: async () => {
+			const isRevealing = !session?.reveal_votes;
+
+			// If revealing votes and there are votes, also calculate consensus (if not already estimated)
+			if (
+				isRevealing &&
+				currentStory?.votes &&
+				currentStory.votes.length > 0 &&
+				!currentStory.final_estimate
+			) {
+				// First reveal the votes
+				const revealResponse = await fetch(`/api/poker-sessions/${sessionId}`, {
+					method: "PATCH",
+					headers: {
+						"Content-Type": "application/json",
+					},
+					body: JSON.stringify({
+						reveal_votes: true,
+					}),
+				});
+
+				if (!revealResponse.ok) {
+					const error = await revealResponse.json();
+					throw new Error(error.error || "Failed to reveal votes");
+				}
+
+				// Then calculate and save the consensus score
+				const scoreResponse = await fetch(
+					`/api/poker-sessions/${sessionId}/score`,
+					{
+						method: "POST",
+						headers: {
+							"Content-Type": "application/json",
+						},
+						body: JSON.stringify({
+							storyId: currentStory.id,
+						}),
+					},
+				);
+
+				if (!scoreResponse.ok) {
+					const error = await scoreResponse.json();
+					throw new Error(error.error || "Failed to calculate score");
+				}
+
+				const { finalScore, votes } = await scoreResponse.json();
+
+				// End voting and announce score through the channel
+				await endVoting(currentStory.id);
+				await announceScore(currentStory.id, finalScore, votes);
+
+				toast.success(`Story estimated: ${finalScore}`);
+
+				return revealResponse.json();
+			}
+			// Just toggle reveal state (hiding votes or revealing when no votes)
 			const response = await fetch(`/api/poker-sessions/${sessionId}`, {
 				method: "PATCH",
 				headers: {
 					"Content-Type": "application/json",
 				},
 				body: JSON.stringify({
-					reveal_votes: !session?.reveal_votes,
+					reveal_votes: isRevealing,
 				}),
 			});
 
