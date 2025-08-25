@@ -222,3 +222,78 @@ export async function POST(
 		);
 	}
 }
+
+export async function DELETE(
+	request: Request,
+	{ params }: { params: Promise<{ sessionId: string }> },
+) {
+	try {
+		const resolvedParams = await params;
+		const { userId } = await auth();
+
+		if (!userId) {
+			return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+		}
+
+		// Get user from database
+		const { data: dbUser } = await supabaseAdmin
+			.from("users")
+			.select("id")
+			.eq("clerk_id", userId)
+			.single();
+
+		if (!dbUser) {
+			return NextResponse.json({ error: "User not found" }, { status: 404 });
+		}
+
+		// Check if user is the facilitator
+		const { data: session } = await supabaseAdmin
+			.from("poker_sessions")
+			.select("created_by")
+			.eq("id", resolvedParams.sessionId)
+			.single();
+
+		if (!session || session.created_by !== dbUser.id) {
+			return NextResponse.json(
+				{ error: "Only facilitator can reset votes" },
+				{ status: 403 },
+			);
+		}
+
+		const body = await request.json();
+		const { storyId } = body;
+
+		// Delete all votes for this story
+		const { error: deleteError } = await supabaseAdmin
+			.from("poker_votes")
+			.delete()
+			.eq("story_id", storyId);
+
+		if (deleteError) {
+			return NextResponse.json(
+				{ error: "Failed to delete votes" },
+				{ status: 500 },
+			);
+		}
+
+		// Also clear the final_estimate for the story
+		const { error: updateError } = await supabaseAdmin
+			.from("stories")
+			.update({ final_estimate: null, is_estimated: false, estimated_at: null })
+			.eq("id", storyId);
+
+		if (updateError) {
+			console.error("Error clearing story estimate:", updateError);
+		}
+
+		return NextResponse.json({ success: true });
+	} catch (error) {
+		console.error("Error deleting votes:", error);
+		return NextResponse.json(
+			{
+				error: error instanceof Error ? error.message : "Internal server error",
+			},
+			{ status: 500 },
+		);
+	}
+}
