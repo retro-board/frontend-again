@@ -581,7 +581,7 @@ export default function PokerSessionPage() {
 
 				return revealResponse.json();
 			}
-			
+
 			// If hiding votes (resetting for another round of voting)
 			if (!isRevealing && currentStory) {
 				// Hide the votes
@@ -621,7 +621,7 @@ export default function PokerSessionPage() {
 
 				// Clear the selected vote
 				setSelectedVote(null);
-				
+
 				// Clear consensus display if showing
 				setShowConsensusResult(null);
 
@@ -629,7 +629,7 @@ export default function PokerSessionPage() {
 
 				return response.json();
 			}
-			
+
 			// Default case - just toggle reveal state
 			const response = await fetch(`/api/poker-sessions/${sessionId}`, {
 				method: "PATCH",

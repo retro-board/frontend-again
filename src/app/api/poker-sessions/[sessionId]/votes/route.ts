@@ -278,8 +278,8 @@ export async function DELETE(
 
 		// Also clear the final_estimate for the story
 		const { error: updateError } = await supabaseAdmin
-			.from("poker_stories")
-			.update({ final_estimate: null, estimated_at: null })
+			.from("stories")
+			.update({ final_estimate: null, is_estimated: false, estimated_at: null })
 			.eq("id", storyId);
 
 		if (updateError) {
