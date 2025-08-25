@@ -28,7 +28,10 @@ export async function broadcastToBoard(
 			event,
 			payload,
 		});
-		console.log(`Broadcast sent: ${event} to board:${boardId}`, payload);
+		// Only log in development
+		if (process.env.NODE_ENV !== "production") {
+			console.log(`Broadcast sent: ${event} to board:${boardId}`, payload);
+		}
 	} catch (error) {
 		console.error("Failed to broadcast event:", error);
 	}

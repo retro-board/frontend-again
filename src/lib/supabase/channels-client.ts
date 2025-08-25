@@ -52,9 +52,11 @@ export class BoardChannel {
 	private channel: RealtimeChannel | null = null;
 	private boardId: string;
 	// biome-ignore lint/suspicious/noExplicitAny: Supabase client type is complex and varies
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	private supabase: any;
 
 	// biome-ignore lint/suspicious/noExplicitAny: Supabase client type is complex and varies
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	constructor(boardId: string, supabaseClient: any) {
 		this.boardId = boardId;
 		this.supabase = supabaseClient;
@@ -145,7 +147,10 @@ export class BoardChannel {
 						table: "cards",
 					},
 					(payload) => {
-						console.log("Database change:", payload);
+						// Only log in development
+						if (process.env.NODE_ENV === "development") {
+							console.log("Database change:", payload);
+						}
 					},
 				)
 				.subscribe();
