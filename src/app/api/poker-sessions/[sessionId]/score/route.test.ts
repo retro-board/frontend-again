@@ -1,5 +1,4 @@
 import { auth } from "@clerk/nextjs/server";
-import { NextResponse } from "next/server";
 import { supabaseAdmin } from "~/lib/supabase/admin";
 import { POST } from "./route";
 
