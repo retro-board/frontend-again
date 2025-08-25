@@ -10,7 +10,7 @@ import {
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Check, Copy, Plus, Share2 } from "lucide-react";
 import { useParams } from "next/navigation";
-import { useEffect, useId, useState } from "react";
+import { useCallback, useEffect, useId, useState } from "react";
 import { toast } from "sonner";
 import { BoardColumn } from "~/components/boards/BoardColumn";
 import { BoardSettings } from "~/components/boards/BoardSettings";
@@ -123,6 +123,84 @@ export default function BoardPage() {
 		}
 	};
 
+	// Auto-end voting timer
+	const [gracePeriodTimer, setGracePeriodTimer] =
+		useState<NodeJS.Timeout | null>(null);
+	const [showGracePeriod, setShowGracePeriod] = useState(false);
+	const [gracePeriodSeconds, setGracePeriodSeconds] = useState(30);
+
+	// Check if all votes are used
+	const checkVotingComplete = useCallback(async () => {
+		if (board?.phase !== "voting" || !isOwner) return;
+
+		try {
+			const response = await fetch(`/api/boards/${boardId}/voting-status`);
+			if (response.ok) {
+				const data = await response.json();
+
+				if (data.allVotesUsed && !gracePeriodTimer) {
+					// Start 30-second grace period
+					setShowGracePeriod(true);
+					setGracePeriodSeconds(30);
+
+					toast("All votes have been used! Ending voting in 30 seconds...", {
+						duration: 5000,
+					});
+
+					// Countdown timer
+					const countdownInterval = setInterval(() => {
+						setGracePeriodSeconds((prev) => {
+							if (prev <= 1) {
+								clearInterval(countdownInterval);
+								return 0;
+							}
+							return prev - 1;
+						});
+					}, 1000);
+
+					// Set timer to auto-end voting after 30 seconds
+					const timer = setTimeout(async () => {
+						clearInterval(countdownInterval);
+						setShowGracePeriod(false);
+						setGracePeriodTimer(null);
+
+						// Auto-end voting phase
+						const endResponse = await fetch(
+							`/api/boards/${boardId}/voting-status`,
+							{
+								method: "POST",
+							},
+						);
+
+						if (endResponse.ok) {
+							queryClient.invalidateQueries({ queryKey: ["board", boardId] });
+							toast("Voting phase ended automatically");
+						}
+					}, 30000);
+
+					setGracePeriodTimer(timer);
+				}
+			}
+		} catch (error) {
+			console.error("Error checking voting status:", error);
+		}
+	}, [board?.phase, isOwner, boardId, gracePeriodTimer, queryClient]);
+
+	// Clear grace period timer on phase change or unmount
+	useEffect(() => {
+		if (board?.phase !== "voting" && gracePeriodTimer) {
+			clearTimeout(gracePeriodTimer);
+			setGracePeriodTimer(null);
+			setShowGracePeriod(false);
+		}
+
+		return () => {
+			if (gracePeriodTimer) {
+				clearTimeout(gracePeriodTimer);
+			}
+		};
+	}, [board?.phase, gracePeriodTimer]);
+
 	// Subscribe to realtime updates
 	useEffect(() => {
 		const boardChannel = new BoardChannel(boardId, supabase);
@@ -165,12 +243,27 @@ export default function BoardPage() {
 			onBoardUpdated: () => {
 				queryClient.invalidateQueries({ queryKey: ["board", boardId] });
 			},
+			onVoteAdded: () => {
+				queryClient.invalidateQueries({ queryKey: ["board", boardId] });
+				// Check if all votes are used after a vote is added
+				checkVotingComplete();
+			},
+			onVoteRemoved: () => {
+				queryClient.invalidateQueries({ queryKey: ["board", boardId] });
+				// Cancel grace period if a vote is removed
+				if (gracePeriodTimer) {
+					clearTimeout(gracePeriodTimer);
+					setGracePeriodTimer(null);
+					setShowGracePeriod(false);
+					toast("Grace period cancelled - vote removed");
+				}
+			},
 		});
 
 		return () => {
 			boardChannel.unsubscribe();
 		};
-	}, [boardId, queryClient]);
+	}, [boardId, queryClient, checkVotingComplete, gracePeriodTimer]);
 
 	// Create column mutation
 	const createColumnMutation = useMutation({
@@ -520,6 +613,39 @@ export default function BoardPage() {
 
 				<div className="w-80 overflow-y-auto border-l p-4">
 					<BoardTimer board={board} isOwner={isOwner} />
+
+					{/* Grace period countdown */}
+					{showGracePeriod && board?.phase === "voting" && (
+						<div className="mt-4 rounded-lg border-2 border-orange-500 bg-orange-50 p-4">
+							<div className="text-center">
+								<p className="font-semibold text-orange-900 text-sm">
+									All votes used!
+								</p>
+								<p className="mt-1 text-orange-700 text-xs">
+									Voting will end automatically in:
+								</p>
+								<p className="mt-2 font-bold text-2xl text-orange-900">
+									{gracePeriodSeconds}s
+								</p>
+								{isOwner && (
+									<button
+										type="button"
+										onClick={() => {
+											if (gracePeriodTimer) {
+												clearTimeout(gracePeriodTimer);
+												setGracePeriodTimer(null);
+												setShowGracePeriod(false);
+												toast("Grace period cancelled");
+											}
+										}}
+										className="mt-3 text-orange-600 text-xs underline hover:text-orange-800"
+									>
+										Cancel auto-end
+									</button>
+								)}
+							</div>
+						</div>
+					)}
 				</div>
 			</div>
 		</div>

@@ -48,6 +48,10 @@ export interface HighlightCardPayload {
 	duration?: number; // Duration in seconds for discussion
 }
 
+export interface VoteEventPayload {
+	cardId: string;
+}
+
 // Client-side channel management
 export class BoardChannel {
 	private channel: RealtimeChannel | null = null;
@@ -69,6 +73,8 @@ export class BoardChannel {
 		onTimerEvent?: (payload: TimerEventPayload) => void;
 		onPhaseChanged?: (payload: PhaseEventPayload) => void;
 		onBoardUpdated?: (payload: unknown) => void;
+		onVoteAdded?: (payload: VoteEventPayload) => void;
+		onVoteRemoved?: (payload: VoteEventPayload) => void;
 	}) {
 		this.channel = this.supabase.channel(`board:${this.boardId}`);
 
@@ -137,6 +143,19 @@ export class BoardChannel {
 		if (handlers.onBoardUpdated && this.channel) {
 			this.channel.on("broadcast", { event: "board_updated" }, ({ payload }) =>
 				handlers.onBoardUpdated?.(payload),
+			);
+		}
+
+		// Subscribe to vote events
+		if (handlers.onVoteAdded && this.channel) {
+			this.channel.on("broadcast", { event: "vote_added" }, ({ payload }) =>
+				handlers.onVoteAdded?.(payload),
+			);
+		}
+
+		if (handlers.onVoteRemoved && this.channel) {
+			this.channel.on("broadcast", { event: "vote_removed" }, ({ payload }) =>
+				handlers.onVoteRemoved?.(payload),
 			);
 		}
 
