@@ -62,15 +62,15 @@ function calculateScore(
 		if (numericValid.length === 0) {
 			return "?";
 		}
-		
+
 		const firstValue = numericValid[0];
 		if (firstValue === undefined) {
 			return "?";
 		}
-		
+
 		let closest = firstValue;
 		let minDiff = Math.abs(closest - rounded);
-		
+
 		for (const val of numericValid) {
 			const diff = Math.abs(val - rounded);
 			if (diff < minDiff) {
@@ -78,7 +78,7 @@ function calculateScore(
 				closest = val;
 			}
 		}
-		
+
 		return closest.toString();
 	}
 

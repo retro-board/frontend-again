@@ -37,6 +37,9 @@ describe("PokerChannelClient", () => {
 						presence: {
 							key: userId,
 						},
+						broadcast: {
+							self: true,
+						},
 					},
 				}),
 			);
