@@ -93,7 +93,7 @@ describe("/api/boards/[boardId]/voting-status", () => {
 				eq: jest.fn().mockReturnThis(),
 			};
 			// Second eq() resolves the promise
-			columnChain.eq = jest.fn().mockImplementation((key, value) => {
+			columnChain.eq = jest.fn().mockImplementation((key, _value) => {
 				if (key === "board_id") {
 					return columnChain; // First eq() returns chain
 				}
@@ -183,7 +183,7 @@ describe("/api/boards/[boardId]/voting-status", () => {
 				eq: jest.fn().mockReturnThis(),
 			};
 			// Second eq() resolves the promise
-			columnChain.eq = jest.fn().mockImplementation((key, value) => {
+			columnChain.eq = jest.fn().mockImplementation((key, _value) => {
 				if (key === "board_id") {
 					return columnChain; // First eq() returns chain
 				}
@@ -205,25 +205,31 @@ describe("/api/boards/[boardId]/voting-status", () => {
 				}),
 			});
 
-			// Mock votes - user_1 has 3 votes (all used)
-			supabaseMocks.fromMock.mockReturnValueOnce({
-				select: jest.fn().mockReturnThis(),
-				in: jest.fn().mockReturnThis(),
-				eq: jest.fn().mockResolvedValueOnce({
-					data: [{ id: "vote_1" }, { id: "vote_2" }, { id: "vote_3" }],
-					error: null,
-				}),
-			});
+			// Mock votes - both users have 3 votes each (all used)
+			// The route builds the query then calls eq() on it, then awaits the result
+			let voteCallCount = 0;
+			const voteMockData = [
+				[{ id: "vote_1" }, { id: "vote_2" }, { id: "vote_3" }], // user_1's votes
+				[{ id: "vote_4" }, { id: "vote_5" }, { id: "vote_6" }], // user_2's votes
+			];
 
-			// Mock votes - user_2 has 3 votes (all used)
-			supabaseMocks.fromMock.mockReturnValueOnce({
-				select: jest.fn().mockReturnThis(),
-				in: jest.fn().mockReturnThis(),
-				eq: jest.fn().mockResolvedValueOnce({
-					data: [{ id: "vote_4" }, { id: "vote_5" }, { id: "vote_6" }],
-					error: null,
-				}),
-			});
+			// Mock both vote queries
+			for (let i = 0; i < 2; i++) {
+				const votesQuery = {
+					select: jest.fn().mockReturnThis(),
+					in: jest.fn().mockReturnThis(),
+					eq: jest.fn(),
+					// biome-ignore lint/suspicious/noThenProperty: Mocking a thenable query object
+					then: jest.fn((resolve) => {
+						resolve({ data: voteMockData[voteCallCount++], error: null });
+					}),
+				};
+
+				// eq() should return the query object (which is thenable)
+				votesQuery.eq.mockReturnValue(votesQuery);
+
+				supabaseMocks.fromMock.mockReturnValueOnce(votesQuery);
+			}
 
 			const request = createMockRequest(
 				"http://localhost:3000/api/boards/board_123/voting-status",
