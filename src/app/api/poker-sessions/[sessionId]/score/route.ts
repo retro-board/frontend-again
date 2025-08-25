@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { supabaseAdmin } from "~/lib/supabase/admin";
 import { ESTIMATION_VALUES } from "~/types/database";
 
-// Calculate the mean score and round up to nearest valid estimation value
+// Calculate the mean score and round to nearest valid estimation value
 function calculateScore(
 	votes: string[],
 	estimationType: keyof typeof ESTIMATION_VALUES,
@@ -47,8 +47,8 @@ function calculateScore(
 	const mean =
 		numericValues.reduce((sum, val) => sum + val, 0) / numericValues.length;
 
-	// Round up and find nearest valid value
-	const roundedUp = Math.ceil(mean);
+	// Round to nearest integer
+	const rounded = Math.round(mean);
 
 	if (estimationType === "fibonacci" || estimationType === "oneToTen") {
 		// Find the nearest valid value
@@ -58,16 +58,33 @@ function calculateScore(
 			.filter((n) => !Number.isNaN(n))
 			.sort((a, b) => a - b);
 
-		// Find the closest value that's >= roundedUp
-		const closest =
-			numericValid.find((v) => v >= roundedUp) ??
-			numericValid[numericValid.length - 1];
-		return closest ? closest.toString() : "?";
+		// Find the closest value to the rounded mean
+		if (numericValid.length === 0) {
+			return "?";
+		}
+		
+		const firstValue = numericValid[0];
+		if (firstValue === undefined) {
+			return "?";
+		}
+		
+		let closest = firstValue;
+		let minDiff = Math.abs(closest - rounded);
+		
+		for (const val of numericValid) {
+			const diff = Math.abs(val - rounded);
+			if (diff < minDiff) {
+				minDiff = diff;
+				closest = val;
+			}
+		}
+		
+		return closest.toString();
 	}
 
 	if (estimationType === "tshirt") {
 		const sizes = ["XS", "S", "M", "L", "XL", "XXL"];
-		const index = Math.min(roundedUp - 1, sizes.length - 1);
+		const index = Math.min(rounded - 1, sizes.length - 1);
 		return sizes[Math.max(0, index)] ?? "?";
 	}
 

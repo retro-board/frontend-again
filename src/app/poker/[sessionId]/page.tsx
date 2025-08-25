@@ -82,6 +82,7 @@ export default function PokerSessionPage() {
 	const [copied, setCopied] = useState(false);
 	const [isAbstaining, setIsAbstaining] = useState(false);
 	const [displayTime, setDisplayTime] = useState("0:00");
+	const [isFinalizingVoting, setIsFinalizingVoting] = useState(false);
 
 	const elemId = useId();
 
@@ -207,51 +208,65 @@ export default function PokerSessionPage() {
 
 	// Function to finalize voting and calculate score
 	const handleFinalizeVoting = useCallback(async () => {
-		if (!currentStory) return;
+		if (!currentStory || isFinalizingVoting) return;
 
-		// Stop timer if running
-		if (timer.isActive) {
-			timer.stop();
-			await stopTimer();
-		}
+		setIsFinalizingVoting(true);
 
-		// Calculate score
-		const response = await fetch(`/api/poker-sessions/${sessionId}/score`, {
-			method: "POST",
-			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify({ storyId: currentStory.id }),
-		});
+		try {
+			// Stop timer if running
+			if (timer.isActive) {
+				timer.stop();
+				await stopTimer();
+			}
 
-		if (response.ok) {
-			const { finalScore, votes } = await response.json();
+			// Calculate score only if there are votes
+			const hasVotes = currentStory.votes && currentStory.votes.length > 0;
 
-			// Update the story with final estimate
-			await fetch(`/api/poker-sessions/${sessionId}/stories`, {
-				method: "PATCH",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({
-					storyId: currentStory.id,
-					final_estimate: finalScore,
-				}),
-			});
+			if (hasVotes) {
+				const response = await fetch(`/api/poker-sessions/${sessionId}/score`, {
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify({ storyId: currentStory.id }),
+				});
 
-			// End voting and announce score
-			await endVoting(currentStory.id);
-			await announceScore(currentStory.id, finalScore, votes);
+				if (response.ok) {
+					const { finalScore, votes } = await response.json();
 
-			// Keep votes revealed to show finalized results immediately
-			await fetch(`/api/poker-sessions/${sessionId}`, {
-				method: "PATCH",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ reveal_votes: true }),
-			});
+					// Update the story with final estimate
+					await fetch(`/api/poker-sessions/${sessionId}/stories`, {
+						method: "PATCH",
+						headers: { "Content-Type": "application/json" },
+						body: JSON.stringify({
+							storyId: currentStory.id,
+							final_estimate: finalScore,
+						}),
+					});
+
+					// End voting and announce score
+					await endVoting(currentStory.id);
+					await announceScore(currentStory.id, finalScore, votes);
+
+					// Keep votes revealed to show finalized results immediately
+					await fetch(`/api/poker-sessions/${sessionId}`, {
+						method: "PATCH",
+						headers: { "Content-Type": "application/json" },
+						body: JSON.stringify({ reveal_votes: true }),
+					});
+
+					toast.success(`Story estimated: ${finalScore}`);
+				}
+			} else {
+				// No votes received
+				await endVoting(currentStory.id);
+				toast.warning("Timer expired with no votes received");
+			}
 
 			// Invalidate queries to show the updated results immediately
 			await queryClient.invalidateQueries({
 				queryKey: ["poker-session", sessionId],
 			});
-
-			toast.success(`Story estimated: ${finalScore}`);
+		} finally {
+			setIsFinalizingVoting(false);
 		}
 	}, [
 		currentStory,
@@ -261,6 +276,7 @@ export default function PokerSessionPage() {
 		endVoting,
 		announceScore,
 		queryClient,
+		isFinalizingVoting,
 	]);
 
 	// Handle automatic voting completion when all eligible voters have voted
@@ -311,14 +327,9 @@ export default function PokerSessionPage() {
 
 	// Sync timer state from session state
 	useEffect(() => {
-		console.log("Timer sync - sessionState.timer:", sessionState.timer);
-		console.log("Timer sync - local timer.isActive:", timer.isActive);
-
 		if (sessionState.timer.isActive && sessionState.timer.endsAt) {
-			console.log("Starting timer until:", sessionState.timer.endsAt);
 			timer.startUntil(sessionState.timer.endsAt);
 		} else if (!sessionState.timer.isActive && timer.isActive) {
-			console.log("Stopping timer");
 			timer.stop();
 		}
 	}, [sessionState.timer, timer.isActive, timer.startUntil, timer.stop]);
@@ -449,13 +460,10 @@ export default function PokerSessionPage() {
 
 			// Start voting and timer (60 seconds default)
 			if (startVoting) {
-				console.log("Starting voting for story:", storyId);
 				await startVoting(storyId);
 			}
 			if (startTimer) {
 				const timerDuration = 60; // 60 seconds default
-				console.log("Starting timer with duration:", timerDuration);
-				// Don't start the local timer directly - let it sync from the channel
 				await startTimer(timerDuration);
 			}
 
@@ -464,6 +472,7 @@ export default function PokerSessionPage() {
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["poker-session", sessionId] });
 			setSelectedVote(null);
+			setIsFinalizingVoting(false); // Reset when new story is selected
 		},
 	});
 

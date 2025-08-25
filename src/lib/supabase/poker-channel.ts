@@ -28,6 +28,9 @@ export class PokerChannelClient {
 				presence: {
 					key: userId || anonymousUserId || "anonymous",
 				},
+				broadcast: {
+					self: true, // Include messages sent by this client
+				},
 			},
 		});
 
