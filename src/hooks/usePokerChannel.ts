@@ -2,7 +2,6 @@ import { useUser } from "@clerk/nextjs";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "~/lib/supabase/client";
 import { PokerChannelClient } from "~/lib/supabase/poker-channel";
-import type { PokerParticipant, Story, User } from "~/types/database";
 import type {
 	PokerChannelMessage,
 	PokerSessionState,
@@ -37,42 +36,6 @@ export function usePokerChannel({
 			isActive: false,
 		},
 	});
-
-	// Initialize channel connection
-	useEffect(() => {
-		if (!sessionId) return;
-
-		const initChannel = async () => {
-			const channel = new PokerChannelClient(sessionId, supabase);
-			channelRef.current = channel;
-
-			// Set up message handler
-			const unsubscribe = channel.onMessage((message) => {
-				handleChannelMessage(message);
-				onMessage?.(message);
-			});
-
-			// Connect to channel
-			await channel.connect(
-				isAnonymous ? undefined : user?.id,
-				isAnonymous ? anonymousUserId : undefined,
-			);
-
-			setIsConnected(true);
-
-			return () => {
-				unsubscribe();
-				channel.disconnect();
-			};
-		};
-
-		initChannel();
-
-		return () => {
-			channelRef.current?.disconnect();
-			setIsConnected(false);
-		};
-	}, [sessionId, user?.id, isAnonymous, anonymousUserId, onMessage]);
 
 	// Handle incoming messages and update state
 	const handleChannelMessage = useCallback((message: PokerChannelMessage) => {
@@ -236,6 +199,49 @@ export function usePokerChannel({
 			return newState;
 		});
 	}, []);
+
+	// Initialize channel connection
+	useEffect(() => {
+		if (!sessionId) return;
+
+		const initChannel = async () => {
+			const channel = new PokerChannelClient(sessionId, supabase);
+			channelRef.current = channel;
+
+			// Set up message handler
+			const unsubscribe = channel.onMessage((message) => {
+				handleChannelMessage(message);
+				onMessage?.(message);
+			});
+
+			// Connect to channel
+			await channel.connect(
+				isAnonymous ? undefined : user?.id,
+				isAnonymous ? anonymousUserId : undefined,
+			);
+
+			setIsConnected(true);
+
+			return () => {
+				unsubscribe();
+				channel.disconnect();
+			};
+		};
+
+		initChannel();
+
+		return () => {
+			channelRef.current?.disconnect();
+			setIsConnected(false);
+		};
+	}, [
+		sessionId,
+		user?.id,
+		isAnonymous,
+		anonymousUserId,
+		onMessage,
+		handleChannelMessage,
+	]);
 
 	// Action methods
 	const vote = useCallback(

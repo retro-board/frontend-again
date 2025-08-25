@@ -110,7 +110,14 @@ export async function POST(
 
 		if (action === "start") {
 			// Update current story and start timer if provided
-			const updates: any = {
+			const updates: {
+				current_story_id: string;
+				reveal_votes: boolean;
+				updated_at: string;
+				timer_seconds?: number;
+				timer_started_at?: string;
+				timer_ends_at?: string;
+			} = {
 				current_story_id: storyId,
 				reveal_votes: false,
 				updated_at: new Date().toISOString(),

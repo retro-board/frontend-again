@@ -1,8 +1,5 @@
 import type { RealtimeChannel, SupabaseClient } from "@supabase/supabase-js";
-import type {
-	PokerChannelMessage,
-	PokerSessionState,
-} from "~/types/poker-channel";
+import type { PokerChannelMessage } from "~/types/poker-channel";
 
 export class PokerChannelClient {
 	private channel: RealtimeChannel | null = null;
@@ -10,7 +7,10 @@ export class PokerChannelClient {
 	private supabase: SupabaseClient;
 	private messageHandlers: Map<string, (message: PokerChannelMessage) => void> =
 		new Map();
-	private presenceHandlers: Map<string, (state: any) => void> = new Map();
+	private presenceHandlers: Map<
+		string,
+		(state: Record<string, unknown>) => void
+	> = new Map();
 
 	constructor(sessionId: string, supabaseClient: SupabaseClient) {
 		this.sessionId = sessionId;
@@ -88,7 +88,9 @@ export class PokerChannelClient {
 	}
 
 	// Register a handler for presence updates
-	onPresenceSync(handler: (state: any) => void): () => void {
+	onPresenceSync(
+		handler: (state: Record<string, unknown>) => void,
+	): () => void {
 		const id = Math.random().toString(36);
 		this.presenceHandlers.set(id, handler);
 		return () => this.presenceHandlers.delete(id);
@@ -100,7 +102,7 @@ export class PokerChannelClient {
 		}
 	}
 
-	private handlePresenceSync(state: any) {
+	private handlePresenceSync(state: Record<string, unknown>) {
 		for (const handler of this.presenceHandlers.values()) {
 			handler(state);
 		}

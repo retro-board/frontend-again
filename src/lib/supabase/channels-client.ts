@@ -1,4 +1,4 @@
-import type { RealtimeChannel } from "@supabase/supabase-js";
+import type { RealtimeChannel, SupabaseClient } from "@supabase/supabase-js";
 
 // Channel event types
 export type ChannelEvent =
@@ -52,13 +52,9 @@ export interface HighlightCardPayload {
 export class BoardChannel {
 	private channel: RealtimeChannel | null = null;
 	private boardId: string;
-	// biome-ignore lint/suspicious/noExplicitAny: Supabase client type is complex and varies
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	private supabase: any;
+	private supabase: SupabaseClient;
 
-	// biome-ignore lint/suspicious/noExplicitAny: Supabase client type is complex and varies
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	constructor(boardId: string, supabaseClient: any) {
+	constructor(boardId: string, supabaseClient: SupabaseClient) {
 		this.boardId = boardId;
 		this.supabase = supabaseClient;
 	}

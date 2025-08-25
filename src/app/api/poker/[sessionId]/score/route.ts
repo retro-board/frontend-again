@@ -23,7 +23,7 @@ function calculateScore(
 	if (estimationType === "fibonacci" || estimationType === "oneToTen") {
 		numericValues = numericVotes
 			.map((v) => Number.parseInt(v, 10))
-			.filter((n) => !isNaN(n));
+			.filter((n) => !Number.isNaN(n));
 	} else if (estimationType === "tshirt") {
 		// Map t-shirt sizes to numeric values
 		const sizeMap: Record<string, number> = {
@@ -55,7 +55,7 @@ function calculateScore(
 		const fibValues = validValues
 			.filter((v) => v !== "?")
 			.map((v) => Number.parseInt(v, 10))
-			.filter((n) => !isNaN(n))
+			.filter((n) => !Number.isNaN(n))
 			.sort((a, b) => a - b);
 
 		const result = fibValues.find((v) => v >= roundedUp);

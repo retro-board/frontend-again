@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { usePokerChannel } from "./usePokerChannel";
 import { usePokerTimer } from "./usePokerTimer";
@@ -64,14 +64,20 @@ export function usePokerVoting({
 	});
 
 	// Timer for voting
+	const onTimerExpire = useCallback(() => {
+		if (isFacilitator && currentStoryId && endVotingRef.current) {
+			endVotingRef.current(currentStoryId);
+		}
+	}, [isFacilitator, currentStoryId]);
+
 	const timer = usePokerTimer({
-		onExpire: useCallback(async () => {
-			if (isFacilitator && currentStoryId) {
-				// Auto-end voting when timer expires
-				await endVoting(currentStoryId);
-			}
-		}, [isFacilitator, currentStoryId]),
+		onExpire: onTimerExpire,
 	});
+
+	// Forward declare for circular dependencies
+	const endVotingRef = useRef<((storyId: string) => Promise<void>) | null>(
+		null,
+	);
 
 	// Check voting completion
 	const checkVotingCompletion = useCallback(async () => {
@@ -83,8 +89,8 @@ export function usePokerVoting({
 		if (response.ok) {
 			const data = await response.json();
 
-			if (data.shouldEndVoting) {
-				await endVoting(currentStoryId);
+			if (data.shouldEndVoting && endVotingRef.current) {
+				await endVotingRef.current(currentStoryId);
 			}
 		}
 	}, [sessionId, currentStoryId, isFacilitator]);
@@ -273,6 +279,11 @@ export function usePokerVoting({
 			timer,
 		],
 	);
+
+	// Store endVoting in ref for timer
+	useEffect(() => {
+		endVotingRef.current = endVoting;
+	}, [endVoting]);
 
 	// Monitor voting state changes
 	useEffect(() => {

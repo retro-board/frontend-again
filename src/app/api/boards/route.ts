@@ -72,8 +72,7 @@ export async function GET() {
 		if (participantBoards) {
 			for (const pb of participantBoards) {
 				// Extract the board from the nested structure
-				// eslint-disable-next-line @typescript-eslint/no-explicit-any
-				const board = (pb as any).board;
+				const board = (pb as { board?: (typeof allBoards)[0] })?.board;
 				if (board && !boardIds.has(board.id) && board.is_active) {
 					allBoards.push(board);
 					boardIds.add(board.id);

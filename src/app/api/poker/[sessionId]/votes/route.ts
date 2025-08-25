@@ -7,7 +7,7 @@ export async function POST(
 	{ params }: { params: Promise<{ sessionId: string }> },
 ) {
 	try {
-		const resolvedParams = await params;
+		const _resolvedParams = await params;
 		const { userId } = await auth();
 		const body = await request.json();
 		const { storyId, voteValue, anonymousUserId } = body;
@@ -70,7 +70,12 @@ export async function POST(
 			}
 		} else {
 			// Create new vote
-			const voteData: any = {
+			const voteData: {
+				story_id: string;
+				vote_value: string;
+				user_id?: string;
+				anonymous_user_id?: string;
+			} = {
 				story_id: storyId,
 				vote_value: voteValue,
 			};
