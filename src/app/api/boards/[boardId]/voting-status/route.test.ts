@@ -64,9 +64,13 @@ describe("/api/boards/[boardId]/voting-status", () => {
 			setupAuthenticatedUser();
 
 			// Mock board in voting phase with 3 votes per user
-			supabaseMocks.singleMock.mockResolvedValueOnce({
-				data: { ...mockBoard, phase: "voting", votes_per_user: 3 },
-				error: null,
+			supabaseMocks.fromMock.mockReturnValueOnce({
+				select: jest.fn().mockReturnThis(),
+				eq: jest.fn().mockReturnThis(),
+				single: jest.fn().mockResolvedValueOnce({
+					data: { ...mockBoard, phase: "voting", votes_per_user: 3 },
+					error: null,
+				}),
 			});
 
 			// Mock participants - 2 users
@@ -74,35 +78,62 @@ describe("/api/boards/[boardId]/voting-status", () => {
 				{ user_id: "user_1", anonymous_user_id: null },
 				{ user_id: "user_2", anonymous_user_id: null },
 			];
-			supabaseMocks.selectMock.mockResolvedValueOnce({
-				data: mockParticipants,
-				error: null,
+			supabaseMocks.fromMock.mockReturnValueOnce({
+				select: jest.fn().mockReturnThis(),
+				eq: jest.fn().mockResolvedValueOnce({
+					data: mockParticipants,
+					error: null,
+				}),
 			});
 
-			// Mock columns (non-action)
+			// Mock columns (non-action) - has two chained .eq() calls
 			const mockColumns = [{ id: "col_1" }, { id: "col_2" }];
-			supabaseMocks.selectMock.mockResolvedValueOnce({
-				data: mockColumns,
-				error: null,
+			const columnChain = {
+				select: jest.fn().mockReturnThis(),
+				eq: jest.fn().mockReturnThis(),
+			};
+			// Second eq() resolves the promise
+			columnChain.eq = jest.fn().mockImplementation((key, value) => {
+				if (key === "board_id") {
+					return columnChain; // First eq() returns chain
+				}
+				// Second eq() for is_action returns the resolved data
+				return Promise.resolve({
+					data: mockColumns,
+					error: null,
+				});
 			});
+			supabaseMocks.fromMock.mockReturnValueOnce(columnChain);
 
 			// Mock cards
 			const mockCards = [{ id: "card_1" }, { id: "card_2" }, { id: "card_3" }];
-			supabaseMocks.selectMock.mockResolvedValueOnce({
-				data: mockCards,
-				error: null,
+			supabaseMocks.fromMock.mockReturnValueOnce({
+				select: jest.fn().mockReturnThis(),
+				in: jest.fn().mockResolvedValueOnce({
+					data: mockCards,
+					error: null,
+				}),
 			});
 
-			// Mock votes - user_1 has 3 votes (all used), user_2 has 2 votes
-			supabaseMocks.selectMock
-				.mockResolvedValueOnce({
+			// Mock votes - user_1 has 3 votes (all used)
+			supabaseMocks.fromMock.mockReturnValueOnce({
+				select: jest.fn().mockReturnThis(),
+				in: jest.fn().mockReturnThis(),
+				eq: jest.fn().mockResolvedValueOnce({
 					data: [{ id: "vote_1" }, { id: "vote_2" }, { id: "vote_3" }],
 					error: null,
-				})
-				.mockResolvedValueOnce({
+				}),
+			});
+
+			// Mock votes - user_2 has 2 votes
+			supabaseMocks.fromMock.mockReturnValueOnce({
+				select: jest.fn().mockReturnThis(),
+				in: jest.fn().mockReturnThis(),
+				eq: jest.fn().mockResolvedValueOnce({
 					data: [{ id: "vote_4" }, { id: "vote_5" }],
 					error: null,
-				});
+				}),
+			});
 
 			const request = createMockRequest(
 				"http://localhost:3000/api/boards/board_123/voting-status",
@@ -123,9 +154,13 @@ describe("/api/boards/[boardId]/voting-status", () => {
 			setupAuthenticatedUser();
 
 			// Mock board in voting phase with 3 votes per user
-			supabaseMocks.singleMock.mockResolvedValueOnce({
-				data: { ...mockBoard, phase: "voting", votes_per_user: 3 },
-				error: null,
+			supabaseMocks.fromMock.mockReturnValueOnce({
+				select: jest.fn().mockReturnThis(),
+				eq: jest.fn().mockReturnThis(),
+				single: jest.fn().mockResolvedValueOnce({
+					data: { ...mockBoard, phase: "voting", votes_per_user: 3 },
+					error: null,
+				}),
 			});
 
 			// Mock participants - 2 users
@@ -133,35 +168,62 @@ describe("/api/boards/[boardId]/voting-status", () => {
 				{ user_id: "user_1", anonymous_user_id: null },
 				{ user_id: "user_2", anonymous_user_id: null },
 			];
-			supabaseMocks.selectMock.mockResolvedValueOnce({
-				data: mockParticipants,
-				error: null,
+			supabaseMocks.fromMock.mockReturnValueOnce({
+				select: jest.fn().mockReturnThis(),
+				eq: jest.fn().mockResolvedValueOnce({
+					data: mockParticipants,
+					error: null,
+				}),
 			});
 
-			// Mock columns (non-action)
+			// Mock columns (non-action) - has two chained .eq() calls
 			const mockColumns = [{ id: "col_1" }, { id: "col_2" }];
-			supabaseMocks.selectMock.mockResolvedValueOnce({
-				data: mockColumns,
-				error: null,
+			const columnChain = {
+				select: jest.fn().mockReturnThis(),
+				eq: jest.fn().mockReturnThis(),
+			};
+			// Second eq() resolves the promise
+			columnChain.eq = jest.fn().mockImplementation((key, value) => {
+				if (key === "board_id") {
+					return columnChain; // First eq() returns chain
+				}
+				// Second eq() for is_action returns the resolved data
+				return Promise.resolve({
+					data: mockColumns,
+					error: null,
+				});
 			});
+			supabaseMocks.fromMock.mockReturnValueOnce(columnChain);
 
 			// Mock cards
 			const mockCards = [{ id: "card_1" }, { id: "card_2" }, { id: "card_3" }];
-			supabaseMocks.selectMock.mockResolvedValueOnce({
-				data: mockCards,
-				error: null,
+			supabaseMocks.fromMock.mockReturnValueOnce({
+				select: jest.fn().mockReturnThis(),
+				in: jest.fn().mockResolvedValueOnce({
+					data: mockCards,
+					error: null,
+				}),
 			});
 
-			// Mock votes - both users have 3 votes (all used)
-			supabaseMocks.selectMock
-				.mockResolvedValueOnce({
+			// Mock votes - user_1 has 3 votes (all used)
+			supabaseMocks.fromMock.mockReturnValueOnce({
+				select: jest.fn().mockReturnThis(),
+				in: jest.fn().mockReturnThis(),
+				eq: jest.fn().mockResolvedValueOnce({
 					data: [{ id: "vote_1" }, { id: "vote_2" }, { id: "vote_3" }],
 					error: null,
-				})
-				.mockResolvedValueOnce({
+				}),
+			});
+
+			// Mock votes - user_2 has 3 votes (all used)
+			supabaseMocks.fromMock.mockReturnValueOnce({
+				select: jest.fn().mockReturnThis(),
+				in: jest.fn().mockReturnThis(),
+				eq: jest.fn().mockResolvedValueOnce({
 					data: [{ id: "vote_4" }, { id: "vote_5" }, { id: "vote_6" }],
 					error: null,
-				});
+				}),
+			});
 
 			const request = createMockRequest(
 				"http://localhost:3000/api/boards/board_123/voting-status",
@@ -200,27 +262,34 @@ describe("/api/boards/[boardId]/voting-status", () => {
 			setupAuthenticatedUser();
 
 			// Mock board in voting phase
-			supabaseMocks.singleMock.mockResolvedValueOnce({
-				data: {
-					...mockBoard,
-					phase: "voting",
-					owner_id: mockDbUser.id,
-				},
-				error: null,
+			supabaseMocks.fromMock.mockReturnValueOnce({
+				select: jest.fn().mockReturnThis(),
+				eq: jest.fn().mockReturnThis(),
+				single: jest.fn().mockResolvedValueOnce({
+					data: {
+						...mockBoard,
+						phase: "voting",
+						owner_id: mockDbUser.id,
+					},
+					error: null,
+				}),
 			});
 
 			// Mock user lookup
-			supabaseMocks.maybeSingleMock.mockResolvedValueOnce({
-				data: mockDbUser,
-				error: null,
+			supabaseMocks.fromMock.mockReturnValueOnce({
+				select: jest.fn().mockReturnThis(),
+				eq: jest.fn().mockReturnThis(),
+				maybeSingle: jest.fn().mockResolvedValueOnce({
+					data: mockDbUser,
+					error: null,
+				}),
 			});
 
 			// Mock phase update
-			const updateChain = {
+			supabaseMocks.fromMock.mockReturnValueOnce({
 				update: jest.fn().mockReturnThis(),
 				eq: jest.fn().mockResolvedValueOnce({ error: null }),
-			};
-			supabaseMocks.fromMock.mockReturnValueOnce(updateChain);
+			});
 
 			const request = createMockRequest(
 				"http://localhost:3000/api/boards/board_123/voting-status",
@@ -249,19 +318,27 @@ describe("/api/boards/[boardId]/voting-status", () => {
 			setupAuthenticatedUser();
 
 			// Mock board with different owner
-			supabaseMocks.singleMock.mockResolvedValueOnce({
-				data: {
-					...mockBoard,
-					phase: "voting",
-					owner_id: "different_user_id",
-				},
-				error: null,
+			supabaseMocks.fromMock.mockReturnValueOnce({
+				select: jest.fn().mockReturnThis(),
+				eq: jest.fn().mockReturnThis(),
+				single: jest.fn().mockResolvedValueOnce({
+					data: {
+						...mockBoard,
+						phase: "voting",
+						owner_id: "different_user_id",
+					},
+					error: null,
+				}),
 			});
 
 			// Mock user lookup
-			supabaseMocks.maybeSingleMock.mockResolvedValueOnce({
-				data: mockDbUser,
-				error: null,
+			supabaseMocks.fromMock.mockReturnValueOnce({
+				select: jest.fn().mockReturnThis(),
+				eq: jest.fn().mockReturnThis(),
+				maybeSingle: jest.fn().mockResolvedValueOnce({
+					data: mockDbUser,
+					error: null,
+				}),
 			});
 
 			const request = createMockRequest(
@@ -282,19 +359,27 @@ describe("/api/boards/[boardId]/voting-status", () => {
 			setupAuthenticatedUser();
 
 			// Mock board in creation phase
-			supabaseMocks.singleMock.mockResolvedValueOnce({
-				data: {
-					...mockBoard,
-					phase: "creation",
-					owner_id: mockDbUser.id,
-				},
-				error: null,
+			supabaseMocks.fromMock.mockReturnValueOnce({
+				select: jest.fn().mockReturnThis(),
+				eq: jest.fn().mockReturnThis(),
+				single: jest.fn().mockResolvedValueOnce({
+					data: {
+						...mockBoard,
+						phase: "creation",
+						owner_id: mockDbUser.id,
+					},
+					error: null,
+				}),
 			});
 
 			// Mock user lookup
-			supabaseMocks.maybeSingleMock.mockResolvedValueOnce({
-				data: mockDbUser,
-				error: null,
+			supabaseMocks.fromMock.mockReturnValueOnce({
+				select: jest.fn().mockReturnThis(),
+				eq: jest.fn().mockReturnThis(),
+				maybeSingle: jest.fn().mockResolvedValueOnce({
+					data: mockDbUser,
+					error: null,
+				}),
 			});
 
 			const request = createMockRequest(
