@@ -4,12 +4,15 @@ import { useUser } from "@clerk/nextjs";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
 	Check,
+	CheckCircle2,
 	ChevronRight,
 	Copy,
 	Eye,
 	EyeOff,
 	Plus,
 	Share2,
+	Timer,
+	Trophy,
 } from "lucide-react";
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useId, useState } from "react";
@@ -38,6 +41,7 @@ import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { Textarea } from "~/components/ui/textarea";
 import { usePokerChannel } from "~/hooks/usePokerChannel";
+import { usePokerTimer } from "~/hooks/usePokerTimer";
 import { useUserSync } from "~/hooks/useUserSync";
 import { supabase } from "~/lib/supabase/client";
 import type {
@@ -60,6 +64,7 @@ interface SessionData extends PokerSession {
 	anonymous_participants?: {
 		anonymous_user: AnonymousUser;
 	}[];
+	status?: "active" | "completed";
 }
 
 export default function PokerSessionPage() {
@@ -75,6 +80,8 @@ export default function PokerSessionPage() {
 	const [selectedVote, setSelectedVote] = useState<string | null>(null);
 	const [shareDialogOpen, setShareDialogOpen] = useState(false);
 	const [copied, setCopied] = useState(false);
+	const [isAbstaining, setIsAbstaining] = useState(false);
+	const [displayTime, setDisplayTime] = useState("0:00");
 
 	const elemId = useId();
 
@@ -153,13 +160,23 @@ export default function PokerSessionPage() {
 	);
 
 	// Use poker channel for real-time updates
-	const { isConnected, selectStory, sessionState, announceScore, endVoting } =
-		usePokerChannel({
-			sessionId,
-			isAnonymous: !user,
-			anonymousUserId: anonymousData?.user?.id,
-			onMessage: handlePokerMessage,
-		});
+	const {
+		isConnected,
+		selectStory,
+		sessionState,
+		announceScore,
+		endVoting,
+		abstain,
+		unabstain,
+		startTimer,
+		stopTimer,
+		startVoting,
+	} = usePokerChannel({
+		sessionId,
+		isAnonymous: !user,
+		anonymousUserId: anonymousData?.user?.id,
+		onMessage: handlePokerMessage,
+	});
 
 	// Log connection status - only log on actual changes
 	useEffect(() => {
@@ -178,6 +195,74 @@ export default function PokerSessionPage() {
 		(p) => p.user.id === currentUser?.id && p.role === "facilitator",
 	);
 
+	// Timer hook for voting sessions
+	const timer = usePokerTimer({
+		onExpire: async () => {
+			if (isFacilitator && currentStory) {
+				// Calculate and announce score when timer expires
+				await handleFinalizeVoting();
+			}
+		},
+	});
+
+	// Function to finalize voting and calculate score
+	const handleFinalizeVoting = useCallback(async () => {
+		if (!currentStory) return;
+
+		// Stop timer if running
+		if (timer.isActive) {
+			timer.stop();
+			await stopTimer();
+		}
+
+		// Calculate score
+		const response = await fetch(`/api/poker-sessions/${sessionId}/score`, {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ storyId: currentStory.id }),
+		});
+
+		if (response.ok) {
+			const { finalScore, votes } = await response.json();
+
+			// Update the story with final estimate
+			await fetch(`/api/poker-sessions/${sessionId}/stories`, {
+				method: "PATCH",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({
+					storyId: currentStory.id,
+					final_estimate: finalScore,
+				}),
+			});
+
+			// End voting and announce score
+			await endVoting(currentStory.id);
+			await announceScore(currentStory.id, finalScore, votes);
+
+			// Keep votes revealed to show finalized results immediately
+			await fetch(`/api/poker-sessions/${sessionId}`, {
+				method: "PATCH",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ reveal_votes: true }),
+			});
+
+			// Invalidate queries to show the updated results immediately
+			await queryClient.invalidateQueries({
+				queryKey: ["poker-session", sessionId],
+			});
+
+			toast.success(`Story estimated: ${finalScore}`);
+		}
+	}, [
+		currentStory,
+		timer,
+		stopTimer,
+		sessionId,
+		endVoting,
+		announceScore,
+		queryClient,
+	]);
+
 	// Handle automatic voting completion when all eligible voters have voted
 	useEffect(() => {
 		const handleVotingCompletion = async () => {
@@ -189,32 +274,7 @@ export default function PokerSessionPage() {
 				return;
 			}
 
-			// Calculate score
-			const response = await fetch(`/api/poker-sessions/${sessionId}/score`, {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ storyId: currentStory.id }),
-			});
-
-			if (response.ok) {
-				const { finalScore, votes } = await response.json();
-
-				// End voting and announce score
-				await endVoting(currentStory.id);
-				await announceScore(currentStory.id, finalScore, votes);
-
-				// Update session to mark voting as complete
-				await fetch(`/api/poker-sessions/${sessionId}`, {
-					method: "PATCH",
-					headers: { "Content-Type": "application/json" },
-					body: JSON.stringify({ reveal_votes: true }),
-				});
-
-				queryClient.invalidateQueries({
-					queryKey: ["poker-session", sessionId],
-				});
-				toast.success(`All votes received! Final estimate: ${finalScore}`);
-			}
+			await handleFinalizeVoting();
 		};
 
 		handleVotingCompletion();
@@ -222,10 +282,7 @@ export default function PokerSessionPage() {
 		sessionState.votingState.allVoted,
 		isFacilitator,
 		currentStory,
-		sessionId,
-		endVoting,
-		announceScore,
-		queryClient,
+		handleFinalizeVoting,
 	]);
 
 	// Get user's vote for current story
@@ -238,6 +295,62 @@ export default function PokerSessionPage() {
 		}
 		return false;
 	});
+
+	// Check if current user is abstaining from session state
+	useEffect(() => {
+		const userId = currentUser?.id || anonymousData?.user?.id;
+		if (userId) {
+			const participant = sessionState.participants.find(
+				(p) => p.id === userId,
+			);
+			if (participant) {
+				setIsAbstaining(participant.isAbstaining);
+			}
+		}
+	}, [sessionState.participants, currentUser?.id, anonymousData?.user?.id]);
+
+	// Sync timer state from session state
+	useEffect(() => {
+		console.log("Timer sync - sessionState.timer:", sessionState.timer);
+		console.log("Timer sync - local timer.isActive:", timer.isActive);
+
+		if (sessionState.timer.isActive && sessionState.timer.endsAt) {
+			console.log("Starting timer until:", sessionState.timer.endsAt);
+			timer.startUntil(sessionState.timer.endsAt);
+		} else if (!sessionState.timer.isActive && timer.isActive) {
+			console.log("Stopping timer");
+			timer.stop();
+		}
+	}, [sessionState.timer, timer.isActive, timer.startUntil, timer.stop]);
+
+	// Update display timer every second
+	useEffect(() => {
+		if (!sessionState.timer.isActive || !sessionState.timer.endsAt) {
+			setDisplayTime("0:00");
+			return;
+		}
+
+		const updateDisplayTime = () => {
+			if (!sessionState.timer.endsAt) return;
+			const remaining = Math.max(
+				0,
+				Math.floor(
+					(new Date(sessionState.timer.endsAt).getTime() - Date.now()) / 1000,
+				),
+			);
+			const mins = Math.floor(remaining / 60);
+			const secs = remaining % 60;
+			setDisplayTime(`${mins}:${secs.toString().padStart(2, "0")}`);
+		};
+
+		// Update immediately
+		updateDisplayTime();
+
+		// Then update every second
+		const interval = setInterval(updateDisplayTime, 1000);
+
+		return () => clearInterval(interval);
+	}, [sessionState.timer.isActive, sessionState.timer.endsAt]);
 
 	// Create story mutation
 	const createStoryMutation = useMutation({
@@ -334,6 +447,18 @@ export default function PokerSessionPage() {
 				await selectStory(storyId, storyTitle);
 			}
 
+			// Start voting and timer (60 seconds default)
+			if (startVoting) {
+				console.log("Starting voting for story:", storyId);
+				await startVoting(storyId);
+			}
+			if (startTimer) {
+				const timerDuration = 60; // 60 seconds default
+				console.log("Starting timer with duration:", timerDuration);
+				// Don't start the local timer directly - let it sync from the channel
+				await startTimer(timerDuration);
+			}
+
 			return response.json();
 		},
 		onSuccess: () => {
@@ -364,6 +489,33 @@ export default function PokerSessionPage() {
 		},
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["poker-session", sessionId] });
+		},
+	});
+
+	// Complete session mutation
+	const completeSessionMutation = useMutation({
+		mutationFn: async () => {
+			const response = await fetch(`/api/poker-sessions/${sessionId}`, {
+				method: "PATCH",
+				headers: {
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify({
+					status: "completed",
+					completed_at: new Date().toISOString(),
+				}),
+			});
+
+			if (!response.ok) {
+				const error = await response.json();
+				throw new Error(error.error || "Failed to complete session");
+			}
+
+			return response.json();
+		},
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ["poker-session", sessionId] });
+			toast.success("Poker session completed!");
 		},
 	});
 
@@ -402,7 +554,19 @@ export default function PokerSessionPage() {
 	const handleVote = (vote: string) => {
 		if (currentStory && (currentUser || anonymousData?.user)) {
 			setSelectedVote(vote);
+			setIsAbstaining(false); // Clear abstaining when voting
 			voteMutation.mutate({ storyId: currentStory.id, vote });
+		}
+	};
+
+	const handleAbstain = async () => {
+		if (isAbstaining) {
+			await unabstain();
+			setIsAbstaining(false);
+		} else {
+			await abstain();
+			setIsAbstaining(true);
+			setSelectedVote(null); // Clear any selected vote
 		}
 	};
 
@@ -467,6 +631,20 @@ export default function PokerSessionPage() {
 
 	return (
 		<div className="container mx-auto py-8">
+			{session.status === "completed" && (
+				<div className="mb-6 rounded-lg border border-green-500 bg-green-50 p-4 dark:bg-green-950">
+					<div className="flex items-center gap-2">
+						<Trophy className="h-5 w-5 text-green-600 dark:text-green-400" />
+						<span className="font-semibold text-green-600 dark:text-green-400">
+							Session Completed
+						</span>
+					</div>
+					<p className="mt-1 text-muted-foreground text-sm">
+						This poker session has been completed. All stories have been
+						estimated.
+					</p>
+				</div>
+			)}
 			<div className="mb-8 flex items-center justify-between">
 				<div>
 					<h1 className="font-bold text-3xl">{session.name}</h1>
@@ -501,7 +679,24 @@ export default function PokerSessionPage() {
 							</div>
 						</DialogContent>
 					</Dialog>
-					{isFacilitator && (
+					{isFacilitator && session?.status !== "completed" && (
+						<Button
+							variant="destructive"
+							onClick={() => {
+								if (
+									confirm(
+										"Are you sure you want to complete this poker session? This action cannot be undone.",
+									)
+								) {
+									completeSessionMutation.mutate();
+								}
+							}}
+						>
+							<Trophy className="mr-2 h-4 w-4" />
+							Complete Session
+						</Button>
+					)}
+					{isFacilitator && session?.status !== "completed" && (
 						<Dialog open={storyDialogOpen} onOpenChange={setStoryDialogOpen}>
 							<DialogTrigger asChild>
 								<Button>
@@ -570,11 +765,23 @@ export default function PokerSessionPage() {
 					{currentStory ? (
 						<Card>
 							<CardHeader>
-								<CardTitle>Current Story</CardTitle>
-								<CardDescription>{currentStory.title}</CardDescription>
-								{currentStory.description && (
-									<p className="mt-2 text-sm">{currentStory.description}</p>
-								)}
+								<div className="flex items-center justify-between">
+									<div>
+										<CardTitle>Current Story</CardTitle>
+										<CardDescription>{currentStory.title}</CardDescription>
+										{currentStory.description && (
+											<p className="mt-2 text-sm">{currentStory.description}</p>
+										)}
+									</div>
+									{sessionState.timer.isActive && (
+										<div className="flex items-center gap-2 text-muted-foreground">
+											<Timer className="h-5 w-5" />
+											<span className="font-bold font-mono text-lg">
+												{displayTime}
+											</span>
+										</div>
+									)}
+								</div>
 							</CardHeader>
 							<CardContent>
 								<div className="mb-6 grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-6">
@@ -586,10 +793,25 @@ export default function PokerSessionPage() {
 												selectedVote === value || userVote?.vote_value === value
 											}
 											onClick={() => handleVote(value)}
-											disabled={session.reveal_votes}
+											disabled={session.reveal_votes || isAbstaining}
 										/>
 									))}
 								</div>
+
+								{/* Abstain button for non-facilitators */}
+								{!isFacilitator && (
+									<div className="mb-4 flex justify-center">
+										<Button
+											onClick={handleAbstain}
+											variant={isAbstaining ? "default" : "outline"}
+											disabled={session.reveal_votes}
+										>
+											{isAbstaining
+												? "Cancel Abstention"
+												: "Abstain from Voting"}
+										</Button>
+									</div>
+								)}
 
 								{isFacilitator && (
 									<div className="flex gap-2">
@@ -630,6 +852,21 @@ export default function PokerSessionPage() {
 
 								{session.reveal_votes && currentStory.votes.length > 0 && (
 									<div className="mt-6">
+										{currentStory.final_estimate && (
+											<div className="mb-4 rounded-lg bg-green-50 p-4 dark:bg-green-950">
+												<div className="flex items-center justify-between">
+													<div className="flex items-center gap-2">
+														<CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400" />
+														<span className="font-semibold">
+															Final Estimate
+														</span>
+													</div>
+													<Badge variant="default" className="text-lg">
+														{currentStory.final_estimate}
+													</Badge>
+												</div>
+											</div>
+										)}
 										<h4 className="mb-3 font-semibold">Votes:</h4>
 										<div className="space-y-2">
 											{currentStory.votes.map((vote) => (
@@ -728,6 +965,7 @@ export default function PokerSessionPage() {
 						anonymousParticipants={session.anonymous_participants}
 						currentStory={currentStory}
 						showVotes={session.reveal_votes}
+						sessionState={sessionState}
 					/>
 				</div>
 			</div>

@@ -1,10 +1,11 @@
 "use client";
 
-import { Check, Clock } from "lucide-react";
+import { Check, Clock, UserX } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
 import { Badge } from "~/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import type { AnonymousUser, PokerVote, Story, User } from "~/types/database";
+import type { PokerSessionState } from "~/types/poker-channel";
 
 interface ParticipantListProps {
 	participants: {
@@ -18,6 +19,7 @@ interface ParticipantListProps {
 		votes: (PokerVote & { user?: User; anonymous_user?: AnonymousUser })[];
 	};
 	showVotes: boolean;
+	sessionState?: PokerSessionState;
 }
 
 export function ParticipantList({
@@ -25,6 +27,7 @@ export function ParticipantList({
 	anonymousParticipants = [],
 	currentStory,
 	showVotes,
+	sessionState,
 }: ParticipantListProps) {
 	const getInitials = (name?: string, email?: string) => {
 		if (name) {
@@ -62,6 +65,9 @@ export function ParticipantList({
 					{participants.map(({ user, role }) => {
 						const vote = getUserVote(user.id);
 						const hasVoted = !!vote;
+						const isAbstaining = sessionState?.participants.find(
+							(p) => p.id === user.id,
+						)?.isAbstaining;
 
 						return (
 							<div key={user.id} className="flex items-center justify-between">
@@ -76,16 +82,25 @@ export function ParticipantList({
 										<p className="font-medium text-sm">
 											{user.name || user.email}
 										</p>
-										{role === "facilitator" && (
-											<Badge variant="outline" className="text-xs">
-												Facilitator
-											</Badge>
-										)}
+										<div className="flex gap-1">
+											{role === "facilitator" && (
+												<Badge variant="outline" className="text-xs">
+													Facilitator
+												</Badge>
+											)}
+											{isAbstaining && (
+												<Badge variant="secondary" className="text-xs">
+													Abstaining
+												</Badge>
+											)}
+										</div>
 									</div>
 								</div>
 								<div>
 									{currentStory &&
-										(showVotes && vote ? (
+										(isAbstaining ? (
+											<UserX className="h-4 w-4 text-muted-foreground" />
+										) : showVotes && vote ? (
 											<Badge>{vote.vote_value}</Badge>
 										) : hasVoted ? (
 											<Check className="h-4 w-4 text-green-500" />
@@ -99,6 +114,9 @@ export function ParticipantList({
 					{anonymousParticipants.map(({ anonymous_user }) => {
 						const vote = getAnonymousUserVote(anonymous_user.id);
 						const hasVoted = !!vote;
+						const isAbstaining = sessionState?.participants.find(
+							(p) => p.id === anonymous_user.id,
+						)?.isAbstaining;
 
 						return (
 							<div
@@ -115,14 +133,23 @@ export function ParticipantList({
 										<p className="font-medium text-sm">
 											{anonymous_user.display_name}
 										</p>
-										<Badge variant="outline" className="text-xs">
-											Guest
-										</Badge>
+										<div className="flex gap-1">
+											<Badge variant="outline" className="text-xs">
+												Guest
+											</Badge>
+											{isAbstaining && (
+												<Badge variant="secondary" className="text-xs">
+													Abstaining
+												</Badge>
+											)}
+										</div>
 									</div>
 								</div>
 								<div>
 									{currentStory &&
-										(showVotes && vote ? (
+										(isAbstaining ? (
+											<UserX className="h-4 w-4 text-muted-foreground" />
+										) : showVotes && vote ? (
 											<Badge>{vote.vote_value}</Badge>
 										) : hasVoted ? (
 											<Check className="h-4 w-4 text-green-500" />

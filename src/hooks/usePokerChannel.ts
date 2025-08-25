@@ -346,16 +346,20 @@ export function usePokerChannel({
 	// Facilitator methods
 	const startTimer = useCallback(
 		async (duration: number) => {
-			if (!channelRef.current || !user?.id) return;
-			await channelRef.current.startTimer(duration, user.id);
+			if (!channelRef.current) return;
+			const userId = user?.id || anonymousUserId;
+			if (!userId) return;
+			await channelRef.current.startTimer(duration, userId);
 		},
-		[user],
+		[user, anonymousUserId],
 	);
 
 	const stopTimer = useCallback(async () => {
-		if (!channelRef.current || !user?.id) return;
-		await channelRef.current.stopTimer(user.id);
-	}, [user]);
+		if (!channelRef.current) return;
+		const userId = user?.id || anonymousUserId;
+		if (!userId) return;
+		await channelRef.current.stopTimer(userId);
+	}, [user, anonymousUserId]);
 
 	const createStory = useCallback(
 		async (story: {
@@ -364,34 +368,42 @@ export function usePokerChannel({
 			description?: string;
 			position: number;
 		}) => {
-			if (!channelRef.current || !user?.id) return;
-			await channelRef.current.createStory(story, user.id);
+			if (!channelRef.current) return;
+			const userId = user?.id || anonymousUserId;
+			if (!userId) return;
+			await channelRef.current.createStory(story, userId);
 		},
-		[user],
+		[user, anonymousUserId],
 	);
 
 	const selectStory = useCallback(
 		async (storyId: string, storyTitle: string) => {
-			if (!channelRef.current || !user?.id) return;
-			await channelRef.current.selectStory(storyId, storyTitle, user.id);
+			if (!channelRef.current) return;
+			const userId = user?.id || anonymousUserId;
+			if (!userId) return;
+			await channelRef.current.selectStory(storyId, storyTitle, userId);
 		},
-		[user],
+		[user, anonymousUserId],
 	);
 
 	const startVoting = useCallback(
 		async (storyId: string) => {
-			if (!channelRef.current || !user?.id) return;
-			await channelRef.current.startVoting(storyId, user.id);
+			if (!channelRef.current) return;
+			const userId = user?.id || anonymousUserId;
+			if (!userId) return;
+			await channelRef.current.startVoting(storyId, userId);
 		},
-		[user],
+		[user, anonymousUserId],
 	);
 
 	const endVoting = useCallback(
 		async (storyId: string) => {
-			if (!channelRef.current || !user?.id) return;
-			await channelRef.current.endVoting(storyId, user.id);
+			if (!channelRef.current) return;
+			const userId = user?.id || anonymousUserId;
+			if (!userId) return;
+			await channelRef.current.endVoting(storyId, userId);
 		},
-		[user],
+		[user, anonymousUserId],
 	);
 
 	const announceScore = useCallback(
@@ -400,15 +412,17 @@ export function usePokerChannel({
 			finalScore: string,
 			votes: Record<string, string>,
 		) => {
-			if (!channelRef.current || !user?.id) return;
+			if (!channelRef.current) return;
+			const userId = user?.id || anonymousUserId;
+			if (!userId) return;
 			await channelRef.current.announceScore(
 				storyId,
 				finalScore,
 				votes,
-				user.id,
+				userId,
 			);
 		},
-		[user],
+		[user, anonymousUserId],
 	);
 
 	return {
