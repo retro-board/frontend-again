@@ -12,7 +12,7 @@ import {
 	Share2,
 } from "lucide-react";
 import { useParams } from "next/navigation";
-import { useEffect, useId, useState } from "react";
+import { useCallback, useEffect, useId, useState } from "react";
 import { toast } from "sonner";
 import { ParticipantList } from "~/components/poker/ParticipantList";
 import { VoteCard } from "~/components/poker/VoteCard";
@@ -130,12 +130,9 @@ export default function PokerSessionPage() {
 
 	const session = sessionData?.session as SessionData | undefined;
 
-	// Use poker channel for real-time updates
-	const { isConnected } = usePokerChannel({
-		sessionId,
-		isAnonymous: !user,
-		anonymousUserId: anonymousData?.user?.id,
-		onMessage: (message) => {
+	// Memoize the message handler to prevent reconnections
+	const handlePokerMessage = useCallback(
+		(message: { type: string; storyId?: string }) => {
 			console.log("Poker channel message:", message);
 
 			// Invalidate queries on relevant events
@@ -151,11 +148,22 @@ export default function PokerSessionPage() {
 				});
 			}
 		},
+		[queryClient, sessionId],
+	);
+
+	// Use poker channel for real-time updates
+	const { isConnected } = usePokerChannel({
+		sessionId,
+		isAnonymous: !user,
+		anonymousUserId: anonymousData?.user?.id,
+		onMessage: handlePokerMessage,
 	});
 
-	// Log connection status
+	// Log connection status - only log on actual changes
 	useEffect(() => {
-		console.log("Poker channel connected:", isConnected);
+		if (isConnected !== undefined) {
+			console.log("Poker channel connection changed:", isConnected);
+		}
 	}, [isConnected]);
 
 	// Get current story

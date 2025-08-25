@@ -200,38 +200,67 @@ export function usePokerChannel({
 		});
 	}, []);
 
+	// Store onMessage in a ref to avoid re-connecting when it changes
+	const onMessageRef = useRef(onMessage);
+	useEffect(() => {
+		onMessageRef.current = onMessage;
+	}, [onMessage]);
+
 	// Initialize channel connection
 	useEffect(() => {
 		if (!sessionId) return;
 
+		let cleanup: (() => void) | undefined;
+		let mounted = true;
+
 		const initChannel = async () => {
-			const channel = new PokerChannelClient(sessionId, supabase);
-			channelRef.current = channel;
+			try {
+				const channel = new PokerChannelClient(sessionId, supabase);
 
-			// Set up message handler
-			const unsubscribe = channel.onMessage((message) => {
-				handleChannelMessage(message);
-				onMessage?.(message);
-			});
+				if (!mounted) {
+					await channel.disconnect();
+					return;
+				}
 
-			// Connect to channel
-			await channel.connect(
-				isAnonymous ? undefined : user?.id,
-				isAnonymous ? anonymousUserId : undefined,
-			);
+				channelRef.current = channel;
 
-			setIsConnected(true);
+				// Set up message handler
+				const unsubscribe = channel.onMessage((message) => {
+					handleChannelMessage(message);
+					onMessageRef.current?.(message);
+				});
 
-			return () => {
-				unsubscribe();
-				channel.disconnect();
-			};
+				// Connect to channel
+				await channel.connect(
+					isAnonymous ? undefined : user?.id,
+					isAnonymous ? anonymousUserId : undefined,
+				);
+
+				if (mounted) {
+					setIsConnected(true);
+				}
+
+				cleanup = () => {
+					unsubscribe();
+					channel.disconnect();
+				};
+			} catch (error) {
+				console.error("Failed to initialize poker channel:", error);
+				if (mounted) {
+					setIsConnected(false);
+				}
+			}
 		};
 
 		initChannel();
 
 		return () => {
-			channelRef.current?.disconnect();
+			mounted = false;
+			if (cleanup) cleanup();
+			if (channelRef.current) {
+				channelRef.current.disconnect();
+				channelRef.current = null;
+			}
 			setIsConnected(false);
 		};
 	}, [
@@ -239,8 +268,8 @@ export function usePokerChannel({
 		user?.id,
 		isAnonymous,
 		anonymousUserId,
-		onMessage,
 		handleChannelMessage,
+		// Removed onMessage from dependencies - using ref instead
 	]);
 
 	// Action methods
