@@ -37,6 +37,7 @@ import {
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { Textarea } from "~/components/ui/textarea";
+import { usePokerChannel } from "~/hooks/usePokerChannel";
 import { useUserSync } from "~/hooks/useUserSync";
 import { supabase } from "~/lib/supabase/client";
 import type {
@@ -129,64 +130,33 @@ export default function PokerSessionPage() {
 
 	const session = sessionData?.session as SessionData | undefined;
 
-	// Subscribe to realtime updates
-	useEffect(() => {
-		console.log("Setting up real-time subscription for session:", sessionId);
-		const channel = supabase
-			.channel(`poker:${sessionId}`)
-			.on(
-				"postgres_changes",
-				{
-					event: "*",
-					schema: "public",
-					table: "poker_sessions",
-					filter: `id=eq.${sessionId}`,
-				},
-				(payload) => {
-					console.log("Poker session changed:", payload);
-					queryClient.invalidateQueries({
-						queryKey: ["poker-session", sessionId],
-					});
-				},
-			)
-			.on(
-				"postgres_changes",
-				{
-					event: "*",
-					schema: "public",
-					table: "stories",
-					filter: `session_id=eq.${sessionId}`,
-				},
-				(payload) => {
-					console.log("Story changed:", payload);
-					queryClient.invalidateQueries({
-						queryKey: ["poker-session", sessionId],
-					});
-				},
-			)
-			.on(
-				"postgres_changes",
-				{
-					event: "*",
-					schema: "public",
-					table: "poker_votes",
-					// Note: Can't filter poker_votes by session_id directly, but the query will refetch all data
-				},
-				(payload) => {
-					console.log("Vote changed:", payload);
-					queryClient.invalidateQueries({
-						queryKey: ["poker-session", sessionId],
-					});
-				},
-			)
-			.subscribe((status) => {
-				console.log("Subscription status:", status);
-			});
+	// Use poker channel for real-time updates
+	const { isConnected } = usePokerChannel({
+		sessionId,
+		isAnonymous: !user,
+		anonymousUserId: anonymousData?.user?.id,
+		onMessage: (message) => {
+			console.log("Poker channel message:", message);
 
-		return () => {
-			supabase.removeChannel(channel);
-		};
-	}, [sessionId, queryClient]);
+			// Invalidate queries on relevant events
+			if (
+				message.type === "story_create" ||
+				message.type === "vote" ||
+				message.type === "voting_start" ||
+				message.type === "voting_end" ||
+				message.type === "score_calculated"
+			) {
+				queryClient.invalidateQueries({
+					queryKey: ["poker-session", sessionId],
+				});
+			}
+		},
+	});
+
+	// Log connection status
+	useEffect(() => {
+		console.log("Poker channel connected:", isConnected);
+	}, [isConnected]);
 
 	// Get current story
 	const currentStory = session?.stories.find(

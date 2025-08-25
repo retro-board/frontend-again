@@ -2,6 +2,7 @@ import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
 import { supabaseAdmin } from "~/lib/supabase/admin";
+import { PokerChannelClient } from "~/lib/supabase/poker-channel";
 export async function POST(
 	request: Request,
 	{ params }: { params: Promise<{ sessionId: string }> },
@@ -65,6 +66,28 @@ export async function POST(
 		if (error) {
 			console.error("Error creating story:", error);
 			return NextResponse.json({ error: error.message }, { status: 500 });
+		}
+
+		// Broadcast story creation to channel
+		try {
+			const channel = new PokerChannelClient(
+				resolvedParams.sessionId,
+				supabaseAdmin,
+			);
+			await channel.connect(dbUser.id);
+			await channel.createStory(
+				{
+					id: story.id,
+					title: story.title,
+					description: story.description || undefined,
+					position: story.position,
+				},
+				dbUser.id,
+			);
+			await channel.disconnect();
+		} catch (channelError) {
+			console.error("Error broadcasting story creation:", channelError);
+			// Don't fail the request if broadcasting fails
 		}
 
 		return NextResponse.json({ story });

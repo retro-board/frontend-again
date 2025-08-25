@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
 import { supabaseAdmin } from "~/lib/supabase/admin";
+import { PokerChannelClient } from "~/lib/supabase/poker-channel";
 export async function POST(
 	request: Request,
 	{ params }: { params: Promise<{ sessionId: string }> },
@@ -166,6 +167,48 @@ export async function POST(
 					{ status: 500 },
 				);
 			}
+		}
+
+		// Broadcast vote to channel
+		try {
+			const channel = new PokerChannelClient(
+				resolvedParams.sessionId,
+				supabaseAdmin,
+			);
+
+			// Get user name for broadcasting
+			let userName = "Anonymous";
+			if (dbUserId) {
+				const { data: user } = await supabaseAdmin
+					.from("users")
+					.select("name")
+					.eq("id", dbUserId)
+					.single();
+				if (user) userName = user.name;
+			} else if (anonymousUserId) {
+				const { data: anonUser } = await supabaseAdmin
+					.from("anonymous_users")
+					.select("display_name")
+					.eq("id", anonymousUserId)
+					.single();
+				if (anonUser) userName = anonUser.display_name;
+			}
+
+			await channel.connect(
+				dbUserId || undefined,
+				anonymousUserId || undefined,
+			);
+			await channel.vote(
+				storyId,
+				vote,
+				dbUserId || undefined,
+				anonymousUserId || undefined,
+				userName,
+			);
+			await channel.disconnect();
+		} catch (channelError) {
+			console.error("Error broadcasting vote:", channelError);
+			// Don't fail the request if broadcasting fails
 		}
 
 		return NextResponse.json({ success: true });
