@@ -27,7 +27,6 @@ import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { Textarea } from "~/components/ui/textarea";
 import { useUserSync } from "~/hooks/useUserSync";
-import { supabase } from "~/lib/supabase/client";
 import type { BoardWithParticipants } from "~/types/database";
 
 export default function BoardsPage() {
@@ -42,69 +41,27 @@ export default function BoardsPage() {
 	const elemId = useId();
 
 	const { data: boards, isLoading } = useQuery({
-		queryKey: ["boards", user?.id, syncedUser?.id],
+		queryKey: ["boards", user?.id],
 		queryFn: async () => {
-			if (!user || !syncedUser) return [];
-
-			// Fetch boards where user is owner or participant
-			const { data: ownedBoards, error: ownedError } = await supabase
-				.from("boards")
-				.select(`
-          *,
-          participants:board_participants(
-            *,
-            user:users(*)
-          )
-        `)
-				.eq("owner_id", syncedUser.id)
-				.order("created_at", { ascending: false });
-
-			if (ownedError) throw ownedError;
-
-			// Fetch boards where user is a participant
-			const { data: participantBoards, error: participantError } =
-				await supabase
-					.from("board_participants")
-					.select(`
-          board:boards(
-            *,
-            participants:board_participants(
-              *,
-              user:users(*)
-            )
-          )
-        `)
-					.eq("user_id", syncedUser.id)
-					.order("created_at", { ascending: false });
-
-			if (participantError) throw participantError;
-
-			// Combine and deduplicate boards
-			const allBoards = [...(ownedBoards || [])];
-			const boardIds = new Set(allBoards.map((b) => b.id));
-
-			// Add participant boards that aren't already in the list
-			if (participantBoards) {
-				// biome-ignore lint/suspicious/noExplicitAny: Supabase query result type
-				// eslint-disable-next-line @typescript-eslint/no-explicit-any
-				for (const pb of participantBoards as any[]) {
-					// Type assertion for the nested board object
-					const board = pb?.board as BoardWithParticipants | undefined;
-					if (board?.id && !boardIds.has(board.id)) {
-						allBoards.push(board);
-					}
-				}
+			if (!user) {
+				console.log("No user:", { user });
+				return [];
 			}
 
-			// Sort by created_at descending
-			allBoards.sort(
-				(a, b) =>
-					new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
-			);
+			console.log("Fetching boards via API");
 
-			return allBoards as BoardWithParticipants[];
+			const response = await fetch("/api/boards");
+			if (!response.ok) {
+				const error = await response.json();
+				console.error("Error fetching boards:", error);
+				throw new Error(error.error || "Failed to fetch boards");
+			}
+
+			const data = await response.json();
+			console.log("Boards fetched from API:", data.boards);
+			return data.boards as BoardWithParticipants[];
 		},
-		enabled: !!user && !!syncedUser,
+		enabled: !!user && isLoaded,
 	});
 
 	const createBoardMutation = useMutation({
@@ -155,7 +112,7 @@ export default function BoardsPage() {
 		}
 	};
 
-	if (!isLoaded || isLoading || (user && !syncedUser)) {
+	if (!isLoaded || isLoading) {
 		return (
 			<div className="container mx-auto py-8">
 				<div className="flex h-64 items-center justify-center">
