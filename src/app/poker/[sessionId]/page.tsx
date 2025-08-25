@@ -141,7 +141,6 @@ export default function PokerSessionPage() {
 	// Memoize the message handler to prevent reconnections
 	const handlePokerMessage = useCallback(
 		(message: { type: string; storyId?: string }) => {
-			console.log("Poker channel message:", message);
 
 			// Invalidate queries on relevant events
 			if (
@@ -299,12 +298,9 @@ export default function PokerSessionPage() {
 		}
 
 		// Start/restart grace period
-		console.log(
-			"All votes received. Starting 10-second grace period for vote changes...",
-		);
+		toast.info("All votes received. 10 seconds to change votes before consensus.");
 
 		graceTimeoutId = setTimeout(async () => {
-			console.log("Grace period ended. Calculating consensus...");
 			await handleFinalizeVoting();
 		}, 10000); // 10 seconds
 
@@ -866,7 +862,10 @@ export default function PokerSessionPage() {
 										)}
 									</div>
 									{sessionState.timer.isActive && (
-										<div className="flex items-center gap-2 text-muted-foreground">
+										<div 
+											className="flex items-center gap-2 text-muted-foreground"
+											data-testid="timer-display"
+										>
 											<Timer className="h-5 w-5" />
 											<span className="font-bold font-mono text-lg">
 												{displayTime}
