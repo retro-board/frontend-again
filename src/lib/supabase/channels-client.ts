@@ -1,10 +1,11 @@
-import type { RealtimeChannel } from "@supabase/supabase-js";
+import type { RealtimeChannel, SupabaseClient } from "@supabase/supabase-js";
 
 // Channel event types
 export type ChannelEvent =
 	| "card_created"
 	| "card_updated"
 	| "card_deleted"
+	| "card_moved"
 	| "cards_combined"
 	| "card_highlighted"
 	| "timer_started"
@@ -51,13 +52,9 @@ export interface HighlightCardPayload {
 export class BoardChannel {
 	private channel: RealtimeChannel | null = null;
 	private boardId: string;
-	// biome-ignore lint/suspicious/noExplicitAny: Supabase client type is complex and varies
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	private supabase: any;
+	private supabase: SupabaseClient;
 
-	// biome-ignore lint/suspicious/noExplicitAny: Supabase client type is complex and varies
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	constructor(boardId: string, supabaseClient: any) {
+	constructor(boardId: string, supabaseClient: SupabaseClient) {
 		this.boardId = boardId;
 		this.supabase = supabaseClient;
 	}
@@ -66,6 +63,7 @@ export class BoardChannel {
 		onCardCreated?: (payload: CardEventPayload) => void;
 		onCardUpdated?: (payload: CardEventPayload) => void;
 		onCardDeleted?: (payload: { cardId: string }) => void;
+		onCardMoved?: (payload: CardEventPayload) => void;
 		onCardsCombined?: (payload: CombineCardsPayload) => void;
 		onCardHighlighted?: (payload: HighlightCardPayload) => void;
 		onTimerEvent?: (payload: TimerEventPayload) => void;
@@ -90,6 +88,12 @@ export class BoardChannel {
 		if (handlers.onCardDeleted && this.channel) {
 			this.channel.on("broadcast", { event: "card_deleted" }, ({ payload }) =>
 				handlers.onCardDeleted?.(payload),
+			);
+		}
+
+		if (handlers.onCardMoved && this.channel) {
+			this.channel.on("broadcast", { event: "card_moved" }, ({ payload }) =>
+				handlers.onCardMoved?.(payload),
 			);
 		}
 

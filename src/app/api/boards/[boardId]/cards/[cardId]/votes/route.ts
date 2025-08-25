@@ -91,9 +91,7 @@ export async function POST(
 		}
 
 		// Check if the column is an action column
-		// biome-ignore lint/suspicious/noExplicitAny: Supabase nested query result
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		const cardData = card as any;
+		const cardData = card as { columns?: { is_action?: boolean } };
 		if (cardData.columns?.is_action) {
 			return NextResponse.json(
 				{ error: "Cannot vote on action items" },

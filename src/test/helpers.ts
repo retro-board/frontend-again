@@ -87,19 +87,24 @@ export function setupSupabaseMocks() {
 	singleMock.mockResolvedValue({ data: null, error: null });
 
 	// Create chainable object - define it after we have all the mocks
-	// biome-ignore lint/suspicious/noExplicitAny: Mock object needs to be flexible
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	const chain: any = {};
+	const chain: Record<string, unknown> = {};
 
 	// Create chain methods that return the chain
 	const createChainMethod = () => jest.fn().mockImplementation(() => chain);
 
-	chain.select = createChainMethod();
-	chain.insert = createChainMethod();
-	chain.update = createChainMethod();
-	chain.delete = createChainMethod();
-	chain.eq = createChainMethod();
-	chain.order = createChainMethod();
+	const selectMock = createChainMethod();
+	const insertMock = createChainMethod();
+	const updateMock = createChainMethod();
+	const deleteMock = createChainMethod();
+	const eqMock = createChainMethod();
+	const orderMock = createChainMethod();
+
+	chain.select = selectMock;
+	chain.insert = insertMock;
+	chain.update = updateMock;
+	chain.delete = deleteMock;
+	chain.eq = eqMock;
+	chain.order = orderMock;
 	chain.maybeSingle = maybeSingleMock;
 	chain.single = singleMock;
 
@@ -110,14 +115,14 @@ export function setupSupabaseMocks() {
 
 	return {
 		fromMock,
-		selectMock: chain.select,
-		insertMock: chain.insert,
-		updateMock: chain.update,
-		deleteMock: chain.delete,
-		eqMock: chain.eq,
+		selectMock: selectMock as jest.Mock,
+		insertMock: insertMock as jest.Mock,
+		updateMock: updateMock as jest.Mock,
+		deleteMock: deleteMock as jest.Mock,
+		eqMock: eqMock as jest.Mock,
 		maybeSingleMock,
 		singleMock,
-		orderMock: chain.order,
+		orderMock: orderMock as jest.Mock,
 	};
 }
 

@@ -16,6 +16,7 @@ import {
 	Card as UICard,
 } from "~/components/ui/card";
 import { Input } from "~/components/ui/input";
+import { cn } from "~/lib/utils";
 import type { AnonymousUser, Board, ColumnWithCards } from "~/types/database";
 import { Card } from "./Card";
 
@@ -46,8 +47,12 @@ export function BoardColumn({
 	const [isAddingCard, setIsAddingCard] = useState(false);
 	const [newCardContent, setNewCardContent] = useState("");
 
+	// Disable dropping on action columns for non-owners
+	const isDropDisabled = column.is_action && !isOwner;
+
 	const { setNodeRef } = useDroppable({
 		id: column.id,
+		disabled: isDropDisabled,
 	});
 
 	const createCardMutation = useMutation({
@@ -122,7 +127,15 @@ export function BoardColumn({
 						)}
 					</div>
 				</CardHeader>
-				<CardContent className="p-4" ref={setNodeRef}>
+				<CardContent
+					className={cn("p-4", isDropDisabled && "bg-muted/50 opacity-50")}
+					ref={setNodeRef}
+				>
+					{isDropDisabled && !isOwner && (
+						<div className="mb-2 rounded-md bg-yellow-100 p-2 text-center text-sm text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-200">
+							Only board owners can move cards to action columns
+						</div>
+					)}
 					<SortableContext
 						items={column.cards.map((card) => card.id)}
 						strategy={verticalListSortingStrategy}
