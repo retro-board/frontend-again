@@ -548,6 +548,11 @@ export default function PokerSessionPage() {
 
 				const { finalScore, votes } = await scoreResponse.json();
 
+				// Stop the timer if it's running
+				if (sessionState.timer?.isActive) {
+					await stopTimer();
+				}
+
 				// End voting and announce score through the channel
 				await endVoting(currentStory.id);
 				await announceScore(currentStory.id, finalScore, votes);
