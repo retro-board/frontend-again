@@ -581,7 +581,56 @@ export default function PokerSessionPage() {
 
 				return revealResponse.json();
 			}
-			// Just toggle reveal state (hiding votes or revealing when no votes)
+			
+			// If hiding votes (resetting for another round of voting)
+			if (!isRevealing && currentStory) {
+				// Hide the votes
+				const response = await fetch(`/api/poker-sessions/${sessionId}`, {
+					method: "PATCH",
+					headers: {
+						"Content-Type": "application/json",
+					},
+					body: JSON.stringify({
+						reveal_votes: false,
+					}),
+				});
+
+				if (!response.ok) {
+					const error = await response.json();
+					throw new Error(error.error || "Failed to hide votes");
+				}
+
+				// Delete all votes for the current story to reset
+				await fetch(`/api/poker-sessions/${sessionId}/votes`, {
+					method: "DELETE",
+					headers: {
+						"Content-Type": "application/json",
+					},
+					body: JSON.stringify({
+						storyId: currentStory.id,
+					}),
+				});
+
+				// Restart voting and timer
+				if (startVoting) {
+					await startVoting(currentStory.id);
+				}
+				if (startTimer) {
+					await startTimer(60); // Restart with 60 seconds
+				}
+
+				// Clear the selected vote
+				setSelectedVote(null);
+				
+				// Clear consensus display if showing
+				setShowConsensusResult(null);
+
+				toast.info("Votes reset. Starting new voting round.");
+
+				return response.json();
+			}
+			
+			// Default case - just toggle reveal state
 			const response = await fetch(`/api/poker-sessions/${sessionId}`, {
 				method: "PATCH",
 				headers: {
