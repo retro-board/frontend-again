@@ -91,6 +91,17 @@ export function usePokerChannel({
 					if (participant && !participant.hasVoted) {
 						participant.hasVoted = true;
 						newState.votingState.votesReceived++;
+
+						// Check if all eligible voters have voted
+						const eligibleVoters = newState.participants.filter(
+							(p) => p.role === "voter" && !p.isAbstaining,
+						);
+						const allVoted = eligibleVoters.every((p) => p.hasVoted);
+
+						if (allVoted && eligibleVoters.length > 0) {
+							// Trigger voting completion
+							newState.votingState.allVoted = true;
+						}
 					}
 					break;
 				}
