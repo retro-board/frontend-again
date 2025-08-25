@@ -75,7 +75,7 @@ describe("/api/boards/[boardId]/cards POST", () => {
 
 			expect(response.status).toBe(403);
 			expect(data.error).toBe(
-				"During setup phase, only action items can be added",
+				"During setup phase, only the owner can add action items",
 			);
 		});
 

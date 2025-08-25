@@ -27,6 +27,7 @@ interface BoardColumnProps {
 	isOwner?: boolean;
 	anonymousUser?: AnonymousUser;
 	boardPhase?: Board["phase"];
+	phaseStartedAt?: Date;
 }
 
 export function BoardColumn({
@@ -37,6 +38,7 @@ export function BoardColumn({
 	isOwner,
 	anonymousUser,
 	boardPhase,
+	phaseStartedAt,
 }: BoardColumnProps) {
 	const queryClient = useQueryClient();
 	const [isAddingCard, setIsAddingCard] = useState(false);
@@ -188,19 +190,14 @@ export function BoardColumn({
 								<div className="mt-2 rounded-md bg-muted p-2 text-center text-muted-foreground text-sm">
 									Waiting for all participants to join
 								</div>
-							) : (
-								column.is_action ? (
-									isOwner && (
-										<Button
-											variant="ghost"
-											className="mt-2 w-full justify-start"
-											onClick={() => setIsAddingCard(true)}
-										>
-											<Plus className="mr-2 h-4 w-4" />
-											Add a card
-										</Button>
-									)
-								) : (
+							) : boardPhase === "creation" &&
+								!column.is_action &&
+								!phaseStartedAt ? (
+								<div className="mt-2 rounded-md bg-muted p-2 text-center text-muted-foreground text-sm">
+									Waiting for timer to start
+								</div>
+							) : column.is_action ? (
+								isOwner && (
 									<Button
 										variant="ghost"
 										className="mt-2 w-full justify-start"
@@ -209,7 +206,17 @@ export function BoardColumn({
 										<Plus className="mr-2 h-4 w-4" />
 										Add a card
 									</Button>
-							))}
+								)
+							) : (
+								<Button
+									variant="ghost"
+									className="mt-2 w-full justify-start"
+									onClick={() => setIsAddingCard(true)}
+								>
+									<Plus className="mr-2 h-4 w-4" />
+									Add a card
+								</Button>
+							)}
 						</>
 					)}
 				</CardContent>

@@ -21,8 +21,8 @@ importers:
         specifier: ^3.2.2
         version: 3.2.2(react@19.1.1)
       '@flags-gg/react-library':
-        specifier: ^1.14.5
-        version: 1.14.5(@babel/core@7.28.3)(@babel/template@7.27.2)(@types/react@19.1.11)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+        specifier: ^1.14.6
+        version: 1.14.6(@babel/core@7.28.3)(@babel/template@7.27.2)(@types/react@19.1.11)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       '@hookform/resolvers':
         specifier: ^5.2.1
         version: 5.2.1(react-hook-form@7.59.0(react@19.1.1))
@@ -562,8 +562,8 @@ packages:
     resolution: {integrity: sha512-Z5kJ+wU3oA7MMIqVR9tyZRtjYPr4OC004Q4Rw7pgOKUOKkJfZ3O24nz3WYfGRpMDNmcOi3TwQOmgm7B7Tpii0w==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
 
-  '@flags-gg/react-library@1.14.5':
-    resolution: {integrity: sha512-+Ls6V4zXksTpN4X7SjYP6OICIbN7/JZ+FswI37XgUuRxDGUoDvAIw1jzllag2rICSNKqMV5odrYHZrlLn1A6PQ==}
+  '@flags-gg/react-library@1.14.6':
+    resolution: {integrity: sha512-wFbEWEC6cYfR7qr3cF/GlAzOTj4uAOmtDBQPknoi8SCVqJ2By+wBxnyytm/bvS8g/ZJbP1GPh99IAsZYaYT0Qg==}
     peerDependencies:
       react: ^18.0.0 || ^19.0.0
       react-dom: ^18.0.0 || ^19.0.0
@@ -4624,7 +4624,7 @@ snapshots:
       '@eslint/core': 0.15.2
       levn: 0.4.1
 
-  '@flags-gg/react-library@1.14.5(@babel/core@7.28.3)(@babel/template@7.27.2)(@types/react@19.1.11)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)':
+  '@flags-gg/react-library@1.14.6(@babel/core@7.28.3)(@babel/template@7.27.2)(@types/react@19.1.11)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)':
     dependencies:
       '@swc/helpers': 0.5.17
       fast-equals: 5.2.2

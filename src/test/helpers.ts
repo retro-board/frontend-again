@@ -26,6 +26,7 @@ export const mockBoard = {
 	is_active: true,
 	share_id: "share_123",
 	phase: "creation" as const,
+	phase_started_at: new Date().toISOString(), // Timer has started
 	creation_time_minutes: 5,
 	voting_time_minutes: 3,
 	votes_per_user: 5,

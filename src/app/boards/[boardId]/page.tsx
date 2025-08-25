@@ -30,6 +30,7 @@ import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { useUserSync } from "~/hooks/useUserSync";
 import { supabase } from "~/lib/supabase/client";
+import { BoardChannel } from "~/lib/supabase/channels";
 import type {
 	Board,
 	Card,
@@ -125,47 +126,55 @@ export default function BoardPage() {
 	// Subscribe to realtime updates
 	useEffect(() => {
 		console.log("Setting up real-time subscription for board:", boardId);
-		const channel = supabase
-			.channel(`board:${boardId}`)
-			.on(
-				"postgres_changes",
-				{
-					event: "*",
-					schema: "public",
-					table: "columns",
-					filter: `board_id=eq.${boardId}`,
-				},
-				(payload) => {
-					console.log("Column changed:", payload);
-					queryClient.invalidateQueries({ queryKey: ["board", boardId] });
-				},
-			)
-			.on(
-				"postgres_changes",
-				{ event: "*", schema: "public", table: "cards" },
-				(payload) => {
-					console.log("Card changed:", payload);
-					// Only invalidate if the card belongs to a column in this board
-					if ("record" in payload || "old_record" in payload) {
-						queryClient.invalidateQueries({ queryKey: ["board", boardId] });
-					}
-				},
-			)
-			.on(
-				"postgres_changes",
-				{ event: "*", schema: "public", table: "card_votes" },
-				(payload) => {
-					console.log("Vote changed:", payload);
-					// Invalidate to update vote counts
-					queryClient.invalidateQueries({ queryKey: ["board", boardId] });
-				},
-			)
-			.subscribe((status) => {
-				console.log("Board subscription status:", status);
-			});
+		const boardChannel = new BoardChannel(boardId, supabase);
+		
+		boardChannel.subscribe({
+			onCardCreated: (payload) => {
+				console.log("Card created:", payload);
+				queryClient.invalidateQueries({ queryKey: ["board", boardId] });
+			},
+			onCardUpdated: (payload) => {
+				console.log("Card updated:", payload);
+				queryClient.invalidateQueries({ queryKey: ["board", boardId] });
+			},
+			onCardDeleted: (payload) => {
+				console.log("Card deleted:", payload);
+				queryClient.invalidateQueries({ queryKey: ["board", boardId] });
+			},
+			onCardsCombined: (payload) => {
+				console.log("Cards combined:", payload);
+				queryClient.invalidateQueries({ queryKey: ["board", boardId] });
+				toast("Cards have been combined");
+			},
+			onCardHighlighted: (payload) => {
+				console.log("Card highlighted:", payload);
+				// TODO: Add visual highlighting effect
+				queryClient.invalidateQueries({ queryKey: ["board", boardId] });
+			},
+			onTimerEvent: (payload) => {
+				console.log("Timer event:", payload);
+				queryClient.invalidateQueries({ queryKey: ["board", boardId] });
+				if (payload.action === "start" || payload.action === "resume") {
+					toast("Timer started");
+				} else if (payload.action === "pause") {
+					toast("Timer paused");
+				} else if (payload.action === "extend") {
+					toast(`Timer extended by ${payload.duration} seconds`);
+				}
+			},
+			onPhaseChanged: (payload) => {
+				console.log("Phase changed:", payload);
+				queryClient.invalidateQueries({ queryKey: ["board", boardId] });
+				toast(`Board moved to ${payload.newPhase} phase`);
+			},
+			onBoardUpdated: (payload) => {
+				console.log("Board updated:", payload);
+				queryClient.invalidateQueries({ queryKey: ["board", boardId] });
+			},
+		});
 
 		return () => {
-			supabase.removeChannel(channel);
+			boardChannel.unsubscribe();
 		};
 	}, [boardId, queryClient]);
 
@@ -486,6 +495,7 @@ export default function BoardPage() {
 										isOwner={isOwner}
 										anonymousUser={anonymousData?.user}
 										boardPhase={board.phase}
+										phaseStartedAt={board.phase_started_at}
 									/>
 								))}
 							</div>
