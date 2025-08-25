@@ -138,6 +138,7 @@ export default function PokerSessionPage() {
 			// Invalidate queries on relevant events
 			if (
 				message.type === "story_create" ||
+				message.type === "story_select" ||
 				message.type === "vote" ||
 				message.type === "voting_start" ||
 				message.type === "voting_end" ||
@@ -152,7 +153,7 @@ export default function PokerSessionPage() {
 	);
 
 	// Use poker channel for real-time updates
-	const { isConnected } = usePokerChannel({
+	const { isConnected, selectStory } = usePokerChannel({
 		sessionId,
 		isAnonymous: !user,
 		anonymousUserId: anonymousData?.user?.id,
@@ -254,7 +255,13 @@ export default function PokerSessionPage() {
 
 	// Set current story mutation
 	const setCurrentStoryMutation = useMutation({
-		mutationFn: async (storyId: string) => {
+		mutationFn: async ({
+			storyId,
+			storyTitle,
+		}: {
+			storyId: string;
+			storyTitle: string;
+		}) => {
 			const response = await fetch(`/api/poker-sessions/${sessionId}`, {
 				method: "PATCH",
 				headers: {
@@ -269,6 +276,11 @@ export default function PokerSessionPage() {
 			if (!response.ok) {
 				const error = await response.json();
 				throw new Error(error.error || "Failed to set current story");
+			}
+
+			// Broadcast the story selection through the channel
+			if (selectStory) {
+				await selectStory(storyId, storyTitle);
 			}
 
 			return response.json();
@@ -618,7 +630,10 @@ export default function PokerSessionPage() {
 										}`}
 										onClick={() => {
 											if (isFacilitator && story.id !== currentStory?.id) {
-												setCurrentStoryMutation.mutate(story.id);
+												setCurrentStoryMutation.mutate({
+													storyId: story.id,
+													storyTitle: story.title,
+												});
 											}
 										}}
 									>
