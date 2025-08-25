@@ -3,6 +3,102 @@ import { NextResponse } from "next/server";
 
 import { supabaseAdmin } from "~/lib/supabase/admin";
 
+export async function GET() {
+	try {
+		const { userId } = await auth();
+
+		if (!userId) {
+			return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+		}
+
+		// Get user from database
+		const { data: dbUser } = await supabaseAdmin
+			.from("users")
+			.select("id")
+			.eq("clerk_id", userId)
+			.maybeSingle();
+
+		if (!dbUser) {
+			return NextResponse.json({ error: "User not found" }, { status: 404 });
+		}
+
+		// Fetch boards where user is owner
+		const { data: ownedBoards, error: ownedError } = await supabaseAdmin
+			.from("boards")
+			.select(`
+				*,
+				participants:board_participants(
+					*,
+					user:users(*)
+				)
+			`)
+			.eq("owner_id", dbUser.id)
+			.eq("is_active", true)
+			.order("created_at", { ascending: false });
+
+		if (ownedError) {
+			console.error("Error fetching owned boards:", ownedError);
+			return NextResponse.json({ error: ownedError.message }, { status: 500 });
+		}
+
+		// Fetch boards where user is a participant
+		const { data: participantBoards, error: participantError } =
+			await supabaseAdmin
+				.from("board_participants")
+				.select(`
+				board:boards(
+					*,
+					participants:board_participants(
+						*,
+						user:users(*)
+					)
+				)
+			`)
+				.eq("user_id", dbUser.id);
+
+		if (participantError) {
+			console.error("Error fetching participant boards:", participantError);
+			return NextResponse.json(
+				{ error: participantError.message },
+				{ status: 500 },
+			);
+		}
+
+		// Combine and deduplicate boards
+		const allBoards = [...(ownedBoards || [])];
+		const boardIds = new Set(allBoards.map((b) => b.id));
+
+		// Add participant boards that aren't already in the list
+		if (participantBoards) {
+			for (const pb of participantBoards) {
+				// Extract the board from the nested structure
+				// eslint-disable-next-line @typescript-eslint/no-explicit-any
+				const board = (pb as any).board;
+				if (board && !boardIds.has(board.id) && board.is_active) {
+					allBoards.push(board);
+					boardIds.add(board.id);
+				}
+			}
+		}
+
+		// Sort by creation date
+		allBoards.sort(
+			(a, b) =>
+				new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+		);
+
+		return NextResponse.json({ boards: allBoards });
+	} catch (error) {
+		console.error("Fetch boards error:", error);
+		return NextResponse.json(
+			{
+				error: error instanceof Error ? error.message : "Internal server error",
+			},
+			{ status: 500 },
+		);
+	}
+}
+
 export async function POST(request: Request) {
 	try {
 		const { userId } = await auth();

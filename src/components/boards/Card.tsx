@@ -19,6 +19,7 @@ interface CardProps {
 	boardId: string;
 	isDragging?: boolean;
 	boardPhase?: Board["phase"];
+	isActionColumn?: boolean;
 }
 
 export function Card({
@@ -28,6 +29,7 @@ export function Card({
 	boardId,
 	isDragging,
 	boardPhase,
+	isActionColumn,
 }: CardProps) {
 	const queryClient = useQueryClient();
 	const [isEditing, setIsEditing] = useState(false);
@@ -168,7 +170,9 @@ export function Card({
 		(currentUserId && currentUserId === card.author_id) ||
 		(currentAnonymousUserId &&
 			currentAnonymousUserId === card.anonymous_author_id);
-	const isMasked = card.is_masked && boardPhase === "creation" && !isOwner;
+	// Action cards are never masked, regular cards are masked during creation (except for owner)
+	const isMasked =
+		!isActionColumn && card.is_masked && boardPhase === "creation" && !isOwner;
 
 	return (
 		<div
@@ -224,7 +228,7 @@ export function Card({
 						<>
 							<p className="mb-2 whitespace-pre-wrap text-sm">{card.content}</p>
 							<div className="flex items-center justify-between">
-								{boardPhase === "voting" && (
+								{boardPhase === "voting" && !isActionColumn && (
 									<Button
 										size="sm"
 										variant="ghost"
@@ -239,12 +243,14 @@ export function Card({
 										{voteCount}
 									</Button>
 								)}
-								{boardPhase !== "voting" && voteCount > 0 && (
-									<div className="flex items-center text-muted-foreground text-sm">
-										<ThumbsUp className="mr-1 h-3 w-3" />
-										{voteCount}
-									</div>
-								)}
+								{boardPhase !== "voting" &&
+									voteCount > 0 &&
+									!isActionColumn && (
+										<div className="flex items-center text-muted-foreground text-sm">
+											<ThumbsUp className="mr-1 h-3 w-3" />
+											{voteCount}
+										</div>
+									)}
 								{isOwner && (
 									<div className="flex gap-1">
 										<Button

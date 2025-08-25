@@ -161,6 +161,17 @@ export async function POST(
 						{ status: 403 },
 					);
 				}
+				// Check if timer is paused (phase_started_at exists but phase_ends_at is null)
+				if (
+					!column.is_action &&
+					column.board.phase_started_at &&
+					!column.board.phase_ends_at
+				) {
+					return NextResponse.json(
+						{ error: "Cards cannot be added while the timer is paused" },
+						{ status: 403 },
+					);
+				}
 				// Action columns still restricted to owner
 				if (column.is_action && column.board.owner_id !== authorId) {
 					return NextResponse.json(
@@ -171,12 +182,23 @@ export async function POST(
 				break;
 
 			case "reveal":
-			case "voting":
-				// No new cards during reveal or voting
+				// No new cards during reveal
 				return NextResponse.json(
-					{
-						error: `Cards cannot be added during the ${column.board.phase} phase`,
-					},
+					{ error: "Cards cannot be added during the reveal phase" },
+					{ status: 403 },
+				);
+
+			case "voting":
+				// No new cards during voting (even action items)
+				// But check if timer is paused for clarity in error message
+				if (column.board.phase_started_at && !column.board.phase_ends_at) {
+					return NextResponse.json(
+						{ error: "Cards cannot be added while voting is paused" },
+						{ status: 403 },
+					);
+				}
+				return NextResponse.json(
+					{ error: "Cards cannot be added during the voting phase" },
 					{ status: 403 },
 				);
 
@@ -203,7 +225,8 @@ export async function POST(
 			content,
 			position,
 			is_anonymous: is_anonymous || !!anonymousSessionId,
-			is_masked: column.board.phase === "creation", // Mask cards during creation phase
+			// Action cards are never masked, regular cards are masked during creation phase
+			is_masked: !column.is_action && column.board.phase === "creation",
 			author_id: undefined as string | undefined,
 			anonymous_author_id: undefined as string | undefined,
 		};

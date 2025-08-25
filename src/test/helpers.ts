@@ -27,6 +27,7 @@ export const mockBoard = {
 	share_id: "share_123",
 	phase: "creation" as const,
 	phase_started_at: new Date().toISOString(), // Timer has started
+	phase_ends_at: new Date(Date.now() + 5 * 60 * 1000).toISOString(), // Timer is running (5 minutes)
 	creation_time_minutes: 5,
 	voting_time_minutes: 3,
 	votes_per_user: 5,

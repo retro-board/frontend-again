@@ -27,7 +27,8 @@ interface BoardColumnProps {
 	isOwner?: boolean;
 	anonymousUser?: AnonymousUser;
 	boardPhase?: Board["phase"];
-	phaseStartedAt?: Date;
+	phaseStartedAt?: Date | string | null;
+	phaseEndsAt?: Date | string | null;
 }
 
 export function BoardColumn({
@@ -39,6 +40,7 @@ export function BoardColumn({
 	anonymousUser,
 	boardPhase,
 	phaseStartedAt,
+	phaseEndsAt,
 }: BoardColumnProps) {
 	const queryClient = useQueryClient();
 	const [isAddingCard, setIsAddingCard] = useState(false);
@@ -134,6 +136,7 @@ export function BoardColumn({
 									currentAnonymousUserId={anonymousUser?.id}
 									boardId={boardId}
 									boardPhase={boardPhase}
+									isActionColumn={column.is_action}
 								/>
 							))}
 						</div>
@@ -195,6 +198,29 @@ export function BoardColumn({
 								!phaseStartedAt ? (
 								<div className="mt-2 rounded-md bg-muted p-2 text-center text-muted-foreground text-sm">
 									Waiting for timer to start
+								</div>
+							) : boardPhase === "creation" &&
+								!column.is_action &&
+								phaseStartedAt &&
+								!phaseEndsAt ? (
+								<div className="mt-2 rounded-md bg-muted p-2 text-center text-muted-foreground text-sm">
+									Timer is paused - cards cannot be added
+								</div>
+							) : boardPhase === "voting" && phaseStartedAt && !phaseEndsAt ? (
+								<div className="mt-2 rounded-md bg-muted p-2 text-center text-muted-foreground text-sm">
+									Voting is paused
+								</div>
+							) : boardPhase === "reveal" || boardPhase === "voting" ? (
+								<div className="mt-2 rounded-md bg-muted p-2 text-center text-muted-foreground text-sm">
+									Cards cannot be added during {boardPhase}
+								</div>
+							) : boardPhase === "discussion" && !column.is_action ? (
+								<div className="mt-2 rounded-md bg-muted p-2 text-center text-muted-foreground text-sm">
+									Only action items can be added during discussion
+								</div>
+							) : boardPhase === "completed" ? (
+								<div className="mt-2 rounded-md bg-muted p-2 text-center text-muted-foreground text-sm">
+									Board is completed
 								</div>
 							) : column.is_action ? (
 								isOwner && (

@@ -14,7 +14,7 @@ export async function POST(request: Request) {
 		// Check if user already exists
 		const { data: existingUser, error: checkError } = await supabaseAdmin
 			.from("users")
-			.select("id")
+			.select("*")
 			.eq("clerk_id", userId)
 			.maybeSingle();
 
@@ -24,7 +24,26 @@ export async function POST(request: Request) {
 		}
 
 		if (existingUser) {
-			return NextResponse.json({ user: existingUser });
+			// Update user info if it has changed
+			const { data: updatedUser, error: updateError } = await supabaseAdmin
+				.from("users")
+				.update({
+					email,
+					name,
+					avatar_url,
+					updated_at: new Date().toISOString(),
+				})
+				.eq("clerk_id", userId)
+				.select()
+				.single();
+
+			if (updateError) {
+				console.error("Error updating user:", updateError);
+				// Return existing user even if update fails
+				return NextResponse.json({ user: existingUser });
+			}
+
+			return NextResponse.json({ user: updatedUser });
 		}
 
 		// Create new user
