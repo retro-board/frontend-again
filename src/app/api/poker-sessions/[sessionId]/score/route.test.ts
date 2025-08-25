@@ -193,10 +193,10 @@ describe("POST /api/poker-sessions/[sessionId]/score", () => {
 					params: Promise.resolve({ sessionId }),
 				});
 
-				// Mean of 3, 5, 8 = 5.33, rounded up = 6, nearest fibonacci >= 6 = 8
+				// Mean of 3, 5, 8 = 5.33, rounded = 5, nearest fibonacci to 5 = 5
 				expect(response).toEqual({
 					data: {
-						finalScore: "8",
+						finalScore: "5",
 						votes: {
 							John: "3",
 							Jane: "5",
@@ -250,10 +250,10 @@ describe("POST /api/poker-sessions/[sessionId]/score", () => {
 					params: Promise.resolve({ sessionId }),
 				});
 
-				// Mean of 3, 5 = 4, rounded up = 4, nearest fibonacci >= 4 = 5
+				// Mean of 3, 5 = 4, rounded = 4, nearest fibonacci to 4 = 3
 				expect(response).toEqual({
 					data: {
-						finalScore: "5",
+						finalScore: "3",
 						votes: {
 							John: "3",
 							Jane: "?",
@@ -422,10 +422,10 @@ describe("POST /api/poker-sessions/[sessionId]/score", () => {
 					params: Promise.resolve({ sessionId }),
 				});
 
-				// Mean of 3, 4, 6 = 4.33, rounded up = 5
+				// Mean of 3, 4, 6 = 4.33, rounded = 4
 				expect(response).toEqual({
 					data: {
-						finalScore: "5",
+						finalScore: "4",
 						votes: {
 							John: "3",
 							Jane: "4",
@@ -485,7 +485,7 @@ describe("POST /api/poker-sessions/[sessionId]/score", () => {
 
 			expect(response).toEqual({
 				data: {
-					finalScore: "5",
+					finalScore: "3",
 					votes: {
 						John: "3",
 						Guest123: "5",
