@@ -1,8 +1,9 @@
 "use client";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Pause, Play, SkipForward } from "lucide-react";
+import { Pause, Play, Plus, SkipForward } from "lucide-react";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
@@ -105,6 +106,34 @@ export function BoardTimer({ board, isOwner }: BoardTimerProps) {
 		},
 	});
 
+	// Timer extension mutation
+	const extendTimerMutation = useMutation({
+		mutationFn: async (minutes: number) => {
+			const response = await fetch(`/api/boards/${board.id}/timer`, {
+				method: "PATCH",
+				headers: {
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify({ action: "extend", duration: minutes }),
+			});
+
+			if (!response.ok) {
+				const error = await response.json();
+				throw new Error(error.error || "Failed to extend timer");
+			}
+
+			return response.json();
+		},
+		onSuccess: (_, minutes) => {
+			queryClient.invalidateQueries({ queryKey: ["board", board.id] });
+			const timeLabel =
+				minutes < 1
+					? `${minutes * 60} seconds`
+					: `${minutes} minute${minutes > 1 ? "s" : ""}`;
+			toast.success(`Timer extended by ${timeLabel}`);
+		},
+	});
+
 	const formatTime = (seconds: number | null) => {
 		if (seconds === null) return "--:--";
 		const mins = Math.floor(seconds / 60);
@@ -161,55 +190,95 @@ export function BoardTimer({ board, isOwner }: BoardTimerProps) {
 				)}
 
 				{isOwner && board.phase !== ("completed" as BoardPhase) && (
-					<div className="flex gap-2">
-						{board.phase === "setup" ? (
-							<Button
-								size="sm"
-								className="w-full"
-								onClick={() => advancePhaseMutation.mutate()}
-								disabled={advancePhaseMutation.isPending}
-							>
-								<Play className="mr-1 h-4 w-4" />
-								Start Board
-							</Button>
-						) : (
-							<>
-								{(board.phase === "creation" || board.phase === "voting") && (
+					<div className="space-y-2">
+						{/* Timer extension buttons - only show when timer is running */}
+						{board.phase_ends_at &&
+							(board.phase === "creation" || board.phase === "voting") && (
+								<div className="flex gap-1">
 									<Button
 										size="sm"
 										variant="outline"
 										className="flex-1"
-										onClick={() => pauseResumeMutation.mutate()}
-										disabled={pauseResumeMutation.isPending}
+										onClick={() => extendTimerMutation.mutate(0.5)}
+										disabled={extendTimerMutation.isPending}
 									>
-										{board.phase_ends_at ? (
-											<>
-												<Pause className="mr-1 h-4 w-4" />
-												Pause
-											</>
-										) : (
-											<>
-												<Play className="mr-1 h-4 w-4" />
-												Resume
-											</>
-										)}
+										<Plus className="mr-1 h-3 w-3" />
+										30s
 									</Button>
-								)}
+									<Button
+										size="sm"
+										variant="outline"
+										className="flex-1"
+										onClick={() => extendTimerMutation.mutate(1)}
+										disabled={extendTimerMutation.isPending}
+									>
+										<Plus className="mr-1 h-3 w-3" />
+										1m
+									</Button>
+									<Button
+										size="sm"
+										variant="outline"
+										className="flex-1"
+										onClick={() => extendTimerMutation.mutate(5)}
+										disabled={extendTimerMutation.isPending}
+									>
+										<Plus className="mr-1 h-3 w-3" />
+										5m
+									</Button>
+								</div>
+							)}
+
+						{/* Control buttons */}
+						<div className="flex gap-2">
+							{board.phase === "setup" ? (
 								<Button
 									size="sm"
-									variant="outline"
-									className="flex-1"
+									className="w-full"
 									onClick={() => advancePhaseMutation.mutate()}
-									disabled={
-										advancePhaseMutation.isPending ||
-										board.phase === ("completed" as BoardPhase)
-									}
+									disabled={advancePhaseMutation.isPending}
 								>
-									<SkipForward className="mr-1 h-4 w-4" />
-									Next Phase
+									<Play className="mr-1 h-4 w-4" />
+									Start Board
 								</Button>
-							</>
-						)}
+							) : (
+								<>
+									{(board.phase === "creation" || board.phase === "voting") && (
+										<Button
+											size="sm"
+											variant="outline"
+											className="flex-1"
+											onClick={() => pauseResumeMutation.mutate()}
+											disabled={pauseResumeMutation.isPending}
+										>
+											{board.phase_ends_at ? (
+												<>
+													<Pause className="mr-1 h-4 w-4" />
+													Pause
+												</>
+											) : (
+												<>
+													<Play className="mr-1 h-4 w-4" />
+													Resume
+												</>
+											)}
+										</Button>
+									)}
+									<Button
+										size="sm"
+										variant="outline"
+										className="flex-1"
+										onClick={() => advancePhaseMutation.mutate()}
+										disabled={
+											advancePhaseMutation.isPending ||
+											board.phase === ("completed" as BoardPhase)
+										}
+									>
+										<SkipForward className="mr-1 h-4 w-4" />
+										Next Phase
+									</Button>
+								</>
+							)}
+						</div>
 					</div>
 				)}
 			</CardContent>

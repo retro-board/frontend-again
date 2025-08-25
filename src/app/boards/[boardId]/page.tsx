@@ -125,34 +125,27 @@ export default function BoardPage() {
 
 	// Subscribe to realtime updates
 	useEffect(() => {
-		console.log("Setting up real-time subscription for board:", boardId);
 		const boardChannel = new BoardChannel(boardId, supabase);
 
 		boardChannel.subscribe({
-			onCardCreated: (payload) => {
-				console.log("Card created:", payload);
+			onCardCreated: () => {
 				queryClient.invalidateQueries({ queryKey: ["board", boardId] });
 			},
-			onCardUpdated: (payload) => {
-				console.log("Card updated:", payload);
+			onCardUpdated: () => {
 				queryClient.invalidateQueries({ queryKey: ["board", boardId] });
 			},
-			onCardDeleted: (payload) => {
-				console.log("Card deleted:", payload);
+			onCardDeleted: () => {
 				queryClient.invalidateQueries({ queryKey: ["board", boardId] });
 			},
-			onCardsCombined: (payload) => {
-				console.log("Cards combined:", payload);
+			onCardsCombined: () => {
 				queryClient.invalidateQueries({ queryKey: ["board", boardId] });
 				toast("Cards have been combined");
 			},
-			onCardHighlighted: (payload) => {
-				console.log("Card highlighted:", payload);
+			onCardHighlighted: () => {
 				// TODO: Add visual highlighting effect
 				queryClient.invalidateQueries({ queryKey: ["board", boardId] });
 			},
 			onTimerEvent: (payload) => {
-				console.log("Timer event:", payload);
 				queryClient.invalidateQueries({ queryKey: ["board", boardId] });
 				if (payload.action === "start" || payload.action === "resume") {
 					toast("Timer started");
@@ -163,12 +156,10 @@ export default function BoardPage() {
 				}
 			},
 			onPhaseChanged: (payload) => {
-				console.log("Phase changed:", payload);
 				queryClient.invalidateQueries({ queryKey: ["board", boardId] });
 				toast(`Board moved to ${payload.newPhase} phase`);
 			},
-			onBoardUpdated: (payload) => {
-				console.log("Board updated:", payload);
+			onBoardUpdated: () => {
 				queryClient.invalidateQueries({ queryKey: ["board", boardId] });
 			},
 		});
