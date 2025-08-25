@@ -115,6 +115,7 @@ export interface PokerSessionState {
 		isVoting: boolean;
 		votesReceived: number;
 		eligibleVoters: number;
+		allVoted?: boolean;
 	};
 	timer: {
 		isActive: boolean;

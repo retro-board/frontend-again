@@ -2,6 +2,7 @@ import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
 import { supabaseAdmin } from "~/lib/supabase/admin";
+import { PokerChannelClient } from "~/lib/supabase/poker-channel";
 
 export async function GET() {
 	try {
@@ -165,6 +166,22 @@ export async function POST(request: Request) {
 		if (participantError) {
 			console.error("Error adding participant:", participantError);
 			// Don't fail the whole operation if participant add fails
+		}
+
+		// Initialize the poker channel for this session
+		// This ensures the channel is ready when participants join
+		try {
+			const channel = new PokerChannelClient(session.id, supabaseAdmin);
+			await channel.connect(dbUser.id);
+
+			// Send an initial join message as the facilitator
+			await channel.join("facilitator", dbUser.id, undefined, undefined);
+
+			// Disconnect after initialization (participants will reconnect when they join)
+			await channel.disconnect();
+		} catch (channelError) {
+			console.error("Error initializing poker channel:", channelError);
+			// Don't fail the session creation if channel init fails
 		}
 
 		return NextResponse.json({ session });

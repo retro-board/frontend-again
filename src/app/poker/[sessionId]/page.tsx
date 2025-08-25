@@ -153,12 +153,13 @@ export default function PokerSessionPage() {
 	);
 
 	// Use poker channel for real-time updates
-	const { isConnected, selectStory } = usePokerChannel({
-		sessionId,
-		isAnonymous: !user,
-		anonymousUserId: anonymousData?.user?.id,
-		onMessage: handlePokerMessage,
-	});
+	const { isConnected, selectStory, sessionState, announceScore, endVoting } =
+		usePokerChannel({
+			sessionId,
+			isAnonymous: !user,
+			anonymousUserId: anonymousData?.user?.id,
+			onMessage: handlePokerMessage,
+		});
 
 	// Log connection status - only log on actual changes
 	useEffect(() => {
@@ -176,6 +177,56 @@ export default function PokerSessionPage() {
 	const isFacilitator = session?.participants.some(
 		(p) => p.user.id === currentUser?.id && p.role === "facilitator",
 	);
+
+	// Handle automatic voting completion when all eligible voters have voted
+	useEffect(() => {
+		const handleVotingCompletion = async () => {
+			if (
+				!sessionState.votingState.allVoted ||
+				!isFacilitator ||
+				!currentStory
+			) {
+				return;
+			}
+
+			// Calculate score
+			const response = await fetch(`/api/poker-sessions/${sessionId}/score`, {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ storyId: currentStory.id }),
+			});
+
+			if (response.ok) {
+				const { finalScore, votes } = await response.json();
+
+				// End voting and announce score
+				await endVoting(currentStory.id);
+				await announceScore(currentStory.id, finalScore, votes);
+
+				// Update session to mark voting as complete
+				await fetch(`/api/poker-sessions/${sessionId}`, {
+					method: "PATCH",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify({ reveal_votes: true }),
+				});
+
+				queryClient.invalidateQueries({
+					queryKey: ["poker-session", sessionId],
+				});
+				toast.success(`All votes received! Final estimate: ${finalScore}`);
+			}
+		};
+
+		handleVotingCompletion();
+	}, [
+		sessionState.votingState.allVoted,
+		isFacilitator,
+		currentStory,
+		sessionId,
+		endVoting,
+		announceScore,
+		queryClient,
+	]);
 
 	// Get user's vote for current story
 	const userVote = currentStory?.votes.find((v) => {
