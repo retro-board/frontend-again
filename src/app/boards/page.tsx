@@ -46,8 +46,8 @@ export default function BoardsPage() {
 		queryFn: async () => {
 			if (!user || !syncedUser) return [];
 
-			// Fetch boards
-			const { data, error } = await supabase
+			// Fetch boards where user is owner or participant
+			const { data: ownedBoards, error: ownedError } = await supabase
 				.from("boards")
 				.select(`
           *,
@@ -56,10 +56,53 @@ export default function BoardsPage() {
             user:users(*)
           )
         `)
+				.eq("owner_id", syncedUser.id)
 				.order("created_at", { ascending: false });
 
-			if (error) throw error;
-			return data as BoardWithParticipants[];
+			if (ownedError) throw ownedError;
+
+			// Fetch boards where user is a participant
+			const { data: participantBoards, error: participantError } =
+				await supabase
+					.from("board_participants")
+					.select(`
+          board:boards(
+            *,
+            participants:board_participants(
+              *,
+              user:users(*)
+            )
+          )
+        `)
+					.eq("user_id", syncedUser.id)
+					.order("created_at", { ascending: false });
+
+			if (participantError) throw participantError;
+
+			// Combine and deduplicate boards
+			const allBoards = [...(ownedBoards || [])];
+			const boardIds = new Set(allBoards.map((b) => b.id));
+
+			// Add participant boards that aren't already in the list
+			if (participantBoards) {
+				// biome-ignore lint/suspicious/noExplicitAny: Supabase query result type
+				// eslint-disable-next-line @typescript-eslint/no-explicit-any
+				for (const pb of participantBoards as any[]) {
+					// Type assertion for the nested board object
+					const board = pb?.board as BoardWithParticipants | undefined;
+					if (board?.id && !boardIds.has(board.id)) {
+						allBoards.push(board);
+					}
+				}
+			}
+
+			// Sort by created_at descending
+			allBoards.sort(
+				(a, b) =>
+					new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+			);
+
+			return allBoards as BoardWithParticipants[];
 		},
 		enabled: !!user && !!syncedUser,
 	});

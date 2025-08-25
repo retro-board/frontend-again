@@ -189,15 +189,27 @@ export function BoardColumn({
 									Waiting for all participants to join
 								</div>
 							) : (
-								<Button
-									variant="ghost"
-									className="mt-2 w-full justify-start"
-									onClick={() => setIsAddingCard(true)}
-								>
-									<Plus className="mr-2 h-4 w-4" />
-									Add a card
-								</Button>
-							)}
+								column.is_action ? (
+									isOwner && (
+										<Button
+											variant="ghost"
+											className="mt-2 w-full justify-start"
+											onClick={() => setIsAddingCard(true)}
+										>
+											<Plus className="mr-2 h-4 w-4" />
+											Add a card
+										</Button>
+									)
+								) : (
+									<Button
+										variant="ghost"
+										className="mt-2 w-full justify-start"
+										onClick={() => setIsAddingCard(true)}
+									>
+										<Plus className="mr-2 h-4 w-4" />
+										Add a card
+									</Button>
+							))}
 						</>
 					)}
 				</CardContent>
