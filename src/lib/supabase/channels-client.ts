@@ -5,6 +5,7 @@ export type ChannelEvent =
 	| "card_created"
 	| "card_updated"
 	| "card_deleted"
+	| "card_moved"
 	| "cards_combined"
 	| "card_highlighted"
 	| "timer_started"
@@ -66,6 +67,7 @@ export class BoardChannel {
 		onCardCreated?: (payload: CardEventPayload) => void;
 		onCardUpdated?: (payload: CardEventPayload) => void;
 		onCardDeleted?: (payload: { cardId: string }) => void;
+		onCardMoved?: (payload: CardEventPayload) => void;
 		onCardsCombined?: (payload: CombineCardsPayload) => void;
 		onCardHighlighted?: (payload: HighlightCardPayload) => void;
 		onTimerEvent?: (payload: TimerEventPayload) => void;
@@ -90,6 +92,12 @@ export class BoardChannel {
 		if (handlers.onCardDeleted && this.channel) {
 			this.channel.on("broadcast", { event: "card_deleted" }, ({ payload }) =>
 				handlers.onCardDeleted?.(payload),
+			);
+		}
+
+		if (handlers.onCardMoved && this.channel) {
+			this.channel.on("broadcast", { event: "card_moved" }, ({ payload }) =>
+				handlers.onCardMoved?.(payload),
 			);
 		}
 

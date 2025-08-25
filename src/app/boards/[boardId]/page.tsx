@@ -137,6 +137,9 @@ export default function BoardPage() {
 			onCardDeleted: () => {
 				queryClient.invalidateQueries({ queryKey: ["board", boardId] });
 			},
+			onCardMoved: () => {
+				queryClient.invalidateQueries({ queryKey: ["board", boardId] });
+			},
 			onCardsCombined: () => {
 				queryClient.invalidateQueries({ queryKey: ["board", boardId] });
 				toast("Cards have been combined");
@@ -271,6 +274,17 @@ export default function BoardPage() {
 		);
 
 		if (!overColumn) return;
+
+		// Check if trying to move to action column as non-owner
+		const isOwner =
+			currentUser?.id === board?.owner_id ||
+			(anonymousData?.user && board?.owner_id === anonymousData.user.id);
+
+		if (overColumn.is_action && !isOwner) {
+			toast.error("Only board owners can move cards to action columns");
+			setActiveCard(null);
+			return;
+		}
 
 		// Determine target position
 		const targetColumnId = overColumn.id;

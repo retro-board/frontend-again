@@ -276,8 +276,12 @@ export async function POST(
 	}
 }
 
-export async function PATCH(request: Request) {
+export async function PATCH(
+	request: Request,
+	{ params }: { params: Promise<{ boardId: string }> },
+) {
 	try {
+		const resolvedParams = await params;
 		const { userId } = await auth();
 		const cookieStore = await cookies();
 		const anonymousSessionId = cookieStore.get("anonymous_session_id")?.value;
@@ -339,6 +343,31 @@ export async function PATCH(request: Request) {
 			authorId = anonymousUser.id;
 		}
 
+		// If changing column, check permissions for action columns
+		if (column_id !== undefined) {
+			// Get the target column and board info
+			const { data: targetColumn } = await supabaseAdmin
+				.from("columns")
+				.select("*, board:boards(*)")
+				.eq("id", column_id)
+				.single();
+
+			if (!targetColumn) {
+				return NextResponse.json(
+					{ error: "Target column not found" },
+					{ status: 404 },
+				);
+			}
+
+			// Check if non-owner is trying to move card to action column
+			if (targetColumn.is_action && targetColumn.board.owner_id !== authorId) {
+				return NextResponse.json(
+					{ error: "Only board owners can move cards to action columns" },
+					{ status: 403 },
+				);
+			}
+		}
+
 		// Build update object
 		const updateData: {
 			updated_at: string;
@@ -367,6 +396,22 @@ export async function PATCH(request: Request) {
 		if (error) {
 			console.error("Error updating card:", error);
 			return NextResponse.json({ error: error.message }, { status: 500 });
+		}
+
+		// Broadcast card position update if position or column changed
+		if (column_id !== undefined || position !== undefined) {
+			const eventPayload: CardEventPayload = {
+				cardId: card.id,
+				columnId: column_id || card.column_id,
+				userId: userId || undefined,
+				position: position !== undefined ? position : card.position,
+				isAnonymous: !!card.anonymous_author_id,
+			};
+			await broadcastToBoard(
+				resolvedParams.boardId,
+				"card_moved",
+				eventPayload,
+			);
 		}
 
 		return NextResponse.json({ card });

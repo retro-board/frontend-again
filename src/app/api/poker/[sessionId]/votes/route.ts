@@ -3,100 +3,102 @@ import { NextResponse } from "next/server";
 import { supabaseAdmin } from "~/lib/supabase/admin";
 
 export async function POST(
-  request: Request,
-  { params }: { params: Promise<{ sessionId: string }> }
+	request: Request,
+	{ params }: { params: Promise<{ sessionId: string }> },
 ) {
-  try {
-    const resolvedParams = await params;
-    const { userId } = await auth();
-    const body = await request.json();
-    const { storyId, voteValue, anonymousUserId } = body;
+	try {
+		const resolvedParams = await params;
+		const { userId } = await auth();
+		const body = await request.json();
+		const { storyId, voteValue, anonymousUserId } = body;
 
-    if (!storyId || !voteValue) {
-      return NextResponse.json(
-        { error: "Story ID and vote value required" },
-        { status: 400 }
-      );
-    }
+		if (!storyId || !voteValue) {
+			return NextResponse.json(
+				{ error: "Story ID and vote value required" },
+				{ status: 400 },
+			);
+		}
 
-    // Determine the user identifier
-    let voteUserId: string | null = null;
-    
-    if (userId) {
-      // Get user from database
-      const { data: dbUser } = await supabaseAdmin
-        .from("users")
-        .select("id")
-        .eq("clerk_id", userId)
-        .single();
-      
-      if (dbUser) {
-        voteUserId = dbUser.id;
-      }
-    }
+		// Determine the user identifier
+		let voteUserId: string | null = null;
 
-    // Check if user has already voted
-    const existingVoteQuery = supabaseAdmin
-      .from("poker_votes")
-      .select("id")
-      .eq("story_id", storyId);
+		if (userId) {
+			// Get user from database
+			const { data: dbUser } = await supabaseAdmin
+				.from("users")
+				.select("id")
+				.eq("clerk_id", userId)
+				.single();
 
-    if (voteUserId) {
-      existingVoteQuery.eq("user_id", voteUserId);
-    } else if (anonymousUserId) {
-      existingVoteQuery.eq("anonymous_user_id", anonymousUserId);
-    } else {
-      return NextResponse.json(
-        { error: "User identification required" },
-        { status: 401 }
-      );
-    }
+			if (dbUser) {
+				voteUserId = dbUser.id;
+			}
+		}
 
-    const { data: existingVote } = await existingVoteQuery.single();
+		// Check if user has already voted
+		const existingVoteQuery = supabaseAdmin
+			.from("poker_votes")
+			.select("id")
+			.eq("story_id", storyId);
 
-    if (existingVote) {
-      // Update existing vote
-      const { error } = await supabaseAdmin
-        .from("poker_votes")
-        .update({
-          vote_value: voteValue,
-          created_at: new Date().toISOString(),
-        })
-        .eq("id", existingVote.id);
+		if (voteUserId) {
+			existingVoteQuery.eq("user_id", voteUserId);
+		} else if (anonymousUserId) {
+			existingVoteQuery.eq("anonymous_user_id", anonymousUserId);
+		} else {
+			return NextResponse.json(
+				{ error: "User identification required" },
+				{ status: 401 },
+			);
+		}
 
-      if (error) {
-        console.error("Error updating vote:", error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
-      }
-    } else {
-      // Create new vote
-      const voteData: any = {
-        story_id: storyId,
-        vote_value: voteValue,
-      };
+		const { data: existingVote } = await existingVoteQuery.single();
 
-      if (voteUserId) {
-        voteData.user_id = voteUserId;
-      } else if (anonymousUserId) {
-        voteData.anonymous_user_id = anonymousUserId;
-      }
+		if (existingVote) {
+			// Update existing vote
+			const { error } = await supabaseAdmin
+				.from("poker_votes")
+				.update({
+					vote_value: voteValue,
+					created_at: new Date().toISOString(),
+				})
+				.eq("id", existingVote.id);
 
-      const { error } = await supabaseAdmin
-        .from("poker_votes")
-        .insert(voteData);
+			if (error) {
+				console.error("Error updating vote:", error);
+				return NextResponse.json({ error: error.message }, { status: 500 });
+			}
+		} else {
+			// Create new vote
+			const voteData: any = {
+				story_id: storyId,
+				vote_value: voteValue,
+			};
 
-      if (error) {
-        console.error("Error creating vote:", error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
-      }
-    }
+			if (voteUserId) {
+				voteData.user_id = voteUserId;
+			} else if (anonymousUserId) {
+				voteData.anonymous_user_id = anonymousUserId;
+			}
 
-    return NextResponse.json({ success: true, voteValue });
-  } catch (error) {
-    console.error("Vote submission error:", error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Internal server error" },
-      { status: 500 }
-    );
-  }
+			const { error } = await supabaseAdmin
+				.from("poker_votes")
+				.insert(voteData);
+
+			if (error) {
+				console.error("Error creating vote:", error);
+				return NextResponse.json({ error: error.message }, { status: 500 });
+			}
+		}
+
+		return NextResponse.json({ success: true, voteValue });
+	} catch (error) {
+		console.error("Vote submission error:", error);
+		return NextResponse.json(
+			{
+				error: error instanceof Error ? error.message : "Internal server error",
+			},
+			{ status: 500 },
+		);
+	}
 }
