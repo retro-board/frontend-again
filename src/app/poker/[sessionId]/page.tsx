@@ -81,6 +81,7 @@ export default function PokerSessionPage() {
 	const [shareDialogOpen, setShareDialogOpen] = useState(false);
 	const [copied, setCopied] = useState(false);
 	const [isAbstaining, setIsAbstaining] = useState(false);
+	const [displayTime, setDisplayTime] = useState("0:00");
 
 	const elemId = useId();
 
@@ -302,12 +303,45 @@ export default function PokerSessionPage() {
 
 	// Sync timer state from session state
 	useEffect(() => {
+		console.log("Timer sync - sessionState.timer:", sessionState.timer);
+		console.log("Timer sync - local timer.isActive:", timer.isActive);
+		
 		if (sessionState.timer.isActive && sessionState.timer.endsAt) {
+			console.log("Starting timer until:", sessionState.timer.endsAt);
 			timer.startUntil(sessionState.timer.endsAt);
 		} else if (!sessionState.timer.isActive && timer.isActive) {
+			console.log("Stopping timer");
 			timer.stop();
 		}
 	}, [sessionState.timer, timer.isActive, timer.startUntil, timer.stop]);
+
+	// Update display timer every second
+	useEffect(() => {
+		if (!sessionState.timer.isActive || !sessionState.timer.endsAt) {
+			setDisplayTime("0:00");
+			return;
+		}
+
+		const updateDisplayTime = () => {
+			const remaining = Math.max(
+				0,
+				Math.floor(
+					(new Date(sessionState.timer.endsAt!).getTime() - Date.now()) / 1000,
+				),
+			);
+			const mins = Math.floor(remaining / 60);
+			const secs = remaining % 60;
+			setDisplayTime(`${mins}:${secs.toString().padStart(2, "0")}`);
+		};
+
+		// Update immediately
+		updateDisplayTime();
+
+		// Then update every second
+		const interval = setInterval(updateDisplayTime, 1000);
+
+		return () => clearInterval(interval);
+	}, [sessionState.timer.isActive, sessionState.timer.endsAt]);
 
 	// Create story mutation
 	const createStoryMutation = useMutation({
@@ -406,11 +440,13 @@ export default function PokerSessionPage() {
 
 			// Start voting and timer (60 seconds default)
 			if (startVoting) {
+				console.log("Starting voting for story:", storyId);
 				await startVoting(storyId);
 			}
 			if (startTimer) {
 				const timerDuration = 60; // 60 seconds default
-				timer.start(timerDuration);
+				console.log("Starting timer with duration:", timerDuration);
+				// Don't start the local timer directly - let it sync from the channel
 				await startTimer(timerDuration);
 			}
 
@@ -728,11 +764,11 @@ export default function PokerSessionPage() {
 											<p className="mt-2 text-sm">{currentStory.description}</p>
 										)}
 									</div>
-									{timer.isActive && (
+									{sessionState.timer.isActive && (
 										<div className="flex items-center gap-2 text-muted-foreground">
 											<Timer className="h-5 w-5" />
 											<span className="font-bold font-mono text-lg">
-												{timer.formattedTime}
+												{displayTime}
 											</span>
 										</div>
 									)}
