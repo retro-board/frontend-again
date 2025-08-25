@@ -21,6 +21,7 @@ jest.mock("~/lib/supabase/poker-channel", () => ({
 describe("usePokerChannel", () => {
 	const mockUser = { id: "user-123", fullName: "John Doe" };
 	const sessionId = "session-123";
+	// biome-ignore lint/suspicious/noExplicitAny: Mock object for testing
 	let mockChannelInstance: any;
 
 	beforeEach(() => {
@@ -53,7 +54,7 @@ describe("usePokerChannel", () => {
 
 	describe("channel connection", () => {
 		it("should connect to channel on mount", async () => {
-			const { result } = renderHook(() =>
+			renderHook(() =>
 				usePokerChannel({
 					sessionId,
 					isAnonymous: false,
@@ -76,7 +77,7 @@ describe("usePokerChannel", () => {
 			(useUser as jest.Mock).mockReturnValue({ user: null });
 			const anonymousUserId = "anon-123";
 
-			const { result } = renderHook(() =>
+			renderHook(() =>
 				usePokerChannel({
 					sessionId,
 					isAnonymous: true,
@@ -117,6 +118,7 @@ describe("usePokerChannel", () => {
 
 		beforeEach(() => {
 			// Capture the message handler
+			// biome-ignore lint/suspicious/noExplicitAny: Mock handler for testing
 			mockChannelInstance.onMessage.mockImplementation((handler: any) => {
 				messageHandler = handler;
 				return jest.fn(); // Return unsubscribe function

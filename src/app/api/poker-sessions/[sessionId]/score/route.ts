@@ -179,7 +179,9 @@ export async function POST(
 		// Format votes for response
 		const voteMap: Record<string, string> = {};
 		for (const vote of votes) {
+			// biome-ignore lint/suspicious/noExplicitAny: Supabase join type
 			const user = vote.users as any;
+			// biome-ignore lint/suspicious/noExplicitAny: Supabase join type
 			const anonUser = vote.anonymous_users as any;
 			const voterName =
 				user?.name || user?.email || anonUser?.display_name || "Anonymous";

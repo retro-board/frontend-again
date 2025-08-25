@@ -88,9 +88,17 @@ export function usePokerChannel({
 					const participant = newState.participants.find(
 						(p) => p.id === participantId,
 					);
-					if (participant && !participant.hasVoted) {
-						participant.hasVoted = true;
-						newState.votingState.votesReceived++;
+
+					if (participant) {
+						const wasVoted = participant.hasVoted;
+
+						if (!wasVoted) {
+							// First time voting
+							participant.hasVoted = true;
+							newState.votingState.votesReceived++;
+						}
+						// If already voted, this is a vote change - votesReceived stays the same
+						// but we still need to check allVoted status
 
 						// Check if all eligible voters have voted
 						const eligibleVoters = newState.participants.filter(
@@ -118,6 +126,18 @@ export function usePokerChannel({
 						newState.votingState.eligibleVoters = newState.participants.filter(
 							(p) => p.role === "voter" && !p.isAbstaining,
 						).length;
+
+						// Check if all remaining eligible voters have voted
+						const eligibleVoters = newState.participants.filter(
+							(p) => p.role === "voter" && !p.isAbstaining,
+						);
+						const allVoted = eligibleVoters.every((p) => p.hasVoted);
+
+						if (allVoted && eligibleVoters.length > 0) {
+							newState.votingState.allVoted = true;
+						} else {
+							newState.votingState.allVoted = false;
+						}
 					}
 					break;
 				}
@@ -134,6 +154,16 @@ export function usePokerChannel({
 						newState.votingState.eligibleVoters = newState.participants.filter(
 							(p) => p.role === "voter" && !p.isAbstaining,
 						).length;
+
+						// Since someone is no longer abstaining, check voting status
+						const eligibleVoters = newState.participants.filter(
+							(p) => p.role === "voter" && !p.isAbstaining,
+						);
+						const allVoted = eligibleVoters.every((p) => p.hasVoted);
+
+						// Only set allVoted to true if everyone has actually voted
+						newState.votingState.allVoted =
+							allVoted && eligibleVoters.length > 0;
 					}
 					break;
 				}
@@ -174,12 +204,14 @@ export function usePokerChannel({
 						p.hasVoted = false;
 					});
 					newState.votingState.votesReceived = 0;
+					newState.votingState.allVoted = false; // Reset allVoted flag
 					break;
 				}
 
 				case "voting_start": {
 					newState.votingState.isVoting = true;
 					newState.votingState.votesReceived = 0;
+					newState.votingState.allVoted = false; // Reset allVoted flag
 					newState.participants.forEach((p) => {
 						p.hasVoted = false;
 					});
