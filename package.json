@@ -67,7 +67,7 @@
 		"@types/react": "^19.1.11",
 		"@types/react-dom": "^19.1.7",
 		"eslint": "^9.34.0",
-		"eslint-config-next": "15.5.0",
+		"eslint-config-next": "15.5.1",
 		"identity-obj-proxy": "^3.0.0",
 		"jest": "^30.0.5",
 		"jest-environment-jsdom": "^30.0.5",
