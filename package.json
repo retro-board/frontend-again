@@ -41,7 +41,7 @@
 		"geist": "^1.4.2",
 		"google": "link:next/font/google",
 		"jsonwebtoken": "^9.0.2",
-		"lucide-react": "^0.541.0",
+		"lucide-react": "^0.542.0",
 		"motion": "^12.23.12",
 		"nanoid": "^5.1.5",
 		"next": "^15.5.0",
