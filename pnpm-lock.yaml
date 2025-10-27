@@ -87,8 +87,8 @@ importers:
         specifier: ^9.0.2
         version: 9.0.2
       lucide-react:
-        specifier: ^0.547.0
-        version: 0.547.0(react@19.1.1)
+        specifier: ^0.548.0
+        version: 0.548.0(react@19.1.1)
       motion:
         specifier: ^12.23.24
         version: 12.23.24(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
