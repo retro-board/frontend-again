@@ -80,5 +80,14 @@
 	"ct3aMetadata": {
 		"initVersion": "7.38.1"
 	},
-	"packageManager": "pnpm@10.2.1"
+	"packageManager": "pnpm@10.2.1",
+	"pnpm": {
+		"onlyBuiltDependencies": [
+			"@clerk/shared",
+			"@tailwindcss/oxide",
+			"msgpackr-extract",
+			"sharp",
+			"unrs-resolver"
+		]
+	}
 }
