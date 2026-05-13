@@ -55,7 +55,7 @@
 		"zustand": "^5.0.13"
 	},
 	"devDependencies": {
-		"@biomejs/biome": "^2.4.6",
+		"@biomejs/biome": "^2.4.15",
 		"@jest/environment": "^30.4.1",
 		"@tailwindcss/postcss": "^4.2.4",
 		"@testing-library/jest-dom": "^6.9.1",
