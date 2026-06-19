@@ -1,11 +1,10 @@
-FROM node:24-slim AS base
-RUN corepack enable && corepack prepare pnpm@10.2.1 --activate
+FROM oven/bun:1.3.14-slim AS base
 WORKDIR /app
 
 # install dependencies
 FROM base AS deps
-COPY package.json pnpm-lock.yaml .npmrc ./
-RUN pnpm install --frozen-lockfile
+COPY package.json bun.lock ./
+RUN bun install --frozen-lockfile
 
 # build
 FROM base AS builder
@@ -32,7 +31,7 @@ ENV SUPABASE_SERVICE_ROLE_KEY=$SUPABASE_SERVICE_ROLE_KEY
 ENV SUPABASE_JWT_SECRET=$SUPABASE_JWT_SECRET
 ENV UPLOADTHING_TOKEN=$UPLOADTHING_TOKEN
 
-RUN pnpm run build
+RUN bun run build
 
 # production
 FROM base AS runner
@@ -51,4 +50,4 @@ USER nextjs
 EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
-CMD ["node", "server.js"]
+CMD ["bun", "server.js"]
