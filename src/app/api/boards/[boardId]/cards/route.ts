@@ -460,7 +460,7 @@ export async function DELETE(
 			.eq("id", cardId)
 			.single();
 
-		if (!card || !card.column || !card.column.board) {
+		if (!card?.column?.board) {
 			return NextResponse.json({ error: "Card not found" }, { status: 404 });
 		}
 
