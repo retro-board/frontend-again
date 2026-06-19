@@ -13,6 +13,7 @@ import { useParams } from "next/navigation";
 import { useCallback, useEffect, useId, useState } from "react";
 import { toast } from "sonner";
 import { BoardColumn } from "~/components/boards/BoardColumn";
+import { BoardExportButton } from "~/components/boards/BoardExportButton";
 import { BoardSettings } from "~/components/boards/BoardSettings";
 import { BoardTimer } from "~/components/boards/BoardTimer";
 import { Card as CardComponent } from "~/components/boards/Card";
@@ -467,6 +468,9 @@ export default function BoardPage() {
 						)}
 					</div>
 					<div className="flex items-center gap-2">
+						{board.phase === "completed" && (
+							<BoardExportButton boardId={board.id} boardName={board.name} />
+						)}
 						{isOwner && board.phase === "setup" && (
 							<Dialog
 								open={columnDialogOpen}
