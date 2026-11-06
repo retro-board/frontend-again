@@ -2,8 +2,8 @@ import { auth } from "@clerk/nextjs/server";
 import { error as reportError } from "bugfixes";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-
 import { db } from "~/lib/db";
+import { RESULT_METHODS } from "~/lib/poker/score";
 export async function GET(
 	_request: Request,
 	{ params }: { params: Promise<{ sessionId: string }> },
@@ -135,7 +135,16 @@ export async function PATCH(
 		}
 
 		const body = await request.json();
-		const { current_story_id, reveal_votes } = body;
+		const { current_story_id, reveal_votes, result_method } = body;
+		if (
+			result_method !== undefined &&
+			!RESULT_METHODS.includes(result_method)
+		) {
+			return NextResponse.json(
+				{ error: "Invalid result method" },
+				{ status: 400 },
+			);
+		}
 
 		// Get user from database
 		const { data: dbUser } = await db
@@ -168,7 +177,10 @@ export async function PATCH(
 		const updateData: {
 			current_story_id?: string;
 			reveal_votes?: boolean;
+			result_method?: string;
 		} = {};
+		// Changing the method doesn't re-score stories already estimated
+		if (result_method !== undefined) updateData.result_method = result_method;
 		if (current_story_id !== undefined)
 			updateData.current_story_id = current_story_id;
 		if (reveal_votes !== undefined) updateData.reveal_votes = reveal_votes;

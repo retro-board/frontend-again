@@ -1,8 +1,8 @@
 import { auth } from "@clerk/nextjs/server";
 import { error as reportError } from "bugfixes";
 import { NextResponse } from "next/server";
-
 import { db } from "~/lib/db";
+import { RESULT_METHODS } from "~/lib/poker/score";
 import { PokerChannelClient } from "~/lib/realtime/poker-channel";
 import { serverRealtime } from "~/lib/realtime/server";
 
@@ -115,6 +115,13 @@ export async function POST(request: Request) {
 
 		const body = await request.json();
 		const { name, description, estimation_type } = body;
+		const result_method = body.result_method ?? "average";
+		if (!RESULT_METHODS.includes(result_method)) {
+			return NextResponse.json(
+				{ error: "Invalid result method" },
+				{ status: 400 },
+			);
+		}
 
 		// Get user from database
 		const { data: dbUser, error: userError } = await db
@@ -143,6 +150,7 @@ export async function POST(request: Request) {
 				description,
 				owner_id: dbUser.id,
 				estimation_type,
+				result_method,
 			})
 			.select()
 			.single();
