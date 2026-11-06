@@ -1,10 +1,8 @@
 import "@testing-library/jest-dom";
 
 // Set up test environment variables
-process.env.NEXT_PUBLIC_SUPABASE_URL = "https://test.supabase.co";
-process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "test-anon-key";
-process.env.SUPABASE_SERVICE_ROLE_KEY = "test-service-key";
-process.env.SUPABASE_JWT_SECRET = "test-jwt-secret";
+process.env.DATABASE_URL = "postgres://localhost/retro_test";
+process.env.REDIS_URL = "redis://localhost:6379";
 process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY = "test-clerk-key";
 process.env.CLERK_SECRET_KEY = "test-clerk-secret";
 process.env.UPLOADTHING_TOKEN = "test-uploadthing-token";
@@ -17,26 +15,19 @@ jest.mock("nanoid", () => ({
 // Mock env module
 jest.mock("~/env", () => ({
 	env: {
-		NEXT_PUBLIC_SUPABASE_URL: "https://test.supabase.co",
-		NEXT_PUBLIC_SUPABASE_ANON_KEY: "test-anon-key",
-		SUPABASE_SERVICE_ROLE_KEY: "test-service-key",
-		SUPABASE_JWT_SECRET: "test-jwt-secret",
+		DATABASE_URL: "postgres://localhost/retro_test",
+		REDIS_URL: "redis://localhost:6379",
 		NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: "test-clerk-key",
 		CLERK_SECRET_KEY: "test-clerk-secret",
 		UPLOADTHING_TOKEN: "test-uploadthing-token",
 	},
 }));
 
-// Mock Supabase admin client
-jest.mock("~/lib/supabase/admin", () => ({
-	supabaseAdmin: {
+// Mock server database
+jest.mock("~/lib/db", () => ({
+	db: {
 		from: jest.fn(),
 	},
-}));
-
-// Mock Supabase server client
-jest.mock("~/lib/supabase/server", () => ({
-	createAuthenticatedSupabaseClient: jest.fn(),
 }));
 
 // Mock Clerk modules before any imports
@@ -75,6 +66,7 @@ global.ResizeObserver = jest.fn().mockImplementation(() => ({
 
 // Mock matchMedia
 Object.defineProperty(window, "matchMedia", {
+	configurable: true,
 	writable: true,
 	value: jest.fn().mockImplementation((query) => ({
 		matches: false,
@@ -139,6 +131,7 @@ global.Headers = MockHeaders as any;
 
 global.Request = jest.fn().mockImplementation((url, options = {}) => ({
 	url,
+	...options,
 	method: options.method || "GET",
 	headers: new MockHeaders(options.headers),
 	body: options.body,
@@ -147,7 +140,6 @@ global.Request = jest.fn().mockImplementation((url, options = {}) => ({
 	clone: function () {
 		return this;
 	},
-	...options,
 }));
 
 // Mock Response.json static method

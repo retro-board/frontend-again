@@ -1,5 +1,5 @@
 import { auth } from "@clerk/nextjs/server";
-import { supabaseAdmin } from "~/lib/supabase/admin";
+import { db } from "~/lib/db";
 import { POST } from "./route";
 
 // Mock dependencies
@@ -7,8 +7,8 @@ jest.mock("@clerk/nextjs/server", () => ({
 	auth: jest.fn(),
 }));
 
-jest.mock("~/lib/supabase/admin", () => ({
-	supabaseAdmin: {
+jest.mock("~/lib/db", () => ({
+	db: {
 		from: jest.fn(),
 	},
 }));
@@ -21,7 +21,7 @@ jest.mock("next/server", () => ({
 
 describe("POST /api/poker-sessions/[sessionId]/score", () => {
 	const mockAuth = auth as unknown as jest.Mock;
-	const mockFrom = supabaseAdmin.from as jest.Mock;
+	const mockFrom = db.from as jest.Mock;
 	const sessionId = "session-123";
 	const storyId = "story-123";
 	const userId = "user-123";

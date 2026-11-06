@@ -1,7 +1,7 @@
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
-import { supabaseAdmin } from "~/lib/supabase/admin";
+import { db } from "~/lib/db";
 
 export async function GET() {
 	try {
@@ -12,7 +12,7 @@ export async function GET() {
 		}
 
 		// Get user from database
-		const { data: dbUser } = await supabaseAdmin
+		const { data: dbUser } = await db
 			.from("users")
 			.select("id")
 			.eq("clerk_id", userId)
@@ -23,7 +23,7 @@ export async function GET() {
 		}
 
 		// Fetch boards where user is owner
-		const { data: ownedBoards, error: ownedError } = await supabaseAdmin
+		const { data: ownedBoards, error: ownedError } = await db
 			.from("boards")
 			.select(`
 				*,
@@ -42,10 +42,9 @@ export async function GET() {
 		}
 
 		// Fetch boards where user is a participant
-		const { data: participantBoards, error: participantError } =
-			await supabaseAdmin
-				.from("board_participants")
-				.select(`
+		const { data: participantBoards, error: participantError } = await db
+			.from("board_participants")
+			.select(`
 				board:boards(
 					*,
 					participants:board_participants(
@@ -54,7 +53,7 @@ export async function GET() {
 					)
 				)
 			`)
-				.eq("user_id", dbUser.id);
+			.eq("user_id", dbUser.id);
 
 		if (participantError) {
 			console.error("Error fetching participant boards:", participantError);
@@ -110,7 +109,7 @@ export async function POST(request: Request) {
 		const { name, description } = body;
 
 		// Get user from database using admin client (no RLS)
-		const userResult = await supabaseAdmin
+		const userResult = await db
 			.from("users")
 			.select("id")
 			.eq("clerk_id", userId)
@@ -135,7 +134,7 @@ export async function POST(request: Request) {
 			}
 
 			// Create user in database
-			const { data: newUser, error: createError } = await supabaseAdmin
+			const { data: newUser, error: createError } = await db
 				.from("users")
 				.insert({
 					clerk_id: userId,
@@ -158,7 +157,7 @@ export async function POST(request: Request) {
 		}
 
 		// Create board using admin client
-		const { data: board, error: boardError } = await supabaseAdmin
+		const { data: board, error: boardError } = await db
 			.from("boards")
 			.insert({
 				name,
@@ -174,7 +173,7 @@ export async function POST(request: Request) {
 		}
 
 		// Add owner as participant using admin client
-		const { error: participantError } = await supabaseAdmin
+		const { error: participantError } = await db
 			.from("board_participants")
 			.insert({
 				board_id: board.id,
@@ -212,7 +211,7 @@ export async function POST(request: Request) {
 			},
 		];
 
-		const { error: columnsError } = await supabaseAdmin
+		const { error: columnsError } = await db
 			.from("columns")
 			.insert(defaultColumns);
 

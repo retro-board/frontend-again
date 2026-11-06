@@ -1,10 +1,10 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
-import { supabaseAdmin } from "~/lib/supabase/admin";
+import { db } from "~/lib/db";
 import {
 	broadcastToBoard,
 	type CombineCardsPayload,
-} from "~/lib/supabase/channels-server";
+} from "~/lib/realtime/channels-server";
 
 export async function POST(
 	request: Request,
@@ -40,7 +40,7 @@ export async function POST(
 		}
 
 		// Get user from database
-		const { data: dbUser } = await supabaseAdmin
+		const { data: dbUser } = await db
 			.from("users")
 			.select("id")
 			.eq("clerk_id", userId)
@@ -51,7 +51,7 @@ export async function POST(
 		}
 
 		// Get board and check ownership
-		const { data: board } = await supabaseAdmin
+		const { data: board } = await db
 			.from("boards")
 			.select("*")
 			.eq("id", resolvedParams.boardId)
@@ -77,7 +77,7 @@ export async function POST(
 		}
 
 		// Get source cards
-		const { data: sourceCards } = await supabaseAdmin
+		const { data: sourceCards } = await db
 			.from("cards")
 			.select("*, column:columns(*)")
 			.in("id", sourceCardIds);
@@ -91,7 +91,7 @@ export async function POST(
 
 		// Verify all cards are from the same board
 		const columnIds = sourceCards.map((card) => card.column_id);
-		const { data: columns } = await supabaseAdmin
+		const { data: columns } = await db
 			.from("columns")
 			.select("board_id")
 			.in("id", columnIds);
@@ -114,7 +114,7 @@ export async function POST(
 				finalContent = sourceCards.map((card) => card.content).join("\n---\n");
 			}
 
-			const { error: updateError } = await supabaseAdmin
+			const { error: updateError } = await db
 				.from("cards")
 				.update({
 					content: finalContent,
@@ -132,8 +132,10 @@ export async function POST(
 		} else {
 			// Create new card with combined content
 			const firstCard = sourceCards[0];
+			if (!firstCard)
+				return NextResponse.json({ error: "No source cards" }, { status: 400 });
 
-			const { data: newCard, error: createError } = await supabaseAdmin
+			const { data: newCard, error: createError } = await db
 				.from("cards")
 				.insert({
 					column_id: firstCard.column_id,
@@ -160,7 +162,7 @@ export async function POST(
 		// Delete source cards (except target if it was one of them)
 		const cardsToDelete = sourceCardIds.filter((id) => id !== targetCardId);
 		if (cardsToDelete.length > 0) {
-			const { error: deleteError } = await supabaseAdmin
+			const { error: deleteError } = await db
 				.from("cards")
 				.delete()
 				.in("id", cardsToDelete);

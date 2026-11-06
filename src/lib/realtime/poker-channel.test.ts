@@ -1,7 +1,7 @@
-import type { RealtimeChannel, SupabaseClient } from "@supabase/supabase-js";
+import type { RealtimeChannel, RealtimeClient } from "./client";
 import { PokerChannelClient } from "./poker-channel";
 
-// Mock Supabase client
+// Mock channel transport
 const mockChannel = {
 	on: jest.fn().mockReturnThis(),
 	subscribe: jest.fn().mockResolvedValue({ status: "SUBSCRIBED" }),
@@ -11,9 +11,9 @@ const mockChannel = {
 	presenceState: jest.fn().mockReturnValue({}),
 } as unknown as RealtimeChannel;
 
-const mockSupabase = {
+const mockRealtime = {
 	channel: jest.fn().mockReturnValue(mockChannel),
-} as unknown as SupabaseClient;
+} as unknown as RealtimeClient;
 
 describe("PokerChannelClient", () => {
 	let client: PokerChannelClient;
@@ -23,14 +23,14 @@ describe("PokerChannelClient", () => {
 
 	beforeEach(() => {
 		jest.clearAllMocks();
-		client = new PokerChannelClient(sessionId, mockSupabase);
+		client = new PokerChannelClient(sessionId, mockRealtime);
 	});
 
 	describe("connect", () => {
 		it("should create and subscribe to a channel", async () => {
 			await client.connect(userId);
 
-			expect(mockSupabase.channel).toHaveBeenCalledWith(
+			expect(mockRealtime.channel).toHaveBeenCalledWith(
 				`poker:${sessionId}`,
 				expect.objectContaining({
 					config: {

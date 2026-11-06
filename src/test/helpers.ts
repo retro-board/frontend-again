@@ -1,5 +1,5 @@
 import { auth as clerkAuth, currentUser } from "@clerk/nextjs/server";
-import { supabaseAdmin } from "~/lib/supabase/admin";
+import { db } from "~/lib/db";
 
 // Mock user data
 export const mockClerkUser = {
@@ -75,8 +75,8 @@ export function setupUnauthenticatedUser() {
 	(currentUser as unknown as jest.Mock).mockResolvedValue(null);
 }
 
-// Helper to setup Supabase mocks
-export function setupSupabaseMocks() {
+// Helper to setup database mocks
+export function setupDatabaseMocks() {
 	// Create mock functions
 	const fromMock = jest.fn();
 	const maybeSingleMock = jest.fn();
@@ -111,7 +111,7 @@ export function setupSupabaseMocks() {
 	// fromMock returns the chain
 	fromMock.mockImplementation(() => chain);
 
-	(supabaseAdmin.from as jest.Mock) = fromMock;
+	(db.from as jest.Mock) = fromMock;
 
 	return {
 		fromMock,

@@ -1,7 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
-import { supabaseAdmin } from "~/lib/supabase/admin";
+import { db } from "~/lib/db";
 export async function POST(
 	request: Request,
 	{ params }: { params: Promise<{ boardId: string }> },
@@ -18,7 +18,7 @@ export async function POST(
 		const { name, color, position } = body;
 
 		// Get user from database
-		const { data: dbUser } = await supabaseAdmin
+		const { data: dbUser } = await db
 			.from("users")
 			.select("id")
 			.eq("clerk_id", userId)
@@ -29,7 +29,7 @@ export async function POST(
 		}
 
 		// Check if user is owner of this board
-		const { data: board } = await supabaseAdmin
+		const { data: board } = await db
 			.from("boards")
 			.select("owner_id")
 			.eq("id", resolvedParams.boardId)
@@ -44,7 +44,7 @@ export async function POST(
 		}
 
 		// Create column
-		const { data: column, error } = await supabaseAdmin
+		const { data: column, error } = await db
 			.from("columns")
 			.insert({
 				board_id: resolvedParams.boardId,
@@ -95,7 +95,7 @@ export async function DELETE(
 		}
 
 		// Get user from database
-		const { data: dbUser } = await supabaseAdmin
+		const { data: dbUser } = await db
 			.from("users")
 			.select("id")
 			.eq("clerk_id", userId)
@@ -106,7 +106,7 @@ export async function DELETE(
 		}
 
 		// Check if user is owner of this board
-		const { data: board } = await supabaseAdmin
+		const { data: board } = await db
 			.from("boards")
 			.select("owner_id")
 			.eq("id", resolvedParams.boardId)
@@ -121,7 +121,7 @@ export async function DELETE(
 		}
 
 		// Check if column is an action column
-		const { data: column } = await supabaseAdmin
+		const { data: column } = await db
 			.from("columns")
 			.select("is_action")
 			.eq("id", columnId)
@@ -135,7 +135,7 @@ export async function DELETE(
 		}
 
 		// Delete column
-		const { error } = await supabaseAdmin
+		const { error } = await db
 			.from("columns")
 			.delete()
 			.eq("id", columnId)

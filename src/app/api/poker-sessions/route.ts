@@ -1,8 +1,9 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
-import { supabaseAdmin } from "~/lib/supabase/admin";
-import { PokerChannelClient } from "~/lib/supabase/poker-channel";
+import { db } from "~/lib/db";
+import { PokerChannelClient } from "~/lib/realtime/poker-channel";
+import { serverRealtime } from "~/lib/realtime/server";
 
 export async function GET() {
 	try {
@@ -13,7 +14,7 @@ export async function GET() {
 		}
 
 		// Get user from database
-		const { data: dbUser, error: userError } = await supabaseAdmin
+		const { data: dbUser, error: userError } = await db
 			.from("users")
 			.select("id")
 			.eq("clerk_id", userId)
@@ -32,7 +33,7 @@ export async function GET() {
 		}
 
 		// Fetch all sessions where user is owner OR participant
-		const { data: sessions, error: sessionsError } = await supabaseAdmin
+		const { data: sessions, error: sessionsError } = await db
 			.from("poker_sessions")
 			.select(`
 				*,
@@ -50,16 +51,15 @@ export async function GET() {
 		}
 
 		// Also fetch sessions where user is a participant
-		const { data: participantSessions, error: participantError } =
-			await supabaseAdmin
-				.from("poker_participants")
-				.select(`
+		const { data: participantSessions, error: participantError } = await db
+			.from("poker_participants")
+			.select(`
 				session:poker_sessions(
 					*,
 					participants:poker_participants(count)
 				)
 			`)
-				.eq("user_id", dbUser.id);
+			.eq("user_id", dbUser.id);
 
 		if (participantError) {
 			console.error("Error fetching participant sessions:", participantError);
@@ -116,7 +116,7 @@ export async function POST(request: Request) {
 		const { name, description, estimation_type } = body;
 
 		// Get user from database
-		const { data: dbUser, error: userError } = await supabaseAdmin
+		const { data: dbUser, error: userError } = await db
 			.from("users")
 			.select("id")
 			.eq("clerk_id", userId)
@@ -135,7 +135,7 @@ export async function POST(request: Request) {
 		}
 
 		// Create session
-		const { data: session, error: sessionError } = await supabaseAdmin
+		const { data: session, error: sessionError } = await db
 			.from("poker_sessions")
 			.insert({
 				name,
@@ -155,7 +155,7 @@ export async function POST(request: Request) {
 		}
 
 		// Add owner as facilitator
-		const { error: participantError } = await supabaseAdmin
+		const { error: participantError } = await db
 			.from("poker_participants")
 			.insert({
 				session_id: session.id,
@@ -171,7 +171,7 @@ export async function POST(request: Request) {
 		// Initialize the poker channel for this session
 		// This ensures the channel is ready when participants join
 		try {
-			const channel = new PokerChannelClient(session.id, supabaseAdmin);
+			const channel = new PokerChannelClient(session.id, serverRealtime);
 			await channel.connect(dbUser.id);
 
 			// Send an initial join message as the facilitator

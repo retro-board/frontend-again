@@ -1,6 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
-import { supabaseAdmin } from "~/lib/supabase/admin";
+import { db } from "~/lib/db";
 
 export async function GET(
 	request: Request,
@@ -16,7 +16,7 @@ export async function GET(
 		}
 
 		// Get participants (excluding abstaining ones)
-		const { data: participants } = await supabaseAdmin
+		const { data: participants } = await db
 			.from("poker_participants")
 			.select("*")
 			.eq("session_id", resolvedParams.sessionId)
@@ -26,7 +26,7 @@ export async function GET(
 		const eligibleVoters = participants?.length || 0;
 
 		// Get votes for the story
-		const { data: votes } = await supabaseAdmin
+		const { data: votes } = await db
 			.from("poker_votes")
 			.select("*")
 			.eq("story_id", storyId);
@@ -37,7 +37,7 @@ export async function GET(
 		const isComplete = eligibleVoters > 0 && votesReceived >= eligibleVoters;
 
 		// Get timer status
-		const { data: session } = await supabaseAdmin
+		const { data: session } = await db
 			.from("poker_sessions")
 			.select("timer_ends_at")
 			.eq("id", resolvedParams.sessionId)
@@ -83,7 +83,7 @@ export async function POST(
 		}
 
 		// Verify user is the facilitator
-		const { data: session } = await supabaseAdmin
+		const { data: session } = await db
 			.from("poker_sessions")
 			.select("owner_id")
 			.eq("id", resolvedParams.sessionId)
@@ -94,7 +94,7 @@ export async function POST(
 		}
 
 		if (userId) {
-			const { data: dbUser } = await supabaseAdmin
+			const { data: dbUser } = await db
 				.from("users")
 				.select("id")
 				.eq("clerk_id", userId)
@@ -131,7 +131,7 @@ export async function POST(
 				).toISOString();
 			}
 
-			const { error } = await supabaseAdmin
+			const { error } = await db
 				.from("poker_sessions")
 				.update(updates)
 				.eq("id", resolvedParams.sessionId);
@@ -142,13 +142,13 @@ export async function POST(
 			}
 
 			// Clear any existing votes for this story
-			await supabaseAdmin.from("poker_votes").delete().eq("story_id", storyId);
+			await db.from("poker_votes").delete().eq("story_id", storyId);
 
 			return NextResponse.json({ success: true, action: "started" });
 		}
 		if (action === "end") {
 			// Stop timer and reveal votes
-			const { error } = await supabaseAdmin
+			const { error } = await db
 				.from("poker_sessions")
 				.update({
 					reveal_votes: true,

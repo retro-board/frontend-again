@@ -1,4 +1,4 @@
-import { supabaseAdmin } from "./admin";
+import { publish } from "./server";
 
 // Re-export types from client for convenience
 export type {
@@ -22,17 +22,8 @@ export async function broadcastToBoard(
 	}
 
 	try {
-		const channel = supabaseAdmin.channel(`board:${boardId}`);
-		await channel.send({
-			type: "broadcast",
-			event,
-			payload,
-		});
-		// Only log in development
-		if (process.env.NODE_ENV !== "production") {
-			console.log(`Broadcast sent: ${event} to board:${boardId}`, payload);
-		}
+		await publish(`board:${boardId}`, event, payload);
 	} catch (error) {
-		console.error("Failed to broadcast event:", error);
+		console.error("Failed to publish board event", error);
 	}
 }

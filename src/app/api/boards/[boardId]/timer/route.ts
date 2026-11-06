@@ -1,10 +1,10 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
-import { supabaseAdmin } from "~/lib/supabase/admin";
+import { db } from "~/lib/db";
 import {
 	broadcastToBoard,
 	type TimerEventPayload,
-} from "~/lib/supabase/channels-server";
+} from "~/lib/realtime/channels-server";
 
 export async function PATCH(
 	request: Request,
@@ -22,7 +22,7 @@ export async function PATCH(
 		const { action, duration } = body; // action: "extend", duration: additional minutes
 
 		// Get user from database
-		const { data: dbUser } = await supabaseAdmin
+		const { data: dbUser } = await db
 			.from("users")
 			.select("id")
 			.eq("clerk_id", userId)
@@ -33,7 +33,7 @@ export async function PATCH(
 		}
 
 		// Get board and check ownership
-		const { data: board } = await supabaseAdmin
+		const { data: board } = await db
 			.from("boards")
 			.select("*")
 			.eq("id", resolvedParams.boardId)
@@ -69,7 +69,7 @@ export async function PATCH(
 		const updateData = newPhaseEndsAt ? { phase_ends_at: newPhaseEndsAt } : {};
 
 		// Update board
-		const { data: updatedBoard, error } = await supabaseAdmin
+		const { data: updatedBoard, error } = await db
 			.from("boards")
 			.update(updateData)
 			.eq("id", resolvedParams.boardId)

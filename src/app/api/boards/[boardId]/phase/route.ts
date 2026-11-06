@@ -1,7 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
-import { supabaseAdmin } from "~/lib/supabase/admin";
-import { broadcastBoardEvent } from "~/lib/supabase/broadcast";
+import { db } from "~/lib/db";
+import { broadcastBoardEvent } from "~/lib/realtime/broadcast";
 import type { BoardPhase } from "~/types/database";
 
 const NEXT_PHASE: Record<BoardPhase, BoardPhase> = {
@@ -30,7 +30,7 @@ export async function POST(
 		const { action = "advance" } = body; // "start", "pause", or "advance" - default to advance for backward compatibility
 
 		// Get user from database
-		const { data: dbUser } = await supabaseAdmin
+		const { data: dbUser } = await db
 			.from("users")
 			.select("id")
 			.eq("clerk_id", userId)
@@ -41,7 +41,7 @@ export async function POST(
 		}
 
 		// Get board and check ownership
-		const { data: board } = await supabaseAdmin
+		const { data: board } = await db
 			.from("boards")
 			.select("*")
 			.eq("id", resolvedParams.boardId)
@@ -122,12 +122,12 @@ export async function POST(
 
 				// If advancing to reveal phase, unmask all cards
 				if (nextPhase === "reveal") {
-					await supabaseAdmin
+					await db
 						.from("cards")
 						.update({ is_masked: false })
 						.in(
 							"column_id",
-							await supabaseAdmin
+							await db
 								.from("columns")
 								.select("id")
 								.eq("board_id", resolvedParams.boardId)
@@ -142,7 +142,7 @@ export async function POST(
 		}
 
 		// Update board
-		const { data: updatedBoard, error } = await supabaseAdmin
+		const { data: updatedBoard, error } = await db
 			.from("boards")
 			.update(updateData)
 			.eq("id", resolvedParams.boardId)
@@ -195,7 +195,7 @@ export async function PATCH(
 		}
 
 		// Get user from database
-		const { data: dbUser } = await supabaseAdmin
+		const { data: dbUser } = await db
 			.from("users")
 			.select("id")
 			.eq("clerk_id", userId)
@@ -206,7 +206,7 @@ export async function PATCH(
 		}
 
 		// Get board and check ownership
-		const { data: board } = await supabaseAdmin
+		const { data: board } = await db
 			.from("boards")
 			.select("*")
 			.eq("id", resolvedParams.boardId)
@@ -256,7 +256,7 @@ export async function PATCH(
 		}
 
 		// Update board
-		const { data: updatedBoard, error } = await supabaseAdmin
+		const { data: updatedBoard, error } = await db
 			.from("boards")
 			.update(updateData)
 			.eq("id", resolvedParams.boardId)

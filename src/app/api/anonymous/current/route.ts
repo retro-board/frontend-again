@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
-import { supabaseAdmin } from "~/lib/supabase/admin";
+import { db } from "~/lib/db";
 export async function GET() {
 	try {
 		const cookieStore = await cookies();
@@ -11,7 +11,7 @@ export async function GET() {
 			return NextResponse.json({ user: null });
 		}
 
-		const { data: anonymousUser } = await supabaseAdmin
+		const { data: anonymousUser } = await db
 			.from("anonymous_users")
 			.select("*")
 			.eq("session_id", sessionId)

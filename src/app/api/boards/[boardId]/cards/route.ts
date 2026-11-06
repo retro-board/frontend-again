@@ -1,11 +1,11 @@
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-import { supabaseAdmin } from "~/lib/supabase/admin";
+import { db } from "~/lib/db";
 import {
 	broadcastToBoard,
 	type CardEventPayload,
-} from "~/lib/supabase/channels-server";
+} from "~/lib/realtime/channels-server";
 
 export async function POST(
 	request: Request,
@@ -29,7 +29,7 @@ export async function POST(
 
 		if (userId) {
 			// Get user from database
-			let { data: dbUser } = await supabaseAdmin
+			let { data: dbUser } = await db
 				.from("users")
 				.select("id")
 				.eq("clerk_id", userId)
@@ -39,7 +39,7 @@ export async function POST(
 			if (!dbUser) {
 				const clerkUser = await currentUser();
 				if (clerkUser) {
-					const { data: newUser } = await supabaseAdmin
+					const { data: newUser } = await db
 						.from("users")
 						.insert({
 							clerk_id: userId,
@@ -61,7 +61,7 @@ export async function POST(
 			authorId = dbUser.id;
 
 			// Check if user is participant of this board
-			const { data: participant } = await supabaseAdmin
+			const { data: participant } = await db
 				.from("board_participants")
 				.select("*")
 				.eq("board_id", resolvedParams.boardId)
@@ -71,7 +71,7 @@ export async function POST(
 			isAuthorized = !!participant;
 		} else if (anonymousSessionId) {
 			// Get anonymous user
-			const { data: anonymousUser } = await supabaseAdmin
+			const { data: anonymousUser } = await db
 				.from("anonymous_users")
 				.select("id")
 				.eq("session_id", anonymousSessionId)
@@ -87,7 +87,7 @@ export async function POST(
 			authorId = anonymousUser.id;
 
 			// Check if anonymous user is participant
-			const { data: participant } = await supabaseAdmin
+			const { data: participant } = await db
 				.from("board_anonymous_participants")
 				.select("*")
 				.eq("board_id", resolvedParams.boardId)
@@ -105,7 +105,7 @@ export async function POST(
 		}
 
 		// Check if column exists and is not an action column (unless board owner)
-		const { data: column } = await supabaseAdmin
+		const { data: column } = await db
 			.from("columns")
 			.select("*, board:boards(*)")
 			.eq("id", column_id)
@@ -238,7 +238,7 @@ export async function POST(
 			cardData.anonymous_author_id = authorId;
 		}
 
-		const { data: card, error } = await supabaseAdmin
+		const { data: card, error } = await db
 			.from("cards")
 			.insert(cardData)
 			.select()
@@ -297,7 +297,7 @@ export async function PATCH(
 
 		if (userId) {
 			// Get user from database
-			let { data: dbUser } = await supabaseAdmin
+			let { data: dbUser } = await db
 				.from("users")
 				.select("id")
 				.eq("clerk_id", userId)
@@ -307,7 +307,7 @@ export async function PATCH(
 			if (!dbUser) {
 				const clerkUser = await currentUser();
 				if (clerkUser) {
-					const { data: newUser } = await supabaseAdmin
+					const { data: newUser } = await db
 						.from("users")
 						.insert({
 							clerk_id: userId,
@@ -328,7 +328,7 @@ export async function PATCH(
 			authorId = dbUser.id;
 		} else if (anonymousSessionId) {
 			// Get anonymous user
-			const { data: anonymousUser } = await supabaseAdmin
+			const { data: anonymousUser } = await db
 				.from("anonymous_users")
 				.select("id")
 				.eq("session_id", anonymousSessionId)
@@ -346,7 +346,7 @@ export async function PATCH(
 		// If changing column, check permissions for action columns
 		if (column_id !== undefined) {
 			// Get the target column and board info
-			const { data: targetColumn } = await supabaseAdmin
+			const { data: targetColumn } = await db
 				.from("columns")
 				.select("*, board:boards(*)")
 				.eq("id", column_id)
@@ -380,7 +380,7 @@ export async function PATCH(
 		if (position !== undefined) updateData.position = position;
 
 		// Update card (only author can update content)
-		let query = supabaseAdmin.from("cards").update(updateData).eq("id", cardId);
+		let query = db.from("cards").update(updateData).eq("id", cardId);
 
 		// If updating content, ensure user is author
 		if (content !== undefined) {
@@ -448,7 +448,7 @@ export async function DELETE(
 		}
 
 		// Get card and board info to check phase
-		const { data: card } = await supabaseAdmin
+		const { data: card } = await db
 			.from("cards")
 			.select(`
 				*,
@@ -478,11 +478,11 @@ export async function DELETE(
 			);
 		}
 
-		let deleteQuery = supabaseAdmin.from("cards").delete().eq("id", cardId);
+		let deleteQuery = db.from("cards").delete().eq("id", cardId);
 
 		if (userId) {
 			// Get user from database
-			let { data: dbUser } = await supabaseAdmin
+			let { data: dbUser } = await db
 				.from("users")
 				.select("id")
 				.eq("clerk_id", userId)
@@ -492,7 +492,7 @@ export async function DELETE(
 			if (!dbUser) {
 				const clerkUser = await currentUser();
 				if (clerkUser) {
-					const { data: newUser } = await supabaseAdmin
+					const { data: newUser } = await db
 						.from("users")
 						.insert({
 							clerk_id: userId,
@@ -515,7 +515,7 @@ export async function DELETE(
 			deleteQuery = deleteQuery.eq("author_id", dbUser.id);
 		} else if (anonymousSessionId) {
 			// Get anonymous user
-			const { data: anonymousUser } = await supabaseAdmin
+			const { data: anonymousUser } = await db
 				.from("anonymous_users")
 				.select("id")
 				.eq("session_id", anonymousSessionId)

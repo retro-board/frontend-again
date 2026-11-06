@@ -1,7 +1,7 @@
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-import { supabaseAdmin } from "~/lib/supabase/admin";
+import { db } from "~/lib/db";
 
 export async function POST(
 	_request: Request,
@@ -22,7 +22,7 @@ export async function POST(
 		}
 
 		// Check if board exists, is active, and not in setup phase
-		const { data: board } = await supabaseAdmin
+		const { data: board } = await db
 			.from("boards")
 			.select("id, phase, owner_id")
 			.eq("id", resolvedParams.boardId)
@@ -40,7 +40,7 @@ export async function POST(
 		if (board.phase === "setup") {
 			// Only the owner can access during setup phase
 			if (userId) {
-				const { data: dbUser } = await supabaseAdmin
+				const { data: dbUser } = await db
 					.from("users")
 					.select("id")
 					.eq("clerk_id", userId)
@@ -73,7 +73,7 @@ export async function POST(
 
 		if (userId) {
 			// Handle logged-in user
-			let { data: dbUser } = await supabaseAdmin
+			let { data: dbUser } = await db
 				.from("users")
 				.select("id")
 				.eq("clerk_id", userId)
@@ -83,7 +83,7 @@ export async function POST(
 			if (!dbUser) {
 				const clerkUser = await currentUser();
 				if (clerkUser) {
-					const { data: newUser } = await supabaseAdmin
+					const { data: newUser } = await db
 						.from("users")
 						.insert({
 							clerk_id: userId,
@@ -103,7 +103,7 @@ export async function POST(
 			}
 
 			// Check if already participant
-			const { data: existingParticipant } = await supabaseAdmin
+			const { data: existingParticipant } = await db
 				.from("board_participants")
 				.select("id")
 				.eq("board_id", resolvedParams.boardId)
@@ -112,13 +112,11 @@ export async function POST(
 
 			if (!existingParticipant) {
 				// Add as participant
-				const { error } = await supabaseAdmin
-					.from("board_participants")
-					.insert({
-						board_id: resolvedParams.boardId,
-						user_id: dbUser.id,
-						role: "participant",
-					});
+				const { error } = await db.from("board_participants").insert({
+					board_id: resolvedParams.boardId,
+					user_id: dbUser.id,
+					role: "participant",
+				});
 
 				if (error) {
 					console.error("Error adding participant:", error);
@@ -127,7 +125,7 @@ export async function POST(
 			}
 		} else if (anonymousSessionId) {
 			// Handle anonymous user
-			const { data: anonymousUser } = await supabaseAdmin
+			const { data: anonymousUser } = await db
 				.from("anonymous_users")
 				.select("id")
 				.eq("session_id", anonymousSessionId)
@@ -141,7 +139,7 @@ export async function POST(
 			}
 
 			// Check if already participant
-			const { data: existingParticipant } = await supabaseAdmin
+			const { data: existingParticipant } = await db
 				.from("board_anonymous_participants")
 				.select("id")
 				.eq("board_id", resolvedParams.boardId)
@@ -150,12 +148,10 @@ export async function POST(
 
 			if (!existingParticipant) {
 				// Add as anonymous participant
-				const { error } = await supabaseAdmin
-					.from("board_anonymous_participants")
-					.insert({
-						board_id: resolvedParams.boardId,
-						anonymous_user_id: anonymousUser.id,
-					});
+				const { error } = await db.from("board_anonymous_participants").insert({
+					board_id: resolvedParams.boardId,
+					anonymous_user_id: anonymousUser.id,
+				});
 
 				if (error) {
 					console.error("Error adding anonymous participant:", error);

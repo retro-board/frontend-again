@@ -1,6 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
-import { supabaseAdmin } from "~/lib/supabase/admin";
+import { db } from "~/lib/db";
 import { ESTIMATION_VALUES } from "~/types/database";
 
 // Calculate the mean score and round to nearest valid estimation value
@@ -105,7 +105,7 @@ export async function POST(
 		}
 
 		// Get user from database
-		const { data: dbUser } = await supabaseAdmin
+		const { data: dbUser } = await db
 			.from("users")
 			.select("id")
 			.eq("clerk_id", userId)
@@ -116,7 +116,7 @@ export async function POST(
 		}
 
 		// Check if user is facilitator
-		const { data: facilitator } = await supabaseAdmin
+		const { data: facilitator } = await db
 			.from("poker_participants")
 			.select("*")
 			.eq("session_id", resolvedParams.sessionId)
@@ -132,7 +132,7 @@ export async function POST(
 		}
 
 		// Get session
-		const { data: session } = await supabaseAdmin
+		const { data: session } = await db
 			.from("poker_sessions")
 			.select("estimation_type")
 			.eq("id", resolvedParams.sessionId)
@@ -143,7 +143,7 @@ export async function POST(
 		}
 
 		// Get all votes for this story (excluding abstainers)
-		const { data: votes } = await supabaseAdmin
+		const { data: votes } = await db
 			.from("poker_votes")
 			.select(`
 				vote_value,
@@ -167,7 +167,7 @@ export async function POST(
 		const finalScore = calculateScore(voteValues, session.estimation_type);
 
 		// Update the story with the final estimate
-		await supabaseAdmin
+		await db
 			.from("stories")
 			.update({
 				final_estimate: finalScore,
@@ -179,9 +179,9 @@ export async function POST(
 		// Format votes for response
 		const voteMap: Record<string, string> = {};
 		for (const vote of votes) {
-			// biome-ignore lint/suspicious/noExplicitAny: Supabase join type
+			// biome-ignore lint/suspicious/noExplicitAny: Database relation type
 			const user = vote.users as any;
-			// biome-ignore lint/suspicious/noExplicitAny: Supabase join type
+			// biome-ignore lint/suspicious/noExplicitAny: Database relation type
 			const anonUser = vote.anonymous_users as any;
 			const voterName =
 				user?.name || user?.email || anonUser?.display_name || "Anonymous";

@@ -1,30 +1,30 @@
 import { cookies } from "next/headers";
-import { broadcastBoardEvent } from "~/lib/supabase/broadcast";
+import { broadcastBoardEvent } from "~/lib/realtime/broadcast";
 import {
 	createMockRequest,
 	mockBoard,
 	mockDbUser,
 	setupAuthenticatedUser,
-	setupSupabaseMocks,
+	setupDatabaseMocks,
 	setupUnauthenticatedUser,
 } from "~/test/helpers";
 import { GET, POST } from "./route";
 
 jest.mock("@clerk/nextjs/server");
 jest.mock("next/headers");
-jest.mock("~/lib/supabase/admin", () => ({
-	supabaseAdmin: {
+jest.mock("~/lib/db", () => ({
+	db: {
 		from: jest.fn(),
 	},
 }));
-jest.mock("~/lib/supabase/broadcast");
+jest.mock("~/lib/realtime/broadcast");
 
 describe("/api/boards/[boardId]/voting-status", () => {
-	let supabaseMocks: ReturnType<typeof setupSupabaseMocks>;
+	let databaseMocks: ReturnType<typeof setupDatabaseMocks>;
 
 	beforeEach(() => {
 		jest.clearAllMocks();
-		supabaseMocks = setupSupabaseMocks();
+		databaseMocks = setupDatabaseMocks();
 		(cookies as unknown as jest.Mock).mockResolvedValue({
 			get: jest.fn(() => ({ value: undefined })),
 			set: jest.fn(),
@@ -38,7 +38,7 @@ describe("/api/boards/[boardId]/voting-status", () => {
 			setupAuthenticatedUser();
 
 			// Mock board in creation phase - need to set up the chain properly
-			supabaseMocks.fromMock.mockReturnValueOnce({
+			databaseMocks.fromMock.mockReturnValueOnce({
 				select: jest.fn().mockReturnThis(),
 				eq: jest.fn().mockReturnThis(),
 				single: jest.fn().mockResolvedValueOnce({
@@ -64,7 +64,7 @@ describe("/api/boards/[boardId]/voting-status", () => {
 			setupAuthenticatedUser();
 
 			// Mock board in voting phase with 3 votes per user
-			supabaseMocks.fromMock.mockReturnValueOnce({
+			databaseMocks.fromMock.mockReturnValueOnce({
 				select: jest.fn().mockReturnThis(),
 				eq: jest.fn().mockReturnThis(),
 				single: jest.fn().mockResolvedValueOnce({
@@ -78,12 +78,18 @@ describe("/api/boards/[boardId]/voting-status", () => {
 				{ user_id: "user_1", anonymous_user_id: null },
 				{ user_id: "user_2", anonymous_user_id: null },
 			];
-			supabaseMocks.fromMock.mockReturnValueOnce({
+			databaseMocks.fromMock.mockReturnValueOnce({
 				select: jest.fn().mockReturnThis(),
 				eq: jest.fn().mockResolvedValueOnce({
 					data: mockParticipants,
 					error: null,
 				}),
+			});
+
+			// Anonymous membership is queried separately.
+			databaseMocks.fromMock.mockReturnValueOnce({
+				select: jest.fn().mockReturnThis(),
+				eq: jest.fn().mockResolvedValue({ data: [], error: null }),
 			});
 
 			// Mock columns (non-action) - has two chained .eq() calls
@@ -103,11 +109,11 @@ describe("/api/boards/[boardId]/voting-status", () => {
 					error: null,
 				});
 			});
-			supabaseMocks.fromMock.mockReturnValueOnce(columnChain);
+			databaseMocks.fromMock.mockReturnValueOnce(columnChain);
 
 			// Mock cards
 			const mockCards = [{ id: "card_1" }, { id: "card_2" }, { id: "card_3" }];
-			supabaseMocks.fromMock.mockReturnValueOnce({
+			databaseMocks.fromMock.mockReturnValueOnce({
 				select: jest.fn().mockReturnThis(),
 				in: jest.fn().mockResolvedValueOnce({
 					data: mockCards,
@@ -116,7 +122,7 @@ describe("/api/boards/[boardId]/voting-status", () => {
 			});
 
 			// Mock votes - user_1 has 3 votes (all used)
-			supabaseMocks.fromMock.mockReturnValueOnce({
+			databaseMocks.fromMock.mockReturnValueOnce({
 				select: jest.fn().mockReturnThis(),
 				in: jest.fn().mockReturnThis(),
 				eq: jest.fn().mockResolvedValueOnce({
@@ -126,7 +132,7 @@ describe("/api/boards/[boardId]/voting-status", () => {
 			});
 
 			// Mock votes - user_2 has 2 votes
-			supabaseMocks.fromMock.mockReturnValueOnce({
+			databaseMocks.fromMock.mockReturnValueOnce({
 				select: jest.fn().mockReturnThis(),
 				in: jest.fn().mockReturnThis(),
 				eq: jest.fn().mockResolvedValueOnce({
@@ -154,7 +160,7 @@ describe("/api/boards/[boardId]/voting-status", () => {
 			setupAuthenticatedUser();
 
 			// Mock board in voting phase with 3 votes per user
-			supabaseMocks.fromMock.mockReturnValueOnce({
+			databaseMocks.fromMock.mockReturnValueOnce({
 				select: jest.fn().mockReturnThis(),
 				eq: jest.fn().mockReturnThis(),
 				single: jest.fn().mockResolvedValueOnce({
@@ -168,12 +174,18 @@ describe("/api/boards/[boardId]/voting-status", () => {
 				{ user_id: "user_1", anonymous_user_id: null },
 				{ user_id: "user_2", anonymous_user_id: null },
 			];
-			supabaseMocks.fromMock.mockReturnValueOnce({
+			databaseMocks.fromMock.mockReturnValueOnce({
 				select: jest.fn().mockReturnThis(),
 				eq: jest.fn().mockResolvedValueOnce({
 					data: mockParticipants,
 					error: null,
 				}),
+			});
+
+			// Anonymous membership is queried separately.
+			databaseMocks.fromMock.mockReturnValueOnce({
+				select: jest.fn().mockReturnThis(),
+				eq: jest.fn().mockResolvedValue({ data: [], error: null }),
 			});
 
 			// Mock columns (non-action) - has two chained .eq() calls
@@ -193,11 +205,11 @@ describe("/api/boards/[boardId]/voting-status", () => {
 					error: null,
 				});
 			});
-			supabaseMocks.fromMock.mockReturnValueOnce(columnChain);
+			databaseMocks.fromMock.mockReturnValueOnce(columnChain);
 
 			// Mock cards
 			const mockCards = [{ id: "card_1" }, { id: "card_2" }, { id: "card_3" }];
-			supabaseMocks.fromMock.mockReturnValueOnce({
+			databaseMocks.fromMock.mockReturnValueOnce({
 				select: jest.fn().mockReturnThis(),
 				in: jest.fn().mockResolvedValueOnce({
 					data: mockCards,
@@ -228,7 +240,7 @@ describe("/api/boards/[boardId]/voting-status", () => {
 				// eq() should return the query object (which is thenable)
 				votesQuery.eq.mockReturnValue(votesQuery);
 
-				supabaseMocks.fromMock.mockReturnValueOnce(votesQuery);
+				databaseMocks.fromMock.mockReturnValueOnce(votesQuery);
 			}
 
 			const request = createMockRequest(
@@ -268,7 +280,7 @@ describe("/api/boards/[boardId]/voting-status", () => {
 			setupAuthenticatedUser();
 
 			// Mock board in voting phase
-			supabaseMocks.fromMock.mockReturnValueOnce({
+			databaseMocks.fromMock.mockReturnValueOnce({
 				select: jest.fn().mockReturnThis(),
 				eq: jest.fn().mockReturnThis(),
 				single: jest.fn().mockResolvedValueOnce({
@@ -282,7 +294,7 @@ describe("/api/boards/[boardId]/voting-status", () => {
 			});
 
 			// Mock user lookup
-			supabaseMocks.fromMock.mockReturnValueOnce({
+			databaseMocks.fromMock.mockReturnValueOnce({
 				select: jest.fn().mockReturnThis(),
 				eq: jest.fn().mockReturnThis(),
 				maybeSingle: jest.fn().mockResolvedValueOnce({
@@ -292,7 +304,7 @@ describe("/api/boards/[boardId]/voting-status", () => {
 			});
 
 			// Mock phase update
-			supabaseMocks.fromMock.mockReturnValueOnce({
+			databaseMocks.fromMock.mockReturnValueOnce({
 				update: jest.fn().mockReturnThis(),
 				eq: jest.fn().mockResolvedValueOnce({ error: null }),
 			});
@@ -324,7 +336,7 @@ describe("/api/boards/[boardId]/voting-status", () => {
 			setupAuthenticatedUser();
 
 			// Mock board with different owner
-			supabaseMocks.fromMock.mockReturnValueOnce({
+			databaseMocks.fromMock.mockReturnValueOnce({
 				select: jest.fn().mockReturnThis(),
 				eq: jest.fn().mockReturnThis(),
 				single: jest.fn().mockResolvedValueOnce({
@@ -338,7 +350,7 @@ describe("/api/boards/[boardId]/voting-status", () => {
 			});
 
 			// Mock user lookup
-			supabaseMocks.fromMock.mockReturnValueOnce({
+			databaseMocks.fromMock.mockReturnValueOnce({
 				select: jest.fn().mockReturnThis(),
 				eq: jest.fn().mockReturnThis(),
 				maybeSingle: jest.fn().mockResolvedValueOnce({
@@ -365,7 +377,7 @@ describe("/api/boards/[boardId]/voting-status", () => {
 			setupAuthenticatedUser();
 
 			// Mock board in creation phase
-			supabaseMocks.fromMock.mockReturnValueOnce({
+			databaseMocks.fromMock.mockReturnValueOnce({
 				select: jest.fn().mockReturnThis(),
 				eq: jest.fn().mockReturnThis(),
 				single: jest.fn().mockResolvedValueOnce({
@@ -379,7 +391,7 @@ describe("/api/boards/[boardId]/voting-status", () => {
 			});
 
 			// Mock user lookup
-			supabaseMocks.fromMock.mockReturnValueOnce({
+			databaseMocks.fromMock.mockReturnValueOnce({
 				select: jest.fn().mockReturnThis(),
 				eq: jest.fn().mockReturnThis(),
 				maybeSingle: jest.fn().mockResolvedValueOnce({

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { supabaseAdmin } from "~/lib/supabase/admin";
+import { db } from "~/lib/db";
 
 export async function GET(
 	_request: Request,
@@ -7,7 +7,7 @@ export async function GET(
 ) {
 	try {
 		const resolvedParams = await params;
-		const { data: session, error } = await supabaseAdmin
+		const { data: session, error } = await db
 			.from("poker_sessions")
 			.select("id, name, description, estimation_type, is_active")
 			.eq("share_id", resolvedParams.shareId)

@@ -4,7 +4,7 @@ import {
 	createBoardExportFilename,
 	createBoardMarkdownExport,
 } from "~/lib/boards/export-markdown";
-import { supabaseAdmin } from "~/lib/supabase/admin";
+import { db } from "~/lib/db";
 
 export async function GET(
 	_request: Request,
@@ -23,7 +23,7 @@ export async function GET(
 		let isAuthorized = false;
 
 		if (userId) {
-			let { data: dbUser } = await supabaseAdmin
+			let { data: dbUser } = await db
 				.from("users")
 				.select("id")
 				.eq("clerk_id", userId)
@@ -32,7 +32,7 @@ export async function GET(
 			if (!dbUser) {
 				const clerkUser = await currentUser();
 				if (clerkUser) {
-					const { data: newUser } = await supabaseAdmin
+					const { data: newUser } = await db
 						.from("users")
 						.insert({
 							clerk_id: userId,
@@ -51,7 +51,7 @@ export async function GET(
 				return Response.json({ error: "User not found" }, { status: 404 });
 			}
 
-			const { data: participant } = await supabaseAdmin
+			const { data: participant } = await db
 				.from("board_participants")
 				.select("id")
 				.eq("board_id", resolvedParams.boardId)
@@ -60,14 +60,14 @@ export async function GET(
 
 			isAuthorized = !!participant;
 		} else if (anonymousSessionId) {
-			const { data: anonymousUser } = await supabaseAdmin
+			const { data: anonymousUser } = await db
 				.from("anonymous_users")
 				.select("id")
 				.eq("session_id", anonymousSessionId)
 				.maybeSingle();
 
 			if (anonymousUser) {
-				const { data: participant } = await supabaseAdmin
+				const { data: participant } = await db
 					.from("board_anonymous_participants")
 					.select("id")
 					.eq("board_id", resolvedParams.boardId)
@@ -85,7 +85,7 @@ export async function GET(
 			);
 		}
 
-		const { data: board, error: boardError } = await supabaseAdmin
+		const { data: board, error: boardError } = await db
 			.from("boards")
 			.select("*")
 			.eq("id", resolvedParams.boardId)
@@ -102,7 +102,7 @@ export async function GET(
 			);
 		}
 
-		const { data: columns, error: columnsError } = await supabaseAdmin
+		const { data: columns, error: columnsError } = await db
 			.from("columns")
 			.select(`
 				*,
@@ -122,14 +122,14 @@ export async function GET(
 		}
 
 		const markdown = createBoardMarkdownExport({
-			board,
+			board: board as Parameters<typeof createBoardMarkdownExport>[0]["board"],
 			columns: (columns || []).map((column) => ({
 				...column,
 				cards: [...column.cards].sort(
 					(a: { position: number }, b: { position: number }) =>
 						a.position - b.position,
 				),
-			})),
+			})) as Parameters<typeof createBoardMarkdownExport>[0]["columns"],
 		});
 
 		return new Response(markdown, {

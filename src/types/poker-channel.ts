@@ -1,4 +1,5 @@
 export type PokerChannelMessageType =
+	| "session_sync"
 	| "vote"
 	| "join"
 	| "leave"
@@ -77,7 +78,13 @@ export interface ScoreMessage extends BaseChannelMessage {
 	votes: Record<string, string>; // userId/anonymousId -> vote value
 }
 
+export interface SessionSyncMessage extends BaseChannelMessage {
+	type: "session_sync";
+	state: PokerSessionState;
+}
+
 export type PokerChannelMessage =
+	| SessionSyncMessage
 	| VoteMessage
 	| JoinMessage
 	| LeaveMessage

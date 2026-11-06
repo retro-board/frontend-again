@@ -1,8 +1,9 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
-import { supabaseAdmin } from "~/lib/supabase/admin";
-import { PokerChannelClient } from "~/lib/supabase/poker-channel";
+import { db } from "~/lib/db";
+import { PokerChannelClient } from "~/lib/realtime/poker-channel";
+import { serverRealtime } from "~/lib/realtime/server";
 export async function POST(
 	request: Request,
 	{ params }: { params: Promise<{ sessionId: string }> },
@@ -19,7 +20,7 @@ export async function POST(
 		const { title, description } = body;
 
 		// Get user from database
-		const { data: dbUser } = await supabaseAdmin
+		const { data: dbUser } = await db
 			.from("users")
 			.select("id")
 			.eq("clerk_id", userId)
@@ -30,7 +31,7 @@ export async function POST(
 		}
 
 		// Check if user is facilitator
-		const { data: facilitator } = await supabaseAdmin
+		const { data: facilitator } = await db
 			.from("poker_participants")
 			.select("*")
 			.eq("session_id", resolvedParams.sessionId)
@@ -46,13 +47,13 @@ export async function POST(
 		}
 
 		// Get current story count for position
-		const { count } = await supabaseAdmin
+		const { count } = await db
 			.from("stories")
 			.select("*", { count: "exact", head: true })
 			.eq("session_id", resolvedParams.sessionId);
 
 		// Create story
-		const { data: story, error } = await supabaseAdmin
+		const { data: story, error } = await db
 			.from("stories")
 			.insert({
 				session_id: resolvedParams.sessionId,
@@ -72,7 +73,7 @@ export async function POST(
 		try {
 			const channel = new PokerChannelClient(
 				resolvedParams.sessionId,
-				supabaseAdmin,
+				serverRealtime,
 			);
 			await channel.connect(dbUser.id);
 			await channel.createStory(
@@ -118,7 +119,7 @@ export async function PATCH(
 		const { storyId, final_estimate } = body;
 
 		// Get user from database
-		const { data: dbUser } = await supabaseAdmin
+		const { data: dbUser } = await db
 			.from("users")
 			.select("id")
 			.eq("clerk_id", userId)
@@ -129,7 +130,7 @@ export async function PATCH(
 		}
 
 		// Check if user is facilitator
-		const { data: facilitator } = await supabaseAdmin
+		const { data: facilitator } = await db
 			.from("poker_participants")
 			.select("*")
 			.eq("session_id", resolvedParams.sessionId)
@@ -145,7 +146,7 @@ export async function PATCH(
 		}
 
 		// Update story
-		const { data: story, error } = await supabaseAdmin
+		const { data: story, error } = await db
 			.from("stories")
 			.update({
 				final_estimate,

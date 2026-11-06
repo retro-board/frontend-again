@@ -1,13 +1,14 @@
 import { useUser } from "@clerk/nextjs";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { supabase } from "~/lib/supabase/client";
-import { PokerChannelClient } from "~/lib/supabase/poker-channel";
+import { realtime } from "~/lib/realtime/client";
+import { PokerChannelClient } from "~/lib/realtime/poker-channel";
 import type {
 	PokerChannelMessage,
 	PokerSessionState,
 } from "~/types/poker-channel";
 
 interface UsePokerChannelOptions {
+	enabled?: boolean;
 	sessionId: string;
 	isAnonymous?: boolean;
 	anonymousUserId?: string;
@@ -15,6 +16,7 @@ interface UsePokerChannelOptions {
 }
 
 export function usePokerChannel({
+	enabled = true,
 	sessionId,
 	isAnonymous = false,
 	anonymousUserId,
@@ -40,7 +42,14 @@ export function usePokerChannel({
 	// Handle incoming messages and update state
 	const handleChannelMessage = useCallback((message: PokerChannelMessage) => {
 		setSessionState((prev) => {
-			const newState = { ...prev };
+			if (message.type === "session_sync") return message.state;
+			const newState = {
+				...prev,
+				participants: prev.participants.map((person) => ({ ...person })),
+				stories: prev.stories.map((story) => ({ ...story })),
+				votingState: { ...prev.votingState },
+				timer: { ...prev.timer },
+			};
 
 			switch (message.type) {
 				case "join": {
@@ -185,6 +194,8 @@ export function usePokerChannel({
 				}
 
 				case "story_create": {
+					if (newState.stories.some((story) => story.id === message.story.id))
+						break;
 					newState.stories.push({
 						id: message.story.id,
 						title: message.story.title,
@@ -251,14 +262,14 @@ export function usePokerChannel({
 
 	// Initialize channel connection
 	useEffect(() => {
-		if (!sessionId) return;
+		if (!enabled || !sessionId) return;
 
 		let cleanup: (() => void) | undefined;
 		let mounted = true;
 
 		const initChannel = async () => {
 			try {
-				const channel = new PokerChannelClient(sessionId, supabase);
+				const channel = new PokerChannelClient(sessionId, realtime);
 
 				if (!mounted) {
 					await channel.disconnect();
@@ -307,6 +318,7 @@ export function usePokerChannel({
 			setIsConnected(false);
 		};
 	}, [
+		enabled,
 		sessionId,
 		user?.id,
 		isAnonymous,

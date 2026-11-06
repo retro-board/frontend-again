@@ -1,6 +1,7 @@
 /** @type {import('jest').Config} */
 const config = {
 	testEnvironment: "jsdom",
+	modulePathIgnorePatterns: ["<rootDir>/.next/"],
 	preset: "ts-jest/presets/default-esm",
 	extensionsToTreatAsEsm: [".ts", ".tsx"],
 	setupFilesAfterEnv: ["<rootDir>/src/test/setup.ts"],
@@ -23,7 +24,7 @@ const config = {
 			},
 		],
 	},
-	transformIgnorePatterns: ["node_modules/(?!(@clerk|nanoid|@supabase)/)"],
+	transformIgnorePatterns: ["node_modules/(?!(@clerk|nanoid)/)"],
 	collectCoverageFrom: [
 		"src/**/*.{ts,tsx}",
 		"!src/**/*.d.ts",

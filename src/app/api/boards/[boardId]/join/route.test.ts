@@ -9,23 +9,23 @@ import {
 	mockDbUser,
 	setupAuthenticatedUser,
 	setupCookiesMock,
-	setupSupabaseMocks,
+	setupDatabaseMocks,
 	setupUnauthenticatedUser,
 } from "~/test/helpers";
 import { POST } from "./route";
 
 // Mock dependencies
 jest.mock("@clerk/nextjs/server");
-jest.mock("~/lib/supabase/admin");
+jest.mock("~/lib/db");
 jest.mock("next/headers");
 
 describe("/api/boards/[boardId]/join POST", () => {
-	let supabaseMocks: ReturnType<typeof setupSupabaseMocks>;
+	let databaseMocks: ReturnType<typeof setupDatabaseMocks>;
 	let cookieStoreMock: ReturnType<typeof setupCookiesMock>;
 
 	beforeEach(() => {
 		jest.clearAllMocks();
-		supabaseMocks = setupSupabaseMocks();
+		databaseMocks = setupDatabaseMocks();
 		cookieStoreMock = setupCookiesMock();
 		(cookies as unknown as jest.Mock).mockResolvedValue(cookieStoreMock);
 	});
@@ -39,7 +39,7 @@ describe("/api/boards/[boardId]/join POST", () => {
 			(cookies as unknown as jest.Mock).mockResolvedValue(cookieStoreMock);
 
 			// Mock board in setup phase
-			supabaseMocks.maybeSingleMock.mockResolvedValueOnce({
+			databaseMocks.maybeSingleMock.mockResolvedValueOnce({
 				data: mockBoardInSetup,
 				error: null,
 			});
@@ -64,13 +64,13 @@ describe("/api/boards/[boardId]/join POST", () => {
 			setupAuthenticatedUser("different_user_123");
 
 			// Mock board in setup phase
-			supabaseMocks.maybeSingleMock.mockResolvedValueOnce({
+			databaseMocks.maybeSingleMock.mockResolvedValueOnce({
 				data: mockBoardInSetup,
 				error: null,
 			});
 
 			// Mock user exists but is not the owner
-			supabaseMocks.maybeSingleMock.mockResolvedValueOnce({
+			databaseMocks.maybeSingleMock.mockResolvedValueOnce({
 				data: { id: "different_db_user_123" },
 				error: null,
 			});
@@ -95,25 +95,25 @@ describe("/api/boards/[boardId]/join POST", () => {
 			setupAuthenticatedUser();
 
 			// Mock board in setup phase
-			supabaseMocks.maybeSingleMock.mockResolvedValueOnce({
+			databaseMocks.maybeSingleMock.mockResolvedValueOnce({
 				data: mockBoardInSetup,
 				error: null,
 			});
 
 			// Mock user is the owner
-			supabaseMocks.maybeSingleMock.mockResolvedValueOnce({
+			databaseMocks.maybeSingleMock.mockResolvedValueOnce({
 				data: mockDbUser,
 				error: null,
 			});
 
 			// Mock checking if user exists in database (second check after board owner verification)
-			supabaseMocks.maybeSingleMock.mockResolvedValueOnce({
+			databaseMocks.maybeSingleMock.mockResolvedValueOnce({
 				data: mockDbUser,
 				error: null,
 			});
 
 			// Mock checking existing participant
-			supabaseMocks.maybeSingleMock.mockResolvedValueOnce({
+			databaseMocks.maybeSingleMock.mockResolvedValueOnce({
 				data: null,
 				error: null,
 			});
@@ -142,19 +142,19 @@ describe("/api/boards/[boardId]/join POST", () => {
 			setupAuthenticatedUser();
 
 			// Mock board in creation phase
-			supabaseMocks.maybeSingleMock.mockResolvedValueOnce({
+			databaseMocks.maybeSingleMock.mockResolvedValueOnce({
 				data: mockBoard,
 				error: null,
 			});
 
 			// Mock user exists
-			supabaseMocks.maybeSingleMock.mockResolvedValueOnce({
+			databaseMocks.maybeSingleMock.mockResolvedValueOnce({
 				data: mockDbUser,
 				error: null,
 			});
 
 			// Mock checking existing participant
-			supabaseMocks.maybeSingleMock.mockResolvedValueOnce({
+			databaseMocks.maybeSingleMock.mockResolvedValueOnce({
 				data: null,
 				error: null,
 			});
@@ -175,32 +175,32 @@ describe("/api/boards/[boardId]/join POST", () => {
 
 			expect(response.status).toBe(200);
 			expect(data.success).toBe(true);
-			expect(supabaseMocks.fromMock).toHaveBeenCalledWith("board_participants");
+			expect(databaseMocks.fromMock).toHaveBeenCalledWith("board_participants");
 		});
 
 		it("should automatically sync user if not in database", async () => {
 			setupAuthenticatedUser();
 
 			// Mock board in creation phase
-			supabaseMocks.maybeSingleMock.mockResolvedValueOnce({
+			databaseMocks.maybeSingleMock.mockResolvedValueOnce({
 				data: mockBoard,
 				error: null,
 			});
 
 			// Mock user doesn't exist
-			supabaseMocks.maybeSingleMock.mockResolvedValueOnce({
+			databaseMocks.maybeSingleMock.mockResolvedValueOnce({
 				data: null,
 				error: null,
 			});
 
 			// Mock user creation
-			supabaseMocks.singleMock.mockResolvedValueOnce({
+			databaseMocks.singleMock.mockResolvedValueOnce({
 				data: mockDbUser,
 				error: null,
 			});
 
 			// Mock checking existing participant
-			supabaseMocks.maybeSingleMock.mockResolvedValueOnce({
+			databaseMocks.maybeSingleMock.mockResolvedValueOnce({
 				data: null,
 				error: null,
 			});
@@ -222,7 +222,7 @@ describe("/api/boards/[boardId]/join POST", () => {
 			expect(response.status).toBe(200);
 			expect(data.success).toBe(true);
 			expect(currentUser).toHaveBeenCalled();
-			expect(supabaseMocks.insertMock).toHaveBeenCalledWith(
+			expect(databaseMocks.insertMock).toHaveBeenCalledWith(
 				expect.objectContaining({
 					clerk_id: mockClerkUser.id,
 				}),
@@ -237,19 +237,19 @@ describe("/api/boards/[boardId]/join POST", () => {
 			(cookies as unknown as jest.Mock).mockResolvedValue(cookieStoreMock);
 
 			// Mock board in creation phase
-			supabaseMocks.maybeSingleMock.mockResolvedValueOnce({
+			databaseMocks.maybeSingleMock.mockResolvedValueOnce({
 				data: mockBoard,
 				error: null,
 			});
 
 			// Mock anonymous user exists
-			supabaseMocks.maybeSingleMock.mockResolvedValueOnce({
+			databaseMocks.maybeSingleMock.mockResolvedValueOnce({
 				data: mockAnonymousUser,
 				error: null,
 			});
 
 			// Mock checking existing participant
-			supabaseMocks.maybeSingleMock.mockResolvedValueOnce({
+			databaseMocks.maybeSingleMock.mockResolvedValueOnce({
 				data: null,
 				error: null,
 			});
@@ -270,7 +270,7 @@ describe("/api/boards/[boardId]/join POST", () => {
 
 			expect(response.status).toBe(200);
 			expect(data.success).toBe(true);
-			expect(supabaseMocks.fromMock).toHaveBeenCalledWith(
+			expect(databaseMocks.fromMock).toHaveBeenCalledWith(
 				"board_anonymous_participants",
 			);
 		});
@@ -281,7 +281,7 @@ describe("/api/boards/[boardId]/join POST", () => {
 			setupAuthenticatedUser();
 
 			// Mock board not found
-			supabaseMocks.maybeSingleMock.mockResolvedValueOnce({
+			databaseMocks.maybeSingleMock.mockResolvedValueOnce({
 				data: null,
 				error: null,
 			});

@@ -1,10 +1,10 @@
-import type { RealtimeChannel, SupabaseClient } from "@supabase/supabase-js";
 import type { PokerChannelMessage } from "~/types/poker-channel";
+import type { RealtimeChannel, RealtimeClient } from "./client";
 
 export class PokerChannelClient {
 	private channel: RealtimeChannel | null = null;
 	private sessionId: string;
-	private supabase: SupabaseClient;
+	private realtime: RealtimeClient;
 	private messageHandlers: Map<string, (message: PokerChannelMessage) => void> =
 		new Map();
 	private presenceHandlers: Map<
@@ -12,9 +12,9 @@ export class PokerChannelClient {
 		(state: Record<string, unknown>) => void
 	> = new Map();
 
-	constructor(sessionId: string, supabaseClient: SupabaseClient) {
+	constructor(sessionId: string, realtimeClient: RealtimeClient) {
 		this.sessionId = sessionId;
-		this.supabase = supabaseClient;
+		this.realtime = realtimeClient;
 	}
 
 	async connect(userId?: string, anonymousUserId?: string) {
@@ -23,7 +23,7 @@ export class PokerChannelClient {
 		}
 
 		const channelName = `poker:${this.sessionId}`;
-		this.channel = this.supabase.channel(channelName, {
+		this.channel = this.realtime.channel(channelName, {
 			config: {
 				presence: {
 					key: userId || anonymousUserId || "anonymous",

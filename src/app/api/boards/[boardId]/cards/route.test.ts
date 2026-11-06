@@ -8,22 +8,22 @@ import {
 	mockDbUser,
 	setupAuthenticatedUser,
 	setupCookiesMock,
-	setupSupabaseMocks,
+	setupDatabaseMocks,
 } from "~/test/helpers";
 import { POST } from "./route";
 
 // Mock dependencies
 jest.mock("@clerk/nextjs/server");
-jest.mock("~/lib/supabase/admin");
+jest.mock("~/lib/db");
 jest.mock("next/headers");
 
 describe("/api/boards/[boardId]/cards POST", () => {
-	let supabaseMocks: ReturnType<typeof setupSupabaseMocks>;
+	let databaseMocks: ReturnType<typeof setupDatabaseMocks>;
 	let cookieStoreMock: ReturnType<typeof setupCookiesMock>;
 
 	beforeEach(() => {
 		jest.clearAllMocks();
-		supabaseMocks = setupSupabaseMocks();
+		databaseMocks = setupDatabaseMocks();
 		cookieStoreMock = setupCookiesMock();
 		(cookies as unknown as jest.Mock).mockResolvedValue(cookieStoreMock);
 	});
@@ -33,13 +33,13 @@ describe("/api/boards/[boardId]/cards POST", () => {
 			setupAuthenticatedUser();
 
 			// Mock user exists
-			supabaseMocks.maybeSingleMock.mockResolvedValueOnce({
+			databaseMocks.maybeSingleMock.mockResolvedValueOnce({
 				data: mockDbUser,
 				error: null,
 			});
 
 			// Mock user is participant (owner)
-			supabaseMocks.maybeSingleMock.mockResolvedValueOnce({
+			databaseMocks.maybeSingleMock.mockResolvedValueOnce({
 				data: { id: "participant_123", role: "owner" },
 				error: null,
 			});
@@ -51,7 +51,7 @@ describe("/api/boards/[boardId]/cards POST", () => {
 				is_action: false,
 				board: mockBoardInSetup,
 			};
-			supabaseMocks.singleMock.mockResolvedValueOnce({
+			databaseMocks.singleMock.mockResolvedValueOnce({
 				data: mockColumn,
 				error: null,
 			});
@@ -83,13 +83,13 @@ describe("/api/boards/[boardId]/cards POST", () => {
 			setupAuthenticatedUser();
 
 			// Mock user exists
-			supabaseMocks.maybeSingleMock.mockResolvedValueOnce({
+			databaseMocks.maybeSingleMock.mockResolvedValueOnce({
 				data: mockDbUser,
 				error: null,
 			});
 
 			// Mock user is participant (owner)
-			supabaseMocks.maybeSingleMock.mockResolvedValueOnce({
+			databaseMocks.maybeSingleMock.mockResolvedValueOnce({
 				data: { id: "participant_123", role: "owner" },
 				error: null,
 			});
@@ -101,13 +101,13 @@ describe("/api/boards/[boardId]/cards POST", () => {
 				is_action: true,
 				board: mockBoardInSetup,
 			};
-			supabaseMocks.singleMock.mockResolvedValueOnce({
+			databaseMocks.singleMock.mockResolvedValueOnce({
 				data: mockActionColumn,
 				error: null,
 			});
 
 			// Mock card creation
-			supabaseMocks.singleMock.mockResolvedValueOnce({
+			databaseMocks.singleMock.mockResolvedValueOnce({
 				data: { id: "card_123", content: "Test action item" },
 				error: null,
 			});
@@ -139,13 +139,13 @@ describe("/api/boards/[boardId]/cards POST", () => {
 			setupAuthenticatedUser();
 
 			// Mock user exists
-			supabaseMocks.maybeSingleMock.mockResolvedValueOnce({
+			databaseMocks.maybeSingleMock.mockResolvedValueOnce({
 				data: mockDbUser,
 				error: null,
 			});
 
 			// Mock user is participant
-			supabaseMocks.maybeSingleMock.mockResolvedValueOnce({
+			databaseMocks.maybeSingleMock.mockResolvedValueOnce({
 				data: { id: "participant_123", role: "participant" },
 				error: null,
 			});
@@ -157,13 +157,13 @@ describe("/api/boards/[boardId]/cards POST", () => {
 				is_action: false,
 				board: mockBoard, // This is in creation phase
 			};
-			supabaseMocks.singleMock.mockResolvedValueOnce({
+			databaseMocks.singleMock.mockResolvedValueOnce({
 				data: mockColumn,
 				error: null,
 			});
 
 			// Mock card creation
-			supabaseMocks.singleMock.mockResolvedValueOnce({
+			databaseMocks.singleMock.mockResolvedValueOnce({
 				data: { id: "card_123", content: "Test card" },
 				error: null,
 			});
@@ -193,13 +193,13 @@ describe("/api/boards/[boardId]/cards POST", () => {
 			setupAuthenticatedUser("different_user_123");
 
 			// Mock different user exists
-			supabaseMocks.maybeSingleMock.mockResolvedValueOnce({
+			databaseMocks.maybeSingleMock.mockResolvedValueOnce({
 				data: { id: "different_db_user_123", clerk_id: "different_user_123" },
 				error: null,
 			});
 
 			// Mock user is participant (not owner)
-			supabaseMocks.maybeSingleMock.mockResolvedValueOnce({
+			databaseMocks.maybeSingleMock.mockResolvedValueOnce({
 				data: { id: "participant_123", role: "participant" },
 				error: null,
 			});
@@ -214,7 +214,7 @@ describe("/api/boards/[boardId]/cards POST", () => {
 					owner_id: "db_user_123", // Different owner
 				},
 			};
-			supabaseMocks.singleMock.mockResolvedValueOnce({
+			databaseMocks.singleMock.mockResolvedValueOnce({
 				data: mockActionColumn,
 				error: null,
 			});
@@ -246,13 +246,13 @@ describe("/api/boards/[boardId]/cards POST", () => {
 			setupAuthenticatedUser();
 
 			// Mock user fetch
-			supabaseMocks.maybeSingleMock.mockResolvedValueOnce({
+			databaseMocks.maybeSingleMock.mockResolvedValueOnce({
 				data: mockDbUser,
 				error: null,
 			});
 
 			// Mock user is participant
-			supabaseMocks.maybeSingleMock.mockResolvedValueOnce({
+			databaseMocks.maybeSingleMock.mockResolvedValueOnce({
 				data: { id: "participant_123", role: "participant" },
 				error: null,
 			});
@@ -269,7 +269,7 @@ describe("/api/boards/[boardId]/cards POST", () => {
 					phase_ends_at: null, // Timer is paused
 				},
 			};
-			supabaseMocks.singleMock.mockResolvedValueOnce({
+			databaseMocks.singleMock.mockResolvedValueOnce({
 				data: mockColumn,
 				error: null,
 			});
@@ -303,19 +303,19 @@ describe("/api/boards/[boardId]/cards POST", () => {
 			setupAuthenticatedUser();
 
 			// Mock user doesn't exist
-			supabaseMocks.maybeSingleMock.mockResolvedValueOnce({
+			databaseMocks.maybeSingleMock.mockResolvedValueOnce({
 				data: null,
 				error: null,
 			});
 
 			// Mock user creation
-			supabaseMocks.singleMock.mockResolvedValueOnce({
+			databaseMocks.singleMock.mockResolvedValueOnce({
 				data: mockDbUser,
 				error: null,
 			});
 
 			// Mock user is participant
-			supabaseMocks.maybeSingleMock.mockResolvedValueOnce({
+			databaseMocks.maybeSingleMock.mockResolvedValueOnce({
 				data: { id: "participant_123", role: "participant" },
 				error: null,
 			});
@@ -327,13 +327,13 @@ describe("/api/boards/[boardId]/cards POST", () => {
 				is_action: false,
 				board: mockBoard,
 			};
-			supabaseMocks.singleMock.mockResolvedValueOnce({
+			databaseMocks.singleMock.mockResolvedValueOnce({
 				data: mockColumn,
 				error: null,
 			});
 
 			// Mock card creation
-			supabaseMocks.singleMock.mockResolvedValueOnce({
+			databaseMocks.singleMock.mockResolvedValueOnce({
 				data: { id: "card_123", content: "Test card" },
 				error: null,
 			});
@@ -357,7 +357,7 @@ describe("/api/boards/[boardId]/cards POST", () => {
 
 			expect(response.status).toBe(200);
 			expect(currentUser).toHaveBeenCalled();
-			expect(supabaseMocks.insertMock).toHaveBeenCalledWith(
+			expect(databaseMocks.insertMock).toHaveBeenCalledWith(
 				expect.objectContaining({
 					clerk_id: mockClerkUser.id,
 				}),

@@ -1,7 +1,7 @@
 import { nanoid } from "nanoid";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-import { supabaseAdmin } from "~/lib/supabase/admin";
+import { db } from "~/lib/db";
 
 export async function POST(request: Request) {
 	try {
@@ -24,7 +24,7 @@ export async function POST(request: Request) {
 		}
 
 		// Check if anonymous user already exists for this session
-		const { data: existingUser } = await supabaseAdmin
+		const { data: existingUser } = await db
 			.from("anonymous_users")
 			.select("*")
 			.eq("session_id", sessionId)
@@ -35,7 +35,7 @@ export async function POST(request: Request) {
 
 		if (existingUser) {
 			// Update existing user's display name
-			const { data, error } = await supabaseAdmin
+			const { data, error } = await db
 				.from("anonymous_users")
 				.update({ display_name: displayName })
 				.eq("id", existingUser.id)
@@ -50,7 +50,7 @@ export async function POST(request: Request) {
 			anonymousUser = data;
 		} else {
 			// Create new anonymous user
-			const { data, error } = await supabaseAdmin
+			const { data, error } = await db
 				.from("anonymous_users")
 				.insert({
 					session_id: sessionId,

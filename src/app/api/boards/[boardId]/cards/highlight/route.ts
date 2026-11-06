@@ -1,10 +1,10 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
-import { supabaseAdmin } from "~/lib/supabase/admin";
+import { db } from "~/lib/db";
 import {
 	broadcastToBoard,
 	type HighlightCardPayload,
-} from "~/lib/supabase/channels-server";
+} from "~/lib/realtime/channels-server";
 
 export async function POST(
 	request: Request,
@@ -29,7 +29,7 @@ export async function POST(
 		}
 
 		// Get user from database
-		const { data: dbUser } = await supabaseAdmin
+		const { data: dbUser } = await db
 			.from("users")
 			.select("id")
 			.eq("clerk_id", userId)
@@ -40,7 +40,7 @@ export async function POST(
 		}
 
 		// Get board and check ownership
-		const { data: board } = await supabaseAdmin
+		const { data: board } = await db
 			.from("boards")
 			.select("*")
 			.eq("id", resolvedParams.boardId)
@@ -66,7 +66,7 @@ export async function POST(
 		}
 
 		// Verify card exists and belongs to this board
-		const { data: card } = await supabaseAdmin
+		const { data: card } = await db
 			.from("cards")
 			.select(`
 				*,
@@ -83,7 +83,7 @@ export async function POST(
 		}
 
 		// Optionally store the highlighted card in the board record
-		const { error: updateError } = await supabaseAdmin
+		const { error: updateError } = await db
 			.from("boards")
 			.update({
 				highlighted_card_id: cardId,

@@ -1,7 +1,7 @@
 import { useUser } from "@clerk/nextjs";
 import { act, renderHook } from "@testing-library/react";
-import { supabase } from "~/lib/supabase/client";
-import { PokerChannelClient } from "~/lib/supabase/poker-channel";
+import { realtime } from "~/lib/realtime/client";
+import { PokerChannelClient } from "~/lib/realtime/poker-channel";
 import type { PokerChannelMessage } from "~/types/poker-channel";
 import { usePokerChannel } from "./usePokerChannel";
 
@@ -10,11 +10,11 @@ jest.mock("@clerk/nextjs", () => ({
 	useUser: jest.fn(),
 }));
 
-jest.mock("~/lib/supabase/client", () => ({
-	supabase: {},
+jest.mock("~/lib/realtime/client", () => ({
+	realtime: {},
 }));
 
-jest.mock("~/lib/supabase/poker-channel", () => ({
+jest.mock("~/lib/realtime/poker-channel", () => ({
 	PokerChannelClient: jest.fn(),
 }));
 
@@ -66,7 +66,7 @@ describe("usePokerChannel", () => {
 				await new Promise((resolve) => setTimeout(resolve, 0));
 			});
 
-			expect(PokerChannelClient).toHaveBeenCalledWith(sessionId, supabase);
+			expect(PokerChannelClient).toHaveBeenCalledWith(sessionId, realtime);
 			expect(mockChannelInstance.connect).toHaveBeenCalledWith(
 				mockUser.id,
 				undefined,

@@ -43,7 +43,6 @@ import { Textarea } from "~/components/ui/textarea";
 import { usePokerChannel } from "~/hooks/usePokerChannel";
 import { usePokerTimer } from "~/hooks/usePokerTimer";
 import { useUserSync } from "~/hooks/useUserSync";
-import { supabase } from "~/lib/supabase/client";
 import type {
 	AnonymousUser,
 	PokerSession,
@@ -73,6 +72,13 @@ export default function PokerSessionPage() {
 	const { user, isLoaded } = useUser();
 	const { syncedUser } = useUserSync();
 	const queryClient = useQueryClient();
+	useEffect(() => {
+		const refresh = () => {
+			void queryClient.invalidateQueries();
+		};
+		window.addEventListener("realtime-connected", refresh);
+		return () => window.removeEventListener("realtime-connected", refresh);
+	}, [queryClient]);
 
 	const [storyDialogOpen, setStoryDialogOpen] = useState(false);
 	const [storyTitle, setStoryTitle] = useState("");
@@ -106,11 +112,9 @@ export default function PokerSessionPage() {
 		queryKey: ["currentUser", user?.id],
 		queryFn: async () => {
 			if (!user) return null;
-			const { data } = await supabase
-				.from("users")
-				.select("*")
-				.eq("clerk_id", user.id)
-				.single();
+			const response = await fetch("/api/users/current");
+			if (!response.ok) throw new Error("Failed to fetch current user");
+			const { user: data } = await response.json();
 			return data as User;
 		},
 		enabled: !!user,
@@ -175,6 +179,7 @@ export default function PokerSessionPage() {
 		stopTimer,
 		startVoting,
 	} = usePokerChannel({
+		enabled: !!session,
 		sessionId,
 		isAnonymous: !user,
 		anonymousUserId: anonymousData?.user?.id,

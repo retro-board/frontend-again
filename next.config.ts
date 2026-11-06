@@ -8,6 +8,7 @@ import type { NextConfig } from "next";
 /** @type {import("next").NextConfig} */
 const config: NextConfig = {
 	output: "standalone",
+	serverExternalPackages: ["pg", "ioredis"],
 };
 
 export default config;

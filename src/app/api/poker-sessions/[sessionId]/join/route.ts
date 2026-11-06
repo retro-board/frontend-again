@@ -1,7 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-import { supabaseAdmin } from "~/lib/supabase/admin";
+import { db } from "~/lib/db";
 
 export async function POST(
 	_request: Request,
@@ -22,7 +22,7 @@ export async function POST(
 		}
 
 		// Check if session exists and is active
-		const { data: session } = await supabaseAdmin
+		const { data: session } = await db
 			.from("poker_sessions")
 			.select("id")
 			.eq("id", resolvedParams.sessionId)
@@ -38,7 +38,7 @@ export async function POST(
 
 		if (userId) {
 			// Handle logged-in user
-			const { data: dbUser } = await supabaseAdmin
+			const { data: dbUser } = await db
 				.from("users")
 				.select("id")
 				.eq("clerk_id", userId)
@@ -49,7 +49,7 @@ export async function POST(
 			}
 
 			// Check if already participant
-			const { data: existingParticipant } = await supabaseAdmin
+			const { data: existingParticipant } = await db
 				.from("poker_participants")
 				.select("id")
 				.eq("session_id", resolvedParams.sessionId)
@@ -58,13 +58,11 @@ export async function POST(
 
 			if (!existingParticipant) {
 				// Add as participant
-				const { error } = await supabaseAdmin
-					.from("poker_participants")
-					.insert({
-						session_id: resolvedParams.sessionId,
-						user_id: dbUser.id,
-						role: "voter",
-					});
+				const { error } = await db.from("poker_participants").insert({
+					session_id: resolvedParams.sessionId,
+					user_id: dbUser.id,
+					role: "voter",
+				});
 
 				if (error) {
 					console.error("Error adding participant:", error);
@@ -73,7 +71,7 @@ export async function POST(
 			}
 		} else if (anonymousSessionId) {
 			// Handle anonymous user
-			const { data: anonymousUser } = await supabaseAdmin
+			const { data: anonymousUser } = await db
 				.from("anonymous_users")
 				.select("id")
 				.eq("session_id", anonymousSessionId)
@@ -87,7 +85,7 @@ export async function POST(
 			}
 
 			// Check if already participant
-			const { data: existingParticipant } = await supabaseAdmin
+			const { data: existingParticipant } = await db
 				.from("poker_anonymous_participants")
 				.select("id")
 				.eq("session_id", resolvedParams.sessionId)
@@ -96,12 +94,10 @@ export async function POST(
 
 			if (!existingParticipant) {
 				// Add as anonymous participant
-				const { error } = await supabaseAdmin
-					.from("poker_anonymous_participants")
-					.insert({
-						session_id: resolvedParams.sessionId,
-						anonymous_user_id: anonymousUser.id,
-					});
+				const { error } = await db.from("poker_anonymous_participants").insert({
+					session_id: resolvedParams.sessionId,
+					anonymous_user_id: anonymousUser.id,
+				});
 
 				if (error) {
 					console.error("Error adding anonymous participant:", error);

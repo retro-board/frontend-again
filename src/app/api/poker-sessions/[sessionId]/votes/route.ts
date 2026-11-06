@@ -2,8 +2,9 @@ import { auth } from "@clerk/nextjs/server";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
-import { supabaseAdmin } from "~/lib/supabase/admin";
-import { PokerChannelClient } from "~/lib/supabase/poker-channel";
+import { db } from "~/lib/db";
+import { PokerChannelClient } from "~/lib/realtime/poker-channel";
+import { serverRealtime } from "~/lib/realtime/server";
 export async function POST(
 	request: Request,
 	{ params }: { params: Promise<{ sessionId: string }> },
@@ -30,7 +31,7 @@ export async function POST(
 
 		if (userId) {
 			// Get user from database
-			const { data: dbUser } = await supabaseAdmin
+			const { data: dbUser } = await db
 				.from("users")
 				.select("id")
 				.eq("clerk_id", userId)
@@ -43,7 +44,7 @@ export async function POST(
 			dbUserId = dbUser.id;
 
 			// Check if user is participant
-			const { data: participant } = await supabaseAdmin
+			const { data: participant } = await db
 				.from("poker_participants")
 				.select("*")
 				.eq("session_id", resolvedParams.sessionId)
@@ -55,7 +56,7 @@ export async function POST(
 			}
 		} else if (anonymousSessionId) {
 			// Get anonymous user
-			const { data: anonymousUser } = await supabaseAdmin
+			const { data: anonymousUser } = await db
 				.from("anonymous_users")
 				.select("id")
 				.eq("session_id", anonymousSessionId)
@@ -76,7 +77,7 @@ export async function POST(
 			console.log("Found anonymous user:", anonymousUserId);
 
 			// Check if anonymous user is participant
-			const { data: participant } = await supabaseAdmin
+			const { data: participant } = await db
 				.from("poker_anonymous_participants")
 				.select("*")
 				.eq("session_id", resolvedParams.sessionId)
@@ -105,7 +106,7 @@ export async function POST(
 		// Check if user already voted
 		let existingVote = null;
 		if (dbUserId) {
-			const { data } = await supabaseAdmin
+			const { data } = await db
 				.from("poker_votes")
 				.select("id")
 				.eq("story_id", storyId)
@@ -113,7 +114,7 @@ export async function POST(
 				.maybeSingle();
 			existingVote = data;
 		} else if (anonymousUserId) {
-			const { data } = await supabaseAdmin
+			const { data } = await db
 				.from("poker_votes")
 				.select("id")
 				.eq("story_id", storyId)
@@ -124,7 +125,7 @@ export async function POST(
 
 		if (existingVote) {
 			// Update existing vote
-			const { error } = await supabaseAdmin
+			const { error } = await db
 				.from("poker_votes")
 				.update({ vote_value: vote })
 				.eq("id", existingVote.id);
@@ -151,9 +152,7 @@ export async function POST(
 				voteData.anonymous_user_id = anonymousUserId;
 			}
 
-			const { error } = await supabaseAdmin
-				.from("poker_votes")
-				.insert(voteData);
+			const { error } = await db.from("poker_votes").insert(voteData);
 
 			if (error) {
 				console.error("Error creating vote:", error);
@@ -173,20 +172,20 @@ export async function POST(
 		try {
 			const channel = new PokerChannelClient(
 				resolvedParams.sessionId,
-				supabaseAdmin,
+				serverRealtime,
 			);
 
 			// Get user name for broadcasting
 			let userName = "Anonymous";
 			if (dbUserId) {
-				const { data: user } = await supabaseAdmin
+				const { data: user } = await db
 					.from("users")
 					.select("name")
 					.eq("id", dbUserId)
 					.single();
 				if (user) userName = user.name;
 			} else if (anonymousUserId) {
-				const { data: anonUser } = await supabaseAdmin
+				const { data: anonUser } = await db
 					.from("anonymous_users")
 					.select("display_name")
 					.eq("id", anonymousUserId)
@@ -236,7 +235,7 @@ export async function DELETE(
 		}
 
 		// Get user from database
-		const { data: dbUser } = await supabaseAdmin
+		const { data: dbUser } = await db
 			.from("users")
 			.select("id")
 			.eq("clerk_id", userId)
@@ -247,13 +246,13 @@ export async function DELETE(
 		}
 
 		// Check if user is the facilitator
-		const { data: session } = await supabaseAdmin
+		const { data: session } = await db
 			.from("poker_sessions")
-			.select("created_by")
+			.select("owner_id")
 			.eq("id", resolvedParams.sessionId)
 			.single();
 
-		if (!session || session.created_by !== dbUser.id) {
+		if (!session || session.owner_id !== dbUser.id) {
 			return NextResponse.json(
 				{ error: "Only facilitator can reset votes" },
 				{ status: 403 },
@@ -264,7 +263,7 @@ export async function DELETE(
 		const { storyId } = body;
 
 		// Delete all votes for this story
-		const { error: deleteError } = await supabaseAdmin
+		const { error: deleteError } = await db
 			.from("poker_votes")
 			.delete()
 			.eq("story_id", storyId);
@@ -277,7 +276,7 @@ export async function DELETE(
 		}
 
 		// Also clear the final_estimate for the story
-		const { error: updateError } = await supabaseAdmin
+		const { error: updateError } = await db
 			.from("stories")
 			.update({ final_estimate: null, is_estimated: false, estimated_at: null })
 			.eq("id", storyId);

@@ -1,8 +1,8 @@
 import { auth } from "@clerk/nextjs/server";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-import { supabaseAdmin } from "~/lib/supabase/admin";
-import { broadcastBoardEvent } from "~/lib/supabase/broadcast";
+import { db } from "~/lib/db";
+import { broadcastBoardEvent } from "~/lib/realtime/broadcast";
 
 export async function POST(
 	_request: Request,
@@ -23,7 +23,7 @@ export async function POST(
 
 		if (userId) {
 			// Get user from database
-			const { data: dbUser } = await supabaseAdmin
+			const { data: dbUser } = await db
 				.from("users")
 				.select("id")
 				.eq("clerk_id", userId)
@@ -36,7 +36,7 @@ export async function POST(
 			voterId = dbUser.id;
 		} else {
 			// Get anonymous user
-			const { data: anonymousUser } = await supabaseAdmin
+			const { data: anonymousUser } = await db
 				.from("anonymous_users")
 				.select("id")
 				.eq("session_id", anonymousSessionId)
@@ -54,7 +54,7 @@ export async function POST(
 		}
 
 		// Get board details
-		const { data: board } = await supabaseAdmin
+		const { data: board } = await db
 			.from("boards")
 			.select("votes_per_user, phase")
 			.eq("id", resolvedParams.boardId)
@@ -73,7 +73,7 @@ export async function POST(
 		}
 
 		// Check if card is in an action column (cannot vote on action items)
-		const { data: card } = await supabaseAdmin
+		const { data: card } = await db
 			.from("cards")
 			.select(`
 				id,
@@ -100,7 +100,7 @@ export async function POST(
 		}
 
 		// Check existing vote
-		const existingVoteQuery = supabaseAdmin
+		const existingVoteQuery = db
 			.from("card_votes")
 			.select("id")
 			.eq("card_id", resolvedParams.cardId);
@@ -115,7 +115,7 @@ export async function POST(
 
 		if (existingVote) {
 			// Remove vote
-			const { error } = await supabaseAdmin
+			const { error } = await db
 				.from("card_votes")
 				.delete()
 				.eq("id", existingVote.id);
@@ -133,17 +133,17 @@ export async function POST(
 			return NextResponse.json({ voted: false });
 		}
 		// Count user's votes for this board
-		const votesCountQuery = supabaseAdmin
+		const votesCountQuery = db
 			.from("card_votes")
 			.select("card_id")
 			.in(
 				"card_id",
-				await supabaseAdmin
+				await db
 					.from("cards")
 					.select("id")
 					.in(
 						"column_id",
-						await supabaseAdmin
+						await db
 							.from("columns")
 							.select("id")
 							.eq("board_id", resolvedParams.boardId)
@@ -185,7 +185,7 @@ export async function POST(
 			voteData.user_id = voterId;
 		}
 
-		const { error } = await supabaseAdmin.from("card_votes").insert(voteData);
+		const { error } = await db.from("card_votes").insert(voteData);
 
 		if (error) {
 			console.error("Error adding vote:", error);

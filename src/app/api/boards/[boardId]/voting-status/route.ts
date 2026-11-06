@@ -1,8 +1,8 @@
 import { auth } from "@clerk/nextjs/server";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-import { supabaseAdmin } from "~/lib/supabase/admin";
-import { broadcastBoardEvent } from "~/lib/supabase/broadcast";
+import { db } from "~/lib/db";
+import { broadcastBoardEvent } from "~/lib/realtime/broadcast";
 
 export async function GET(
 	_request: Request,
@@ -19,7 +19,7 @@ export async function GET(
 		}
 
 		// Get board details
-		const { data: board } = await supabaseAdmin
+		const { data: board } = await db
 			.from("boards")
 			.select("votes_per_user, phase")
 			.eq("id", resolvedParams.boardId)
@@ -34,18 +34,28 @@ export async function GET(
 			return NextResponse.json({ allVotesUsed: false });
 		}
 
-		// Get all participants
-		const { data: participants } = await supabaseAdmin
+		// Registered and anonymous participants are stored in separate tables.
+		const { data: registered, error: registeredError } = await db
 			.from("board_participants")
-			.select("user_id, anonymous_user_id")
+			.select("user_id")
 			.eq("board_id", resolvedParams.boardId);
+		const { data: anonymous, error: anonymousError } = await db
+			.from("board_anonymous_participants")
+			.select("anonymous_user_id")
+			.eq("board_id", resolvedParams.boardId);
+		if (registeredError || anonymousError)
+			return NextResponse.json(
+				{ error: "Failed to load participants" },
+				{ status: 500 },
+			);
+		const participants = [...(registered ?? []), ...(anonymous ?? [])];
 
 		if (!participants || participants.length === 0) {
 			return NextResponse.json({ allVotesUsed: false });
 		}
 
 		// Get all non-action columns for this board
-		const { data: columns } = await supabaseAdmin
+		const { data: columns } = await db
 			.from("columns")
 			.select("id")
 			.eq("board_id", resolvedParams.boardId)
@@ -58,7 +68,7 @@ export async function GET(
 		const columnIds = columns.map((col) => col.id);
 
 		// Get all cards in non-action columns
-		const { data: cards } = await supabaseAdmin
+		const { data: cards } = await db
 			.from("cards")
 			.select("id")
 			.in("column_id", columnIds);
@@ -73,7 +83,7 @@ export async function GET(
 		let allVotesUsed = true;
 
 		for (const participant of participants) {
-			const votesQuery = supabaseAdmin
+			const votesQuery = db
 				.from("card_votes")
 				.select("id")
 				.in("card_id", cardIds);
@@ -126,7 +136,7 @@ export async function POST(
 		}
 
 		// Get board and verify ownership
-		const { data: board } = await supabaseAdmin
+		const { data: board } = await db
 			.from("boards")
 			.select("owner_id, phase")
 			.eq("id", resolvedParams.boardId)
@@ -137,7 +147,7 @@ export async function POST(
 		}
 
 		// Get the database user
-		const { data: dbUser } = await supabaseAdmin
+		const { data: dbUser } = await db
 			.from("users")
 			.select("id")
 			.eq("clerk_id", userId)
@@ -159,7 +169,7 @@ export async function POST(
 		}
 
 		// Move to discussion phase
-		const { error: updateError } = await supabaseAdmin
+		const { error: updateError } = await db
 			.from("boards")
 			.update({
 				phase: "discussion",

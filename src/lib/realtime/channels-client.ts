@@ -1,4 +1,4 @@
-import type { RealtimeChannel, SupabaseClient } from "@supabase/supabase-js";
+import type { RealtimeChannel, RealtimeClient } from "./client";
 
 // Channel event types
 export type ChannelEvent =
@@ -56,11 +56,11 @@ export interface VoteEventPayload {
 export class BoardChannel {
 	private channel: RealtimeChannel | null = null;
 	private boardId: string;
-	private supabase: SupabaseClient;
+	private realtime: RealtimeClient;
 
-	constructor(boardId: string, supabaseClient: SupabaseClient) {
+	constructor(boardId: string, realtimeClient: RealtimeClient) {
 		this.boardId = boardId;
-		this.supabase = supabaseClient;
+		this.realtime = realtimeClient;
 	}
 
 	subscribe(handlers: {
@@ -76,7 +76,7 @@ export class BoardChannel {
 		onVoteAdded?: (payload: VoteEventPayload) => void;
 		onVoteRemoved?: (payload: VoteEventPayload) => void;
 	}) {
-		this.channel = this.supabase.channel(`board:${this.boardId}`);
+		this.channel = this.realtime.channel(`board:${this.boardId}`);
 
 		// Subscribe to card events
 		if (handlers.onCardCreated && this.channel) {
@@ -159,46 +159,14 @@ export class BoardChannel {
 			);
 		}
 
-		// Subscribe to database changes as fallback
-		if (this.channel) {
-			this.channel
-				.on(
-					"postgres_changes",
-					{
-						event: "*",
-						schema: "public",
-						table: "cards",
-					},
-					(payload) => {
-						// Only log in development
-						if (process.env.NODE_ENV === "development") {
-							console.log("Database change:", payload);
-						}
-					},
-				)
-				.subscribe();
-		}
+		void this.channel.subscribe().catch(console.error);
 
 		return this;
 	}
 
-	// Send events from client
-	async sendEvent(event: ChannelEvent, payload: unknown) {
-		if (!this.channel) {
-			console.error("Channel not initialized");
-			return;
-		}
-
-		await this.channel.send({
-			type: "broadcast",
-			event,
-			payload,
-		});
-	}
-
 	unsubscribe() {
 		if (this.channel) {
-			this.supabase.removeChannel(this.channel);
+			this.realtime.removeChannel(this.channel);
 			this.channel = null;
 		}
 	}

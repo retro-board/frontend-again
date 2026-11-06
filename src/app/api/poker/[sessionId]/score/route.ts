@@ -1,6 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
-import { supabaseAdmin } from "~/lib/supabase/admin";
+import { db } from "~/lib/db";
 import { ESTIMATION_VALUES } from "~/types/database";
 
 // Calculate the mean score and round up to nearest valid estimation value
@@ -91,7 +91,7 @@ export async function POST(
 		}
 
 		// Get session details
-		const { data: session, error: sessionError } = await supabaseAdmin
+		const { data: session, error: sessionError } = await db
 			.from("poker_sessions")
 			.select("*, owner:users!poker_sessions_owner_id_fkey(*)")
 			.eq("id", resolvedParams.sessionId)
@@ -103,7 +103,7 @@ export async function POST(
 
 		// Verify user is the facilitator
 		if (userId) {
-			const { data: dbUser } = await supabaseAdmin
+			const { data: dbUser } = await db
 				.from("users")
 				.select("id")
 				.eq("clerk_id", userId)
@@ -118,7 +118,7 @@ export async function POST(
 		}
 
 		// Get all votes for the story
-		const { data: votes, error: votesError } = await supabaseAdmin
+		const { data: votes, error: votesError } = await db
 			.from("poker_votes")
 			.select("*")
 			.eq("story_id", storyId);
@@ -136,7 +136,7 @@ export async function POST(
 		}
 
 		// Get participants to check for abstentions
-		const { data: participants } = await supabaseAdmin
+		const { data: participants } = await db
 			.from("poker_participants")
 			.select("*")
 			.eq("session_id", resolvedParams.sessionId)
@@ -157,7 +157,7 @@ export async function POST(
 		const finalScore = calculateScore(voteValues, session.estimation_type);
 
 		// Update the story with the final estimate
-		const { error: updateError } = await supabaseAdmin
+		const { error: updateError } = await db
 			.from("stories")
 			.update({
 				final_estimate: finalScore,

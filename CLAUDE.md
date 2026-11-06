@@ -1,7 +1,7 @@
 # Claude Configuration
 
 ## Project Context
-This is a Retro Board application built with Next.js 15, TypeScript, Supabase, and Clerk for authentication.
+This is a Retro Board application built with Next.js 16, TypeScript, PostgreSQL and Redis, and Clerk for authentication.
 
 ## Important Commands
 Always run these commands before considering any task complete:
@@ -35,7 +35,7 @@ Before marking any coding task as complete, ensure:
 - [ ] Project builds successfully (`pnpm build`)
 
 ## Project Structure
-- `/src/app` - Next.js 15 App Router pages and API routes
+- `/src/app` - Next.js 16 App Router pages and API routes
 - `/src/components` - React components (excluding `/ui` which contains shadcn components)
 - `/src/lib` - Utility functions and configurations
 - `/src/hooks` - Custom React hooks
@@ -44,12 +44,12 @@ Before marking any coding task as complete, ensure:
 ## Testing Guidelines
 - Tests use Jest with ts-jest
 - Test files should be colocated with source files using `.test.ts` or `.test.tsx` extension
-- Mock external dependencies (Clerk, Supabase, etc.)
+- Mock external dependencies (Clerk, PostgreSQL and Redis, etc.)
 - Don't test shadcn UI components in `/src/components/ui`
 
 ## Common Issues & Solutions
 
-### Next.js 15 Route Handlers
+### Next.js 16 Route Handlers
 - Route handler params are now async Promises
 - Always await params: `const resolvedParams = await params;`
 
@@ -66,4 +66,4 @@ Before marking any coding task as complete, ensure:
 - Package manager: pnpm
 - Linter: Biome
 - Test runner: Jest
-- Framework: Next.js 15 with Turbopack
+- Framework: Next.js 16 with Turbopack

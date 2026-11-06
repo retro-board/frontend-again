@@ -8,23 +8,23 @@ import {
 	mockDbUser,
 	setupAuthenticatedUser,
 	setupCookiesMock,
-	setupSupabaseMocks,
+	setupDatabaseMocks,
 	setupUnauthenticatedUser,
 } from "~/test/helpers";
 import { GET } from "./route";
 
 // Mock dependencies
 jest.mock("@clerk/nextjs/server");
-jest.mock("~/lib/supabase/admin");
+jest.mock("~/lib/db");
 jest.mock("next/headers");
 
 describe("/api/boards/[boardId] GET", () => {
-	let supabaseMocks: ReturnType<typeof setupSupabaseMocks>;
+	let databaseMocks: ReturnType<typeof setupDatabaseMocks>;
 	let cookieStoreMock: ReturnType<typeof setupCookiesMock>;
 
 	beforeEach(() => {
 		jest.clearAllMocks();
-		supabaseMocks = setupSupabaseMocks();
+		databaseMocks = setupDatabaseMocks();
 		cookieStoreMock = setupCookiesMock();
 		(cookies as unknown as jest.Mock).mockResolvedValue(cookieStoreMock);
 	});
@@ -34,25 +34,25 @@ describe("/api/boards/[boardId] GET", () => {
 			setupAuthenticatedUser();
 
 			// Mock user doesn't exist
-			supabaseMocks.maybeSingleMock.mockResolvedValueOnce({
+			databaseMocks.maybeSingleMock.mockResolvedValueOnce({
 				data: null,
 				error: null,
 			});
 
 			// Mock user creation
-			supabaseMocks.singleMock.mockResolvedValueOnce({
+			databaseMocks.singleMock.mockResolvedValueOnce({
 				data: mockDbUser,
 				error: null,
 			});
 
 			// Mock user is participant
-			supabaseMocks.maybeSingleMock.mockResolvedValueOnce({
+			databaseMocks.maybeSingleMock.mockResolvedValueOnce({
 				data: { id: "participant_123" },
 				error: null,
 			});
 
 			// Mock board fetch
-			supabaseMocks.singleMock.mockResolvedValueOnce({
+			databaseMocks.singleMock.mockResolvedValueOnce({
 				data: mockBoard,
 				error: null,
 			});
@@ -67,7 +67,7 @@ describe("/api/boards/[boardId] GET", () => {
 			];
 			// The columns query doesn't use maybeSingle/single, it returns array directly
 			// We need to mock the entire chain to return the data
-			supabaseMocks.orderMock.mockResolvedValueOnce({
+			databaseMocks.orderMock.mockResolvedValueOnce({
 				data: mockColumns,
 				error: null,
 			});
@@ -84,7 +84,7 @@ describe("/api/boards/[boardId] GET", () => {
 			expect(response.status).toBe(200);
 			expect(data.board).toEqual(mockBoard);
 			expect(currentUser).toHaveBeenCalled();
-			expect(supabaseMocks.insertMock).toHaveBeenCalledWith(
+			expect(databaseMocks.insertMock).toHaveBeenCalledWith(
 				expect.objectContaining({
 					clerk_id: mockClerkUser.id,
 					email: mockClerkUser.emailAddresses[0]?.emailAddress,
@@ -98,19 +98,19 @@ describe("/api/boards/[boardId] GET", () => {
 			setupAuthenticatedUser();
 
 			// Mock user exists
-			supabaseMocks.maybeSingleMock.mockResolvedValueOnce({
+			databaseMocks.maybeSingleMock.mockResolvedValueOnce({
 				data: mockDbUser,
 				error: null,
 			});
 
 			// Mock user is participant
-			supabaseMocks.maybeSingleMock.mockResolvedValueOnce({
+			databaseMocks.maybeSingleMock.mockResolvedValueOnce({
 				data: { id: "participant_123" },
 				error: null,
 			});
 
 			// Mock board fetch
-			supabaseMocks.singleMock.mockResolvedValueOnce({
+			databaseMocks.singleMock.mockResolvedValueOnce({
 				data: mockBoard,
 				error: null,
 			});
@@ -125,7 +125,7 @@ describe("/api/boards/[boardId] GET", () => {
 			];
 			// The columns query doesn't use maybeSingle/single, it returns array directly
 			// We need to mock the entire chain to return the data
-			supabaseMocks.orderMock.mockResolvedValueOnce({
+			databaseMocks.orderMock.mockResolvedValueOnce({
 				data: mockColumns,
 				error: null,
 			});
@@ -150,13 +150,13 @@ describe("/api/boards/[boardId] GET", () => {
 			setupAuthenticatedUser();
 
 			// Mock user exists
-			supabaseMocks.maybeSingleMock.mockResolvedValueOnce({
+			databaseMocks.maybeSingleMock.mockResolvedValueOnce({
 				data: mockDbUser,
 				error: null,
 			});
 
 			// Mock user is NOT participant
-			supabaseMocks.maybeSingleMock.mockResolvedValueOnce({
+			databaseMocks.maybeSingleMock.mockResolvedValueOnce({
 				data: null,
 				error: null,
 			});
@@ -182,19 +182,19 @@ describe("/api/boards/[boardId] GET", () => {
 			(cookies as unknown as jest.Mock).mockResolvedValue(cookieStoreMock);
 
 			// Mock anonymous user exists
-			supabaseMocks.maybeSingleMock.mockResolvedValueOnce({
+			databaseMocks.maybeSingleMock.mockResolvedValueOnce({
 				data: mockAnonymousUser,
 				error: null,
 			});
 
 			// Mock anonymous user is participant
-			supabaseMocks.maybeSingleMock.mockResolvedValueOnce({
+			databaseMocks.maybeSingleMock.mockResolvedValueOnce({
 				data: { id: "anon_participant_123" },
 				error: null,
 			});
 
 			// Mock board fetch
-			supabaseMocks.singleMock.mockResolvedValueOnce({
+			databaseMocks.singleMock.mockResolvedValueOnce({
 				data: mockBoard,
 				error: null,
 			});
@@ -209,7 +209,7 @@ describe("/api/boards/[boardId] GET", () => {
 			];
 			// The columns query doesn't use maybeSingle/single, it returns array directly
 			// We need to mock the entire chain to return the data
-			supabaseMocks.orderMock.mockResolvedValueOnce({
+			databaseMocks.orderMock.mockResolvedValueOnce({
 				data: mockColumns,
 				error: null,
 			});
@@ -225,7 +225,7 @@ describe("/api/boards/[boardId] GET", () => {
 
 			expect(response.status).toBe(200);
 			expect(data.board).toEqual(mockBoard);
-			expect(supabaseMocks.fromMock).toHaveBeenCalledWith(
+			expect(databaseMocks.fromMock).toHaveBeenCalledWith(
 				"board_anonymous_participants",
 			);
 		});
@@ -254,19 +254,19 @@ describe("/api/boards/[boardId] GET", () => {
 			setupAuthenticatedUser();
 
 			// Mock user exists
-			supabaseMocks.maybeSingleMock.mockResolvedValueOnce({
+			databaseMocks.maybeSingleMock.mockResolvedValueOnce({
 				data: mockDbUser,
 				error: null,
 			});
 
 			// Mock user is participant
-			supabaseMocks.maybeSingleMock.mockResolvedValueOnce({
+			databaseMocks.maybeSingleMock.mockResolvedValueOnce({
 				data: { id: "participant_123" },
 				error: null,
 			});
 
 			// Mock board not found
-			supabaseMocks.singleMock.mockResolvedValueOnce({
+			databaseMocks.singleMock.mockResolvedValueOnce({
 				data: null,
 				error: null,
 			});
@@ -288,7 +288,7 @@ describe("/api/boards/[boardId] GET", () => {
 			setupAuthenticatedUser();
 
 			// Mock user doesn't exist
-			supabaseMocks.maybeSingleMock.mockResolvedValueOnce({
+			databaseMocks.maybeSingleMock.mockResolvedValueOnce({
 				data: null,
 				error: null,
 			});

@@ -30,8 +30,8 @@ import {
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { useUserSync } from "~/hooks/useUserSync";
-import { BoardChannel } from "~/lib/supabase/channels-client";
-import { supabase } from "~/lib/supabase/client";
+import { BoardChannel } from "~/lib/realtime/channels-client";
+import { realtime } from "~/lib/realtime/client";
 import type {
 	Board,
 	Card,
@@ -46,6 +46,13 @@ export default function BoardPage() {
 	const { user, isLoaded } = useUser();
 	const { syncedUser } = useUserSync();
 	const queryClient = useQueryClient();
+	useEffect(() => {
+		const refresh = () => {
+			void queryClient.invalidateQueries();
+		};
+		window.addEventListener("realtime-connected", refresh);
+		return () => window.removeEventListener("realtime-connected", refresh);
+	}, [queryClient]);
 
 	const [columnDialogOpen, setColumnDialogOpen] = useState(false);
 	const [columnName, setColumnName] = useState("");
@@ -61,11 +68,9 @@ export default function BoardPage() {
 		queryKey: ["currentUser", user?.id],
 		queryFn: async () => {
 			if (!user) return null;
-			const { data } = await supabase
-				.from("users")
-				.select("*")
-				.eq("clerk_id", user.id)
-				.single();
+			const response = await fetch("/api/users/current");
+			if (!response.ok) throw new Error("Failed to fetch current user");
+			const { user: data } = await response.json();
 			return data as User;
 		},
 		enabled: !!user,
@@ -204,7 +209,8 @@ export default function BoardPage() {
 
 	// Subscribe to realtime updates
 	useEffect(() => {
-		const boardChannel = new BoardChannel(boardId, supabase);
+		if (!boardData?.board?.id) return;
+		const boardChannel = new BoardChannel(boardId, realtime);
 
 		boardChannel.subscribe({
 			onCardCreated: () => {
@@ -264,7 +270,13 @@ export default function BoardPage() {
 		return () => {
 			boardChannel.unsubscribe();
 		};
-	}, [boardId, queryClient, checkVotingComplete, gracePeriodTimer]);
+	}, [
+		boardId,
+		boardData?.board?.id,
+		queryClient,
+		checkVotingComplete,
+		gracePeriodTimer,
+	]);
 
 	// Create column mutation
 	const createColumnMutation = useMutation({

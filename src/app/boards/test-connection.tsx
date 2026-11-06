@@ -2,7 +2,6 @@
 
 import { useUser } from "@clerk/nextjs";
 import { useEffect, useState } from "react";
-import { supabase } from "~/lib/supabase/client";
 
 export default function TestConnection() {
 	const { user, isLoaded } = useUser();
@@ -18,48 +17,13 @@ export default function TestConnection() {
 					return;
 				}
 
-				// Test basic connection
-				const { error } = await supabase.from("users").select("count").limit(1);
-
-				if (error) {
-					setError(`Connection error: ${error.message}`);
-					setStatus("Connection failed");
-					return;
-				}
-
-				setStatus("Connected to Supabase!");
-
-				// Test user creation if logged in
 				if (user) {
-					const { data: existingUser, error: fetchError } = await supabase
-						.from("users")
-						.select("*")
-						.eq("clerk_id", user.id)
-						.maybeSingle(); // Use maybeSingle() to handle no rows
-
-					if (fetchError) {
-						setError(`User fetch error: ${fetchError.message}`);
-						return;
-					}
-
-					if (!existingUser) {
-						const { error: insertError } = await supabase.from("users").insert({
-							clerk_id: user.id,
-							email: user.emailAddresses[0]?.emailAddress ?? "",
-							name: user.fullName ?? user.username ?? "",
-							avatar_url: user.imageUrl,
-						});
-
-						if (insertError) {
-							setError(`User creation error: ${insertError.message}`);
-							return;
-						}
-
-						setStatus("User created successfully!");
-					} else {
-						setStatus("User exists in database!");
-					}
-				}
+					const response = await fetch("/api/users/current", {
+						method: "POST",
+					});
+					if (!response.ok) throw new Error("Backend connection failed");
+					setStatus("Connected to backend");
+				} else setStatus("Sign in to test the backend connection");
 			} catch (err) {
 				setError(`Unexpected error: ${err}`);
 			}
@@ -70,7 +34,7 @@ export default function TestConnection() {
 
 	return (
 		<div className="container mx-auto p-8">
-			<h1 className="mb-4 font-bold text-2xl">Supabase Connection Test</h1>
+			<h1 className="mb-4 font-bold text-2xl">Backend Connection Test</h1>
 			<p className="mb-2">Status: {status}</p>
 			{error && <p className="text-red-500">Error: {error}</p>}
 			{user && (

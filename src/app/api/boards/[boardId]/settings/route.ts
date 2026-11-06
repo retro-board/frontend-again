@@ -1,7 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
-import { supabaseAdmin } from "~/lib/supabase/admin";
+import { db } from "~/lib/db";
 export async function PATCH(
 	request: Request,
 	{ params }: { params: Promise<{ boardId: string }> },
@@ -24,7 +24,7 @@ export async function PATCH(
 		} = body;
 
 		// Get user from database
-		const { data: dbUser } = await supabaseAdmin
+		const { data: dbUser } = await db
 			.from("users")
 			.select("id")
 			.eq("clerk_id", userId)
@@ -35,7 +35,7 @@ export async function PATCH(
 		}
 
 		// Check if user is owner of this board
-		const { data: board } = await supabaseAdmin
+		const { data: board } = await db
 			.from("boards")
 			.select("owner_id")
 			.eq("id", resolvedParams.boardId)
@@ -73,7 +73,7 @@ export async function PATCH(
 		if (votes_per_user !== undefined)
 			updateData.votes_per_user = votes_per_user;
 
-		const { data: updatedBoard, error } = await supabaseAdmin
+		const { data: updatedBoard, error } = await db
 			.from("boards")
 			.update(updateData)
 			.eq("id", resolvedParams.boardId)
@@ -110,7 +110,7 @@ export async function DELETE(
 		}
 
 		// Get user from database
-		const { data: dbUser } = await supabaseAdmin
+		const { data: dbUser } = await db
 			.from("users")
 			.select("id")
 			.eq("clerk_id", userId)
@@ -121,7 +121,7 @@ export async function DELETE(
 		}
 
 		// Check if user is owner of this board
-		const { data: board } = await supabaseAdmin
+		const { data: board } = await db
 			.from("boards")
 			.select("owner_id")
 			.eq("id", resolvedParams.boardId)
@@ -139,7 +139,7 @@ export async function DELETE(
 		}
 
 		// Delete board (cascades to columns, cards, votes, etc.)
-		const { error } = await supabaseAdmin
+		const { error } = await db
 			.from("boards")
 			.delete()
 			.eq("id", resolvedParams.boardId);

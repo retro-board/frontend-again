@@ -2,7 +2,7 @@ import { auth } from "@clerk/nextjs/server";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
-import { supabaseAdmin } from "~/lib/supabase/admin";
+import { db } from "~/lib/db";
 export async function GET(
 	_request: Request,
 	{ params }: { params: Promise<{ sessionId: string }> },
@@ -21,7 +21,7 @@ export async function GET(
 
 		if (userId) {
 			// Get user from database
-			const { data: dbUser } = await supabaseAdmin
+			const { data: dbUser } = await db
 				.from("users")
 				.select("id")
 				.eq("clerk_id", userId)
@@ -32,7 +32,7 @@ export async function GET(
 			}
 
 			// Check if user is a participant of this session
-			const { data: participant } = await supabaseAdmin
+			const { data: participant } = await db
 				.from("poker_participants")
 				.select("*")
 				.eq("session_id", resolvedParams.sessionId)
@@ -44,7 +44,7 @@ export async function GET(
 			}
 		} else if (anonymousSessionId) {
 			// Get anonymous user
-			const { data: anonymousUser } = await supabaseAdmin
+			const { data: anonymousUser } = await db
 				.from("anonymous_users")
 				.select("id")
 				.eq("session_id", anonymousSessionId)
@@ -52,7 +52,7 @@ export async function GET(
 
 			if (anonymousUser) {
 				// Check if anonymous user is a participant
-				const { data: participant } = await supabaseAdmin
+				const { data: participant } = await db
 					.from("poker_anonymous_participants")
 					.select("*")
 					.eq("session_id", resolvedParams.sessionId)
@@ -74,7 +74,7 @@ export async function GET(
 		}
 
 		// Fetch session with all related data
-		const { data: session, error: sessionError } = await supabaseAdmin
+		const { data: session, error: sessionError } = await db
 			.from("poker_sessions")
 			.select(`
         *,
@@ -137,7 +137,7 @@ export async function PATCH(
 		const { current_story_id, reveal_votes } = body;
 
 		// Get user from database
-		const { data: dbUser } = await supabaseAdmin
+		const { data: dbUser } = await db
 			.from("users")
 			.select("id")
 			.eq("clerk_id", userId)
@@ -148,7 +148,7 @@ export async function PATCH(
 		}
 
 		// Check if user is facilitator
-		const { data: facilitator } = await supabaseAdmin
+		const { data: facilitator } = await db
 			.from("poker_participants")
 			.select("*")
 			.eq("session_id", resolvedParams.sessionId)
@@ -172,7 +172,7 @@ export async function PATCH(
 			updateData.current_story_id = current_story_id;
 		if (reveal_votes !== undefined) updateData.reveal_votes = reveal_votes;
 
-		const { data: session, error } = await supabaseAdmin
+		const { data: session, error } = await db
 			.from("poker_sessions")
 			.update(updateData)
 			.eq("id", resolvedParams.sessionId)

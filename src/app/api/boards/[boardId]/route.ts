@@ -1,7 +1,7 @@
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-import { supabaseAdmin } from "~/lib/supabase/admin";
+import { db } from "~/lib/db";
 
 export async function GET(
 	_request: Request,
@@ -21,7 +21,7 @@ export async function GET(
 
 		if (userId) {
 			// Get user from database using admin client
-			let { data: dbUser } = await supabaseAdmin
+			let { data: dbUser } = await db
 				.from("users")
 				.select("id")
 				.eq("clerk_id", userId)
@@ -31,7 +31,7 @@ export async function GET(
 			if (!dbUser) {
 				const clerkUser = await currentUser();
 				if (clerkUser) {
-					const { data: newUser } = await supabaseAdmin
+					const { data: newUser } = await db
 						.from("users")
 						.insert({
 							clerk_id: userId,
@@ -51,7 +51,7 @@ export async function GET(
 			}
 
 			// Check authorization using admin client
-			const { data: participant } = await supabaseAdmin
+			const { data: participant } = await db
 				.from("board_participants")
 				.select("*")
 				.eq("board_id", resolvedParams.boardId)
@@ -61,7 +61,7 @@ export async function GET(
 			isAuthorized = !!participant;
 		} else if (anonymousSessionId) {
 			// Get anonymous user
-			const { data: anonymousUser } = await supabaseAdmin
+			const { data: anonymousUser } = await db
 				.from("anonymous_users")
 				.select("id")
 				.eq("session_id", anonymousSessionId)
@@ -69,7 +69,7 @@ export async function GET(
 
 			if (anonymousUser) {
 				// Check if anonymous user is a participant
-				const { data: participant } = await supabaseAdmin
+				const { data: participant } = await db
 					.from("board_anonymous_participants")
 					.select("*")
 					.eq("board_id", resolvedParams.boardId)
@@ -88,7 +88,7 @@ export async function GET(
 		}
 
 		// Fetch board using admin client
-		const { data: board, error: boardError } = await supabaseAdmin
+		const { data: board, error: boardError } = await db
 			.from("boards")
 			.select("*")
 			.eq("id", resolvedParams.boardId)
@@ -99,7 +99,7 @@ export async function GET(
 		}
 
 		// Fetch columns with cards (use admin for columns as they might not have RLS)
-		const { data: columns, error: columnsError } = await supabaseAdmin
+		const { data: columns, error: columnsError } = await db
 			.from("columns")
 			.select(`
         *,

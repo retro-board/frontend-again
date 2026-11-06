@@ -1,6 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
-import { supabaseAdmin } from "~/lib/supabase/admin";
+import { db } from "~/lib/db";
 
 export async function POST(request: Request) {
 	try {
@@ -12,7 +12,7 @@ export async function POST(request: Request) {
 		const { email, name, avatar_url } = body;
 
 		// Check if user already exists
-		const { data: existingUser, error: checkError } = await supabaseAdmin
+		const { data: existingUser, error: checkError } = await db
 			.from("users")
 			.select("*")
 			.eq("clerk_id", userId)
@@ -25,7 +25,7 @@ export async function POST(request: Request) {
 
 		if (existingUser) {
 			// Update user info if it has changed
-			const { data: updatedUser, error: updateError } = await supabaseAdmin
+			const { data: updatedUser, error: updateError } = await db
 				.from("users")
 				.update({
 					email,
@@ -47,7 +47,7 @@ export async function POST(request: Request) {
 		}
 
 		// Create new user
-		const { data: newUser, error } = await supabaseAdmin
+		const { data: newUser, error } = await db
 			.from("users")
 			.insert({
 				clerk_id: userId,

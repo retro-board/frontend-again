@@ -1,6 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
-import { supabaseAdmin } from "~/lib/supabase/admin";
+import { db } from "~/lib/db";
 
 export async function POST(
 	request: Request,
@@ -24,7 +24,7 @@ export async function POST(
 
 		if (userId) {
 			// Get user from database
-			const { data: dbUser } = await supabaseAdmin
+			const { data: dbUser } = await db
 				.from("users")
 				.select("id")
 				.eq("clerk_id", userId)
@@ -36,7 +36,7 @@ export async function POST(
 		}
 
 		// Check if user has already voted
-		const existingVoteQuery = supabaseAdmin
+		const existingVoteQuery = db
 			.from("poker_votes")
 			.select("id")
 			.eq("story_id", storyId);
@@ -56,7 +56,7 @@ export async function POST(
 
 		if (existingVote) {
 			// Update existing vote
-			const { error } = await supabaseAdmin
+			const { error } = await db
 				.from("poker_votes")
 				.update({
 					vote_value: voteValue,
@@ -86,9 +86,7 @@ export async function POST(
 				voteData.anonymous_user_id = anonymousUserId;
 			}
 
-			const { error } = await supabaseAdmin
-				.from("poker_votes")
-				.insert(voteData);
+			const { error } = await db.from("poker_votes").insert(voteData);
 
 			if (error) {
 				console.error("Error creating vote:", error);

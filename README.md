@@ -23,59 +23,65 @@ A modern web application for facilitating agile retrospectives and sprint planni
 
 ## Tech Stack
 
-- **Framework**: Next.js 15 with App Router
+- **Framework**: Next.js 16 with App Router
 - **Language**: TypeScript
-- **Database**: Supabase (PostgreSQL)
+- **Database**: PostgreSQL hosted on Railway
 - **Authentication**: Clerk
 - **Styling**: Tailwind CSS with shadcn/ui
 - **State Management**: Zustand & TanStack Query
-- **Real-time**: Supabase Realtime
+- **Real-time**: Authenticated SSE with Redis/Valkey streams
 - **Drag & Drop**: @dnd-kit
 
 ## Setup Instructions
 
 ### Prerequisites
 
-- Node.js 18+ and pnpm
-- Supabase account
+- Bun
+- PostgreSQL and Redis/Valkey (or Docker for local development)
 - Clerk account
 
 ### Environment Variables
 
-Copy `.env.example` to `.env.local` and fill in your values:
+Copy `.env.example` to `.env` and add your Clerk keys. For local services:
 
 ```bash
-# Clerk Authentication
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=your_clerk_publishable_key
-CLERK_SECRET_KEY=your_clerk_secret_key
-
-# Supabase
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
+docker compose up -d --wait
+bun install
+bun run db:migrate
+bun run dev
 ```
 
-### Database Setup
+`DATABASE_URL` and `REDIS_URL` are server-only. The browser talks to authenticated Next.js API routes. Clerk keys remain unchanged; `UPLOADTHING_TOKEN` is optional when uploads are unused.
 
-1. Create a new Supabase project
-2. Run the migration script in `supabase/migrations/001_initial_schema.sql` in your Supabase SQL editor
-3. Enable Row Level Security (RLS) - the migration includes basic policies
+### Railway
 
-### Installation
+Run three services in one project/environment:
+
+| Service | Purpose | App variable |
+| --- | --- | --- |
+| This Next.js app | API, frontend and SSE connections | Existing Clerk keys |
+| PostgreSQL | Persistent application data | `DATABASE_URL=${{Postgres.DATABASE_URL}}` |
+| Redis or Valkey | Shared events, reconnect replay and presence | `REDIS_URL=${{Redis.REDIS_URL}}` |
+
+Replace `Postgres` and `Redis` with your service names. Use Railway's private service reference variables. Only the app needs a public domain; no separate realtime service is needed. Keep Redis available while the app runs, and enable persistence on its volume if event history should survive Redis restarts.
+
+The Dockerfile builds the standalone app, and `railway.toml` runs `bun scripts/migrate.ts` as a pre-deploy command before `bun server.js`. Migrations use a PostgreSQL advisory lock, transactions and checksums. A failed migration prevents the new deployment from starting.
+
+Set `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` at build time and `CLERK_SECRET_KEY` at runtime. Keep the existing UploadThing and feature flag configuration where used. Supabase URL, anonymous key, service role key and JWT secret are no longer required by this version.
+
+See [the cutover instructions](docs/RAILWAY_MIGRATION.md) before deploying against existing data. The files under `supabase/` are historical and should not be applied to Railway PostgreSQL.
+
+### Verification
 
 ```bash
-# Install dependencies
-pnpm install
-
-# Run development server
-pnpm dev
-
-# Build for production
-pnpm build
-
-# Run production build
-pnpm start
+bun run test
+bun run build
+# Run only against isolated local services after db:migrate:
+BACKEND_CHECK_DATABASE_URL=postgres://retro:retro@127.0.0.1:55432/retro \
+BACKEND_CHECK_REDIS_URL=redis://127.0.0.1:56379 bun run test:backend
 ```
+
+The backend check validates the API's SQL projections, CRUD, anonymous voting, poker state recovery, shared event delivery and replay using real PostgreSQL and Redis connections. It removes its own fixtures afterwards.
 
 ## Usage
 
@@ -101,13 +107,13 @@ pnpm start
 
 ```bash
 # Run tests
-pnpm test
+bun run test
 
 # Run linting
-pnpm lint
+bun run check
 
 # Type checking
-pnpm typecheck
+bun run typecheck
 ```
 
 ## License
