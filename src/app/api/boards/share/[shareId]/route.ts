@@ -1,3 +1,4 @@
+import { error as reportError } from "bugfixes";
 import { NextResponse } from "next/server";
 import { db } from "~/lib/db";
 
@@ -15,7 +16,7 @@ export async function GET(
 			.maybeSingle();
 
 		if (error) {
-			console.error("Error fetching board:", error);
+			reportError("Error fetching board:", error);
 			return NextResponse.json({ error: error.message }, { status: 500 });
 		}
 
@@ -28,7 +29,7 @@ export async function GET(
 
 		return NextResponse.json({ board });
 	} catch (error) {
-		console.error("Get board by share ID error:", error);
+		reportError("Get board by share ID error:", error);
 		return NextResponse.json(
 			{
 				error: error instanceof Error ? error.message : "Internal server error",

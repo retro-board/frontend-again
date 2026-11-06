@@ -1,4 +1,5 @@
 import { auth } from "@clerk/nextjs/server";
+import { error as reportError } from "bugfixes";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { db } from "~/lib/db";
@@ -121,7 +122,7 @@ export async function POST(
 				.eq("id", existingVote.id);
 
 			if (error) {
-				console.error("Error removing vote:", error);
+				reportError("Error removing vote:", error);
 				return NextResponse.json({ error: error.message }, { status: 500 });
 			}
 
@@ -188,7 +189,7 @@ export async function POST(
 		const { error } = await db.from("card_votes").insert(voteData);
 
 		if (error) {
-			console.error("Error adding vote:", error);
+			reportError("Error adding vote:", error);
 			return NextResponse.json({ error: error.message }, { status: 500 });
 		}
 
@@ -202,7 +203,7 @@ export async function POST(
 			remainingVotes: board.votes_per_user - voteCount - 1,
 		});
 	} catch (error) {
-		console.error("Vote error:", error);
+		reportError("Vote error:", error);
 		return NextResponse.json(
 			{
 				error: error instanceof Error ? error.message : "Internal server error",

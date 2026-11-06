@@ -1,4 +1,5 @@
 import { auth } from "@clerk/nextjs/server";
+import { error as reportError } from "bugfixes";
 import { NextResponse } from "next/server";
 import { db } from "~/lib/db";
 import {
@@ -92,7 +93,7 @@ export async function POST(
 			.eq("id", resolvedParams.boardId);
 
 		if (updateError) {
-			console.error("Error updating board:", updateError);
+			reportError("Error updating board:", updateError);
 			// Non-fatal, continue with broadcast
 		}
 
@@ -113,7 +114,7 @@ export async function POST(
 			duration: highlightPayload.duration,
 		});
 	} catch (error) {
-		console.error("Highlight card error:", error);
+		reportError("Highlight card error:", error);
 		return NextResponse.json(
 			{
 				error: error instanceof Error ? error.message : "Internal server error",

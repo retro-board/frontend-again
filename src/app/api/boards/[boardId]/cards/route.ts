@@ -1,4 +1,5 @@
 import { auth, currentUser } from "@clerk/nextjs/server";
+import { error as reportError } from "bugfixes";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { db } from "~/lib/db";
@@ -245,7 +246,7 @@ export async function POST(
 			.single();
 
 		if (error) {
-			console.error("Error creating card:", error);
+			reportError("Error creating card:", error);
 			return NextResponse.json({ error: error.message }, { status: 500 });
 		}
 
@@ -266,7 +267,7 @@ export async function POST(
 
 		return NextResponse.json({ card });
 	} catch (error) {
-		console.error("Create card error:", error);
+		reportError("Create card error:", error);
 		return NextResponse.json(
 			{
 				error: error instanceof Error ? error.message : "Internal server error",
@@ -394,7 +395,7 @@ export async function PATCH(
 		const { data: card, error } = await query.select().single();
 
 		if (error) {
-			console.error("Error updating card:", error);
+			reportError("Error updating card:", error);
 			return NextResponse.json({ error: error.message }, { status: 500 });
 		}
 
@@ -416,7 +417,7 @@ export async function PATCH(
 
 		return NextResponse.json({ card });
 	} catch (error) {
-		console.error("Update card error:", error);
+		reportError("Update card error:", error);
 		return NextResponse.json(
 			{
 				error: error instanceof Error ? error.message : "Internal server error",
@@ -535,7 +536,7 @@ export async function DELETE(
 		const { error } = await deleteQuery;
 
 		if (error) {
-			console.error("Error deleting card:", error);
+			reportError("Error deleting card:", error);
 			return NextResponse.json({ error: error.message }, { status: 500 });
 		}
 
@@ -546,7 +547,7 @@ export async function DELETE(
 
 		return NextResponse.json({ success: true });
 	} catch (error) {
-		console.error("Delete card error:", error);
+		reportError("Delete card error:", error);
 		return NextResponse.json(
 			{
 				error: error instanceof Error ? error.message : "Internal server error",

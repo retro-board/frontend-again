@@ -1,4 +1,5 @@
 import { auth } from "@clerk/nextjs/server";
+import { error as reportError } from "bugfixes";
 import { NextResponse } from "next/server";
 import { db } from "~/lib/db";
 
@@ -65,7 +66,7 @@ export async function POST(
 				.eq("id", existingVote.id);
 
 			if (error) {
-				console.error("Error updating vote:", error);
+				reportError("Error updating vote:", error);
 				return NextResponse.json({ error: error.message }, { status: 500 });
 			}
 		} else {
@@ -89,14 +90,14 @@ export async function POST(
 			const { error } = await db.from("poker_votes").insert(voteData);
 
 			if (error) {
-				console.error("Error creating vote:", error);
+				reportError("Error creating vote:", error);
 				return NextResponse.json({ error: error.message }, { status: 500 });
 			}
 		}
 
 		return NextResponse.json({ success: true, voteValue });
 	} catch (error) {
-		console.error("Vote submission error:", error);
+		reportError("Vote submission error:", error);
 		return NextResponse.json(
 			{
 				error: error instanceof Error ? error.message : "Internal server error",

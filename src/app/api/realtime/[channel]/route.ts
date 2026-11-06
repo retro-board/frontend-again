@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { error as reportError } from "bugfixes";
 import { NextResponse } from "next/server";
 import { db } from "~/lib/db";
 import { authorizeChannel } from "~/lib/realtime/authorize";
@@ -101,7 +102,7 @@ export async function GET(request: Request, context: Context) {
 					if (!closed) controller.enqueue(encoder.encode(": heartbeat\n\n"));
 				}
 			} catch (error) {
-				if (!closed) console.error("Realtime stream failed", error);
+				if (!closed) reportError("Realtime stream failed", error);
 			} finally {
 				close();
 				request.signal.removeEventListener("abort", close);

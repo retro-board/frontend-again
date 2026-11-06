@@ -1,4 +1,5 @@
 import { auth } from "@clerk/nextjs/server";
+import { error as reportError } from "bugfixes";
 import { NextResponse } from "next/server";
 
 import { db } from "~/lib/db";
@@ -81,13 +82,13 @@ export async function PATCH(
 			.single();
 
 		if (error) {
-			console.error("Error updating board:", error);
+			reportError("Error updating board:", error);
 			return NextResponse.json({ error: error.message }, { status: 500 });
 		}
 
 		return NextResponse.json({ board: updatedBoard });
 	} catch (error) {
-		console.error("Update board error:", error);
+		reportError("Update board error:", error);
 		return NextResponse.json(
 			{
 				error: error instanceof Error ? error.message : "Internal server error",
@@ -145,13 +146,13 @@ export async function DELETE(
 			.eq("id", resolvedParams.boardId);
 
 		if (error) {
-			console.error("Error deleting board:", error);
+			reportError("Error deleting board:", error);
 			return NextResponse.json({ error: error.message }, { status: 500 });
 		}
 
 		return NextResponse.json({ success: true });
 	} catch (error) {
-		console.error("Delete board error:", error);
+		reportError("Delete board error:", error);
 		return NextResponse.json(
 			{
 				error: error instanceof Error ? error.message : "Internal server error",

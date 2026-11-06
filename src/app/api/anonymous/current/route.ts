@@ -1,3 +1,4 @@
+import { error as reportError } from "bugfixes";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
@@ -19,7 +20,7 @@ export async function GET() {
 
 		return NextResponse.json({ user: anonymousUser });
 	} catch (error) {
-		console.error("Get anonymous user error:", error);
+		reportError("Get anonymous user error:", error);
 		return NextResponse.json(
 			{
 				error: error instanceof Error ? error.message : "Internal server error",

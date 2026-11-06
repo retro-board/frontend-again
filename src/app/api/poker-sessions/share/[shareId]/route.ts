@@ -1,3 +1,4 @@
+import { error as reportError } from "bugfixes";
 import { NextResponse } from "next/server";
 import { db } from "~/lib/db";
 
@@ -23,7 +24,7 @@ export async function GET(
 
 		return NextResponse.json({ session });
 	} catch (error) {
-		console.error("Get poker session by share ID error:", error);
+		reportError("Get poker session by share ID error:", error);
 		return NextResponse.json(
 			{
 				error: error instanceof Error ? error.message : "Internal server error",

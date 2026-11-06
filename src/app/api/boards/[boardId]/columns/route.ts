@@ -1,4 +1,5 @@
 import { auth } from "@clerk/nextjs/server";
+import { error as reportError } from "bugfixes";
 import { NextResponse } from "next/server";
 
 import { db } from "~/lib/db";
@@ -56,13 +57,13 @@ export async function POST(
 			.single();
 
 		if (error) {
-			console.error("Error creating column:", error);
+			reportError("Error creating column:", error);
 			return NextResponse.json({ error: error.message }, { status: 500 });
 		}
 
 		return NextResponse.json({ column });
 	} catch (error) {
-		console.error("Create column error:", error);
+		reportError("Create column error:", error);
 		return NextResponse.json(
 			{
 				error: error instanceof Error ? error.message : "Internal server error",
@@ -142,13 +143,13 @@ export async function DELETE(
 			.eq("board_id", resolvedParams.boardId);
 
 		if (error) {
-			console.error("Error deleting column:", error);
+			reportError("Error deleting column:", error);
 			return NextResponse.json({ error: error.message }, { status: 500 });
 		}
 
 		return NextResponse.json({ success: true });
 	} catch (error) {
-		console.error("Delete column error:", error);
+		reportError("Delete column error:", error);
 		return NextResponse.json(
 			{
 				error: error instanceof Error ? error.message : "Internal server error",

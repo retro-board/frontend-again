@@ -1,3 +1,4 @@
+import { error as reportError } from "bugfixes";
 import { Pool, type QueryResultRow } from "pg";
 
 let pool: Pool | undefined;
@@ -5,7 +6,7 @@ export function getPool() {
 	if (!process.env.DATABASE_URL) throw new Error("DATABASE_URL is required");
 	if (!pool) {
 		pool = new Pool({ connectionString: process.env.DATABASE_URL, max: 10 });
-		pool.on("error", (error) => console.error("PostgreSQL pool error", error));
+		pool.on("error", (error) => reportError("PostgreSQL pool error", error));
 	}
 	return pool;
 }

@@ -1,4 +1,5 @@
 import { auth } from "@clerk/nextjs/server";
+import { error as reportError } from "bugfixes";
 import { NextResponse } from "next/server";
 import { db } from "~/lib/db";
 import {
@@ -77,7 +78,7 @@ export async function PATCH(
 			.single();
 
 		if (error) {
-			console.error("Error updating board timer:", error);
+			reportError("Error updating board timer:", error);
 			return NextResponse.json({ error: error.message }, { status: 500 });
 		}
 
@@ -94,7 +95,7 @@ export async function PATCH(
 
 		return NextResponse.json({ board: updatedBoard });
 	} catch (error) {
-		console.error("Timer extension error:", error);
+		reportError("Timer extension error:", error);
 		return NextResponse.json(
 			{
 				error: error instanceof Error ? error.message : "Internal server error",

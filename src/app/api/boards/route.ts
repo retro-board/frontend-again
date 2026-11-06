@@ -1,4 +1,5 @@
 import { auth, currentUser } from "@clerk/nextjs/server";
+import { error as reportError } from "bugfixes";
 import { NextResponse } from "next/server";
 
 import { db } from "~/lib/db";
@@ -37,7 +38,7 @@ export async function GET() {
 			.order("created_at", { ascending: false });
 
 		if (ownedError) {
-			console.error("Error fetching owned boards:", ownedError);
+			reportError("Error fetching owned boards:", ownedError);
 			return NextResponse.json({ error: ownedError.message }, { status: 500 });
 		}
 
@@ -56,7 +57,7 @@ export async function GET() {
 			.eq("user_id", dbUser.id);
 
 		if (participantError) {
-			console.error("Error fetching participant boards:", participantError);
+			reportError("Error fetching participant boards:", participantError);
 			return NextResponse.json(
 				{ error: participantError.message },
 				{ status: 500 },
@@ -87,7 +88,7 @@ export async function GET() {
 
 		return NextResponse.json({ boards: allBoards });
 	} catch (error) {
-		console.error("Fetch boards error:", error);
+		reportError("Fetch boards error:", error);
 		return NextResponse.json(
 			{
 				error: error instanceof Error ? error.message : "Internal server error",
@@ -119,7 +120,7 @@ export async function POST(request: Request) {
 		const userError = userResult.error;
 
 		if (userError && userError.code !== "PGRST116") {
-			console.error("Error fetching user:", userError);
+			reportError("Error fetching user:", userError);
 			return NextResponse.json({ error: userError.message }, { status: 500 });
 		}
 
@@ -146,7 +147,7 @@ export async function POST(request: Request) {
 				.single();
 
 			if (createError) {
-				console.error("Error creating user:", createError);
+				reportError("Error creating user:", createError);
 				return NextResponse.json(
 					{ error: "Failed to sync user to database" },
 					{ status: 500 },
@@ -168,7 +169,7 @@ export async function POST(request: Request) {
 			.single();
 
 		if (boardError) {
-			console.error("Error creating board:", boardError);
+			reportError("Error creating board:", boardError);
 			return NextResponse.json({ error: boardError.message }, { status: 500 });
 		}
 
@@ -182,7 +183,7 @@ export async function POST(request: Request) {
 			});
 
 		if (participantError) {
-			console.error("Error adding participant:", participantError);
+			reportError("Error adding participant:", participantError);
 			// Don't fail the whole operation if participant add fails
 		}
 
@@ -216,13 +217,13 @@ export async function POST(request: Request) {
 			.insert(defaultColumns);
 
 		if (columnsError) {
-			console.error("Error creating default columns:", columnsError);
+			reportError("Error creating default columns:", columnsError);
 			// Don't fail the whole operation if column creation fails
 		}
 
 		return NextResponse.json({ board });
 	} catch (error) {
-		console.error("Create board error:", error);
+		reportError("Create board error:", error);
 		return NextResponse.json(
 			{
 				error: error instanceof Error ? error.message : "Internal server error",

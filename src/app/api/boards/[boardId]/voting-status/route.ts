@@ -1,4 +1,5 @@
 import { auth } from "@clerk/nextjs/server";
+import { error as reportError } from "bugfixes";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { db } from "~/lib/db";
@@ -112,7 +113,7 @@ export async function GET(
 			participantCount: participants.length,
 		});
 	} catch (error) {
-		console.error("Check voting status error:", error);
+		reportError("Check voting status error:", error);
 		return NextResponse.json(
 			{
 				error: error instanceof Error ? error.message : "Internal server error",
@@ -179,7 +180,7 @@ export async function POST(
 			.eq("id", resolvedParams.boardId);
 
 		if (updateError) {
-			console.error("Error updating board phase:", updateError);
+			reportError("Error updating board phase:", updateError);
 			return NextResponse.json({ error: updateError.message }, { status: 500 });
 		}
 
@@ -194,7 +195,7 @@ export async function POST(
 			newPhase: "discussion",
 		});
 	} catch (error) {
-		console.error("Auto-end voting error:", error);
+		reportError("Auto-end voting error:", error);
 		return NextResponse.json(
 			{
 				error: error instanceof Error ? error.message : "Internal server error",

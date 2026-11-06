@@ -1,4 +1,5 @@
 import { auth } from "@clerk/nextjs/server";
+import { error as reportError } from "bugfixes";
 import { NextResponse } from "next/server";
 import { db } from "~/lib/db";
 
@@ -44,7 +45,7 @@ export async function POST(
 				.eq("user_id", participantUserId);
 
 			if (error) {
-				console.error("Error updating abstention:", error);
+				reportError("Error updating abstention:", error);
 				return NextResponse.json({ error: error.message }, { status: 500 });
 			}
 		} else {
@@ -54,7 +55,7 @@ export async function POST(
 
 		return NextResponse.json({ success: true, isAbstaining });
 	} catch (error) {
-		console.error("Abstain error:", error);
+		reportError("Abstain error:", error);
 		return NextResponse.json(
 			{
 				error: error instanceof Error ? error.message : "Internal server error",

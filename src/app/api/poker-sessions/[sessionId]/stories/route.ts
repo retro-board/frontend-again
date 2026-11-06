@@ -1,4 +1,5 @@
 import { auth } from "@clerk/nextjs/server";
+import { error as reportError } from "bugfixes";
 import { NextResponse } from "next/server";
 
 import { db } from "~/lib/db";
@@ -65,7 +66,7 @@ export async function POST(
 			.single();
 
 		if (error) {
-			console.error("Error creating story:", error);
+			reportError("Error creating story:", error);
 			return NextResponse.json({ error: error.message }, { status: 500 });
 		}
 
@@ -87,13 +88,13 @@ export async function POST(
 			);
 			await channel.disconnect();
 		} catch (channelError) {
-			console.error("Error broadcasting story creation:", channelError);
+			reportError("Error broadcasting story creation:", channelError);
 			// Don't fail the request if broadcasting fails
 		}
 
 		return NextResponse.json({ story });
 	} catch (error) {
-		console.error("Create story error:", error);
+		reportError("Create story error:", error);
 		return NextResponse.json(
 			{
 				error: error instanceof Error ? error.message : "Internal server error",
@@ -159,13 +160,13 @@ export async function PATCH(
 			.single();
 
 		if (error) {
-			console.error("Error updating story:", error);
+			reportError("Error updating story:", error);
 			return NextResponse.json({ error: error.message }, { status: 500 });
 		}
 
 		return NextResponse.json({ story });
 	} catch (error) {
-		console.error("Update story error:", error);
+		reportError("Update story error:", error);
 		return NextResponse.json(
 			{
 				error: error instanceof Error ? error.message : "Internal server error",

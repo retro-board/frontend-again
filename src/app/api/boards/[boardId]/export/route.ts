@@ -1,4 +1,5 @@
 import { auth, currentUser } from "@clerk/nextjs/server";
+import { error as reportError } from "bugfixes";
 import { cookies } from "next/headers";
 import {
 	createBoardExportFilename,
@@ -117,7 +118,7 @@ export async function GET(
 			.order("position");
 
 		if (columnsError) {
-			console.error("Error fetching export columns:", columnsError);
+			reportError("Error fetching export columns:", columnsError);
 			return Response.json({ error: columnsError.message }, { status: 500 });
 		}
 
@@ -140,7 +141,7 @@ export async function GET(
 			},
 		});
 	} catch (error) {
-		console.error("Board export error:", error);
+		reportError("Board export error:", error);
 		return Response.json(
 			{
 				error: error instanceof Error ? error.message : "Internal server error",

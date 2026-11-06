@@ -1,4 +1,5 @@
 import { auth } from "@clerk/nextjs/server";
+import { error as reportError } from "bugfixes";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
@@ -111,7 +112,7 @@ export async function GET(
 
 		return NextResponse.json({ session });
 	} catch (error) {
-		console.error("Get session error:", error);
+		reportError("Get session error:", error);
 		return NextResponse.json(
 			{
 				error: error instanceof Error ? error.message : "Internal server error",
@@ -180,13 +181,13 @@ export async function PATCH(
 			.single();
 
 		if (error) {
-			console.error("Error updating session:", error);
+			reportError("Error updating session:", error);
 			return NextResponse.json({ error: error.message }, { status: 500 });
 		}
 
 		return NextResponse.json({ session });
 	} catch (error) {
-		console.error("Update session error:", error);
+		reportError("Update session error:", error);
 		return NextResponse.json(
 			{
 				error: error instanceof Error ? error.message : "Internal server error",

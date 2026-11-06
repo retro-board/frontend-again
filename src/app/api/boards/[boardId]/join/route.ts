@@ -1,4 +1,5 @@
 import { auth, currentUser } from "@clerk/nextjs/server";
+import { error as reportError } from "bugfixes";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { db } from "~/lib/db";
@@ -119,7 +120,7 @@ export async function POST(
 				});
 
 				if (error) {
-					console.error("Error adding participant:", error);
+					reportError("Error adding participant:", error);
 					return NextResponse.json({ error: error.message }, { status: 500 });
 				}
 			}
@@ -154,7 +155,7 @@ export async function POST(
 				});
 
 				if (error) {
-					console.error("Error adding anonymous participant:", error);
+					reportError("Error adding anonymous participant:", error);
 					return NextResponse.json({ error: error.message }, { status: 500 });
 				}
 			}
@@ -162,7 +163,7 @@ export async function POST(
 
 		return NextResponse.json({ success: true });
 	} catch (error) {
-		console.error("Join board error:", error);
+		reportError("Join board error:", error);
 		return NextResponse.json(
 			{
 				error: error instanceof Error ? error.message : "Internal server error",

@@ -1,3 +1,4 @@
+import { error as reportError } from "bugfixes";
 import { publish } from "./server";
 
 // Re-export types from client for convenience
@@ -24,6 +25,6 @@ export async function broadcastToBoard(
 	try {
 		await publish(`board:${boardId}`, event, payload);
 	} catch (error) {
-		console.error("Failed to publish board event", error);
+		reportError("Failed to publish board event", error);
 	}
 }

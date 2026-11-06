@@ -4,7 +4,7 @@ import { z } from "zod";
 export const flagConfig = {
 	projectId: "ce70ace8-9516-4c18-ae62-1f9b1b1d2b33",
 	agentId: "281f691b-f932-4d50-8fce-4bdf037fe6cb",
-	environmentId: "",
+	environmentId: "cd76e6a2-95da-4b5d-b129-b6f3b26b2ebf",
 };
 
 export const env = createEnv({

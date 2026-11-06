@@ -1,4 +1,5 @@
 import { auth } from "@clerk/nextjs/server";
+import { error as reportError } from "bugfixes";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
@@ -63,7 +64,7 @@ export async function POST(
 				.maybeSingle();
 
 			if (!anonymousUser) {
-				console.error(
+				console.warn(
 					"Anonymous user not found for session:",
 					anonymousSessionId,
 				);
@@ -96,7 +97,7 @@ export async function POST(
 		}
 
 		if (!isAuthorized) {
-			console.error("User not authorized to vote");
+			console.warn("User not authorized to vote");
 			return NextResponse.json(
 				{ error: "Not authorized to vote in this session" },
 				{ status: 403 },
@@ -131,7 +132,7 @@ export async function POST(
 				.eq("id", existingVote.id);
 
 			if (error) {
-				console.error("Error updating vote:", error);
+				reportError("Error updating vote:", error);
 				return NextResponse.json({ error: error.message }, { status: 500 });
 			}
 		} else {
@@ -155,8 +156,8 @@ export async function POST(
 			const { error } = await db.from("poker_votes").insert(voteData);
 
 			if (error) {
-				console.error("Error creating vote:", error);
-				console.error("Vote data that failed:", voteData);
+				reportError("Error creating vote:", error);
+				reportError("Vote data that failed:", voteData);
 				return NextResponse.json(
 					{
 						error: error.message,
@@ -206,13 +207,13 @@ export async function POST(
 			);
 			await channel.disconnect();
 		} catch (channelError) {
-			console.error("Error broadcasting vote:", channelError);
+			reportError("Error broadcasting vote:", channelError);
 			// Don't fail the request if broadcasting fails
 		}
 
 		return NextResponse.json({ success: true });
 	} catch (error) {
-		console.error("Vote error:", error);
+		reportError("Vote error:", error);
 		return NextResponse.json(
 			{
 				error: error instanceof Error ? error.message : "Internal server error",
@@ -282,12 +283,12 @@ export async function DELETE(
 			.eq("id", storyId);
 
 		if (updateError) {
-			console.error("Error clearing story estimate:", updateError);
+			reportError("Error clearing story estimate:", updateError);
 		}
 
 		return NextResponse.json({ success: true });
 	} catch (error) {
-		console.error("Error deleting votes:", error);
+		reportError("Error deleting votes:", error);
 		return NextResponse.json(
 			{
 				error: error instanceof Error ? error.message : "Internal server error",

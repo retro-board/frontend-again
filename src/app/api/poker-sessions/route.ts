@@ -1,4 +1,5 @@
 import { auth } from "@clerk/nextjs/server";
+import { error as reportError } from "bugfixes";
 import { NextResponse } from "next/server";
 
 import { db } from "~/lib/db";
@@ -21,7 +22,7 @@ export async function GET() {
 			.maybeSingle();
 
 		if (userError) {
-			console.error("Error fetching user:", userError);
+			reportError("Error fetching user:", userError);
 			return NextResponse.json({ error: userError.message }, { status: 500 });
 		}
 
@@ -43,7 +44,7 @@ export async function GET() {
 			.order("created_at", { ascending: false });
 
 		if (sessionsError) {
-			console.error("Error fetching sessions:", sessionsError);
+			reportError("Error fetching sessions:", sessionsError);
 			return NextResponse.json(
 				{ error: sessionsError.message },
 				{ status: 500 },
@@ -62,7 +63,7 @@ export async function GET() {
 			.eq("user_id", dbUser.id);
 
 		if (participantError) {
-			console.error("Error fetching participant sessions:", participantError);
+			reportError("Error fetching participant sessions:", participantError);
 			return NextResponse.json(
 				{ error: participantError.message },
 				{ status: 500 },
@@ -94,7 +95,7 @@ export async function GET() {
 
 		return NextResponse.json({ sessions: allSessions });
 	} catch (error) {
-		console.error("Get poker sessions error:", error);
+		reportError("Get poker sessions error:", error);
 		return NextResponse.json(
 			{
 				error: error instanceof Error ? error.message : "Internal server error",
@@ -123,7 +124,7 @@ export async function POST(request: Request) {
 			.maybeSingle();
 
 		if (userError) {
-			console.error("Error fetching user:", userError);
+			reportError("Error fetching user:", userError);
 			return NextResponse.json({ error: userError.message }, { status: 500 });
 		}
 
@@ -147,7 +148,7 @@ export async function POST(request: Request) {
 			.single();
 
 		if (sessionError) {
-			console.error("Error creating session:", sessionError);
+			reportError("Error creating session:", sessionError);
 			return NextResponse.json(
 				{ error: sessionError.message },
 				{ status: 500 },
@@ -164,7 +165,7 @@ export async function POST(request: Request) {
 			});
 
 		if (participantError) {
-			console.error("Error adding participant:", participantError);
+			reportError("Error adding participant:", participantError);
 			// Don't fail the whole operation if participant add fails
 		}
 
@@ -180,13 +181,13 @@ export async function POST(request: Request) {
 			// Disconnect after initialization (participants will reconnect when they join)
 			await channel.disconnect();
 		} catch (channelError) {
-			console.error("Error initializing poker channel:", channelError);
+			reportError("Error initializing poker channel:", channelError);
 			// Don't fail the session creation if channel init fails
 		}
 
 		return NextResponse.json({ session });
 	} catch (error) {
-		console.error("Create poker session error:", error);
+		reportError("Create poker session error:", error);
 		return NextResponse.json(
 			{
 				error: error instanceof Error ? error.message : "Internal server error",

@@ -11,6 +11,7 @@ const config = {
 	],
 	moduleNameMapper: {
 		"^~/(.*)$": "<rootDir>/src/$1",
+		"^bugfixes$": "<rootDir>/src/test/bugfixes.ts",
 		"\\.(css|less|scss|sass)$": "identity-obj-proxy",
 	},
 	transform: {

@@ -1,4 +1,5 @@
 import { auth } from "@clerk/nextjs/server";
+import { error as reportError } from "bugfixes";
 import { NextResponse } from "next/server";
 import { db } from "~/lib/db";
 import {
@@ -123,7 +124,7 @@ export async function POST(
 				.eq("id", targetCardId);
 
 			if (updateError) {
-				console.error("Error updating target card:", updateError);
+				reportError("Error updating target card:", updateError);
 				return NextResponse.json(
 					{ error: updateError.message },
 					{ status: 500 },
@@ -149,7 +150,7 @@ export async function POST(
 				.single();
 
 			if (createError) {
-				console.error("Error creating combined card:", createError);
+				reportError("Error creating combined card:", createError);
 				return NextResponse.json(
 					{ error: createError.message },
 					{ status: 500 },
@@ -168,7 +169,7 @@ export async function POST(
 				.in("id", cardsToDelete);
 
 			if (deleteError) {
-				console.error("Error deleting source cards:", deleteError);
+				reportError("Error deleting source cards:", deleteError);
 				// Non-fatal, continue
 			}
 		}
@@ -191,7 +192,7 @@ export async function POST(
 			content: finalContent,
 		});
 	} catch (error) {
-		console.error("Combine cards error:", error);
+		reportError("Combine cards error:", error);
 		return NextResponse.json(
 			{
 				error: error instanceof Error ? error.message : "Internal server error",

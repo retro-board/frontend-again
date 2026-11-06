@@ -1,3 +1,4 @@
+import { error as reportError } from "bugfixes";
 import { nanoid } from "nanoid";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
@@ -43,7 +44,7 @@ export async function POST(request: Request) {
 				.single();
 
 			if (error) {
-				console.error("Error updating anonymous user:", error);
+				reportError("Error updating anonymous user:", error);
 				return NextResponse.json({ error: error.message }, { status: 500 });
 			}
 
@@ -60,7 +61,7 @@ export async function POST(request: Request) {
 				.single();
 
 			if (error) {
-				console.error("Error creating anonymous user:", error);
+				reportError("Error creating anonymous user:", error);
 				return NextResponse.json({ error: error.message }, { status: 500 });
 			}
 
@@ -78,7 +79,7 @@ export async function POST(request: Request) {
 
 		return response;
 	} catch (error) {
-		console.error("Anonymous user error:", error);
+		reportError("Anonymous user error:", error);
 		return NextResponse.json(
 			{
 				error: error instanceof Error ? error.message : "Internal server error",

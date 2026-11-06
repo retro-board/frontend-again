@@ -1,4 +1,5 @@
 import { auth } from "@clerk/nextjs/server";
+import { error as reportError } from "bugfixes";
 import { NextResponse } from "next/server";
 import { db } from "~/lib/db";
 
@@ -55,7 +56,7 @@ export async function GET(
 			shouldEndVoting: isComplete || isTimerExpired,
 		});
 	} catch (error) {
-		console.error("Voting status error:", error);
+		reportError("Voting status error:", error);
 		return NextResponse.json(
 			{
 				error: error instanceof Error ? error.message : "Internal server error",
@@ -137,7 +138,7 @@ export async function POST(
 				.eq("id", resolvedParams.sessionId);
 
 			if (error) {
-				console.error("Error starting voting:", error);
+				reportError("Error starting voting:", error);
 				return NextResponse.json({ error: error.message }, { status: 500 });
 			}
 
@@ -159,7 +160,7 @@ export async function POST(
 				.eq("id", resolvedParams.sessionId);
 
 			if (error) {
-				console.error("Error ending voting:", error);
+				reportError("Error ending voting:", error);
 				return NextResponse.json({ error: error.message }, { status: 500 });
 			}
 
@@ -168,7 +169,7 @@ export async function POST(
 
 		return NextResponse.json({ error: "Invalid action" }, { status: 400 });
 	} catch (error) {
-		console.error("Voting control error:", error);
+		reportError("Voting control error:", error);
 		return NextResponse.json(
 			{
 				error: error instanceof Error ? error.message : "Internal server error",

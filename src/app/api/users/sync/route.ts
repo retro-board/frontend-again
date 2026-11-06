@@ -1,4 +1,5 @@
 import { auth } from "@clerk/nextjs/server";
+import { error as reportError } from "bugfixes";
 import { NextResponse } from "next/server";
 import { db } from "~/lib/db";
 
@@ -19,7 +20,7 @@ export async function POST(request: Request) {
 			.maybeSingle();
 
 		if (checkError && checkError.code !== "PGRST116") {
-			console.error("Error checking user:", checkError);
+			reportError("Error checking user:", checkError);
 			return NextResponse.json({ error: checkError.message }, { status: 500 });
 		}
 
@@ -38,7 +39,7 @@ export async function POST(request: Request) {
 				.single();
 
 			if (updateError) {
-				console.error("Error updating user:", updateError);
+				reportError("Error updating user:", updateError);
 				// Return existing user even if update fails
 				return NextResponse.json({ user: existingUser });
 			}
@@ -59,13 +60,13 @@ export async function POST(request: Request) {
 			.single();
 
 		if (error) {
-			console.error("Error creating user:", error);
+			reportError("Error creating user:", error);
 			return NextResponse.json({ error: error.message }, { status: 500 });
 		}
 
 		return NextResponse.json({ user: newUser });
 	} catch (error) {
-		console.error("Sync user error:", error);
+		reportError("Sync user error:", error);
 		return NextResponse.json(
 			{
 				error: error instanceof Error ? error.message : "Internal server error",

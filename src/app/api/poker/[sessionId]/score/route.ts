@@ -1,4 +1,5 @@
 import { auth } from "@clerk/nextjs/server";
+import { error as reportError } from "bugfixes";
 import { NextResponse } from "next/server";
 import { db } from "~/lib/db";
 import { ESTIMATION_VALUES } from "~/types/database";
@@ -124,7 +125,7 @@ export async function POST(
 			.eq("story_id", storyId);
 
 		if (votesError) {
-			console.error("Error fetching votes:", votesError);
+			reportError("Error fetching votes:", votesError);
 			return NextResponse.json({ error: votesError.message }, { status: 500 });
 		}
 
@@ -167,7 +168,7 @@ export async function POST(
 			.eq("id", storyId);
 
 		if (updateError) {
-			console.error("Error updating story:", updateError);
+			reportError("Error updating story:", updateError);
 			return NextResponse.json({ error: updateError.message }, { status: 500 });
 		}
 
@@ -186,7 +187,7 @@ export async function POST(
 			eligibleVoters: activeParticipants.length,
 		});
 	} catch (error) {
-		console.error("Score calculation error:", error);
+		reportError("Score calculation error:", error);
 		return NextResponse.json(
 			{
 				error: error instanceof Error ? error.message : "Internal server error",

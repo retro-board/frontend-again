@@ -1,4 +1,5 @@
 import { auth, currentUser } from "@clerk/nextjs/server";
+import { error as reportError } from "bugfixes";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { db } from "~/lib/db";
@@ -114,7 +115,7 @@ export async function GET(
 			.order("position");
 
 		if (columnsError) {
-			console.error("Error fetching columns:", columnsError);
+			reportError("Error fetching columns:", columnsError);
 			return NextResponse.json(
 				{ error: columnsError.message },
 				{ status: 500 },
@@ -132,7 +133,7 @@ export async function GET(
 
 		return NextResponse.json({ board, columns: sortedColumns });
 	} catch (error) {
-		console.error("Get board error:", error);
+		reportError("Get board error:", error);
 		return NextResponse.json(
 			{
 				error: error instanceof Error ? error.message : "Internal server error",

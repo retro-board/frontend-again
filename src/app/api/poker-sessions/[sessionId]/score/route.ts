@@ -1,4 +1,5 @@
 import { auth } from "@clerk/nextjs/server";
+import { error as reportError } from "bugfixes";
 import { NextResponse } from "next/server";
 import { db } from "~/lib/db";
 import { ESTIMATION_VALUES } from "~/types/database";
@@ -193,7 +194,7 @@ export async function POST(
 			votes: voteMap,
 		});
 	} catch (error) {
-		console.error("Score calculation error:", error);
+		reportError("Score calculation error:", error);
 		return NextResponse.json(
 			{
 				error: error instanceof Error ? error.message : "Internal server error",
