@@ -1,12 +1,6 @@
 import { createEnv } from "@t3-oss/env-nextjs";
 import { z } from "zod";
 
-export const flagConfig = {
-	projectId: "ce70ace8-9516-4c18-ae62-1f9b1b1d2b33",
-	agentId: "281f691b-f932-4d50-8fce-4bdf037fe6cb",
-	environmentId: "cd76e6a2-95da-4b5d-b129-b6f3b26b2ebf",
-};
-
 export const env = createEnv({
 	/**
 	 * Specify your server-side environment variables schema here. This way you can ensure the app
@@ -28,6 +22,8 @@ export const env = createEnv({
 	 * `NEXT_PUBLIC_`.
 	 */
 	client: {
+		NEXT_PUBLIC_FLAGS_PROJECT_ID: z.string().optional(),
+		NEXT_PUBLIC_FLAGS_AGENT_ID: z.string().optional(),
 		NEXT_PUBLIC_FLAGS_ENVIRONMENT: z.string().optional(),
 
 		NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: z.string().optional(),
@@ -44,6 +40,8 @@ export const env = createEnv({
 
 		UPLOADTHING_TOKEN: process.env.UPLOADTHING_TOKEN,
 
+		NEXT_PUBLIC_FLAGS_PROJECT_ID: process.env.NEXT_PUBLIC_FLAGS_PROJECT_ID,
+		NEXT_PUBLIC_FLAGS_AGENT_ID: process.env.NEXT_PUBLIC_FLAGS_AGENT_ID,
 		NEXT_PUBLIC_FLAGS_ENVIRONMENT: process.env.NEXT_PUBLIC_FLAGS_ENVIRONMENT,
 
 		NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY:
@@ -62,3 +60,14 @@ export const env = createEnv({
 	 */
 	emptyStringAsUndefined: true,
 });
+
+// flags.gg: from the NEXT_PUBLIC_FLAGS_* build args, falling back to Retro Board's production IDs.
+// || not ??: an empty build arg still falls back.
+export const flagConfig = {
+	projectId:
+		env.NEXT_PUBLIC_FLAGS_PROJECT_ID || "ce70ace8-9516-4c18-ae62-1f9b1b1d2b33",
+	agentId:
+		env.NEXT_PUBLIC_FLAGS_AGENT_ID || "281f691b-f932-4d50-8fce-4bdf037fe6cb",
+	environmentId:
+		env.NEXT_PUBLIC_FLAGS_ENVIRONMENT || "cd76e6a2-95da-4b5d-b129-b6f3b26b2ebf",
+};

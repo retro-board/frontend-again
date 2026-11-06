@@ -2,6 +2,7 @@ import { auth } from "@clerk/nextjs/server";
 import { error as reportError } from "bugfixes";
 import { NextResponse } from "next/server";
 import { db } from "~/lib/db";
+import { flagEnabled } from "~/lib/flags";
 import { TracklinesError, tracklines } from "~/lib/tracklines/client";
 import {
 	type Connection,
@@ -21,6 +22,12 @@ async function signedInUser(): Promise<string | null> {
 const unauthorized = () =>
 	NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+// The connection API is closed with the settings page while the "settings" flag (RB-8) is off
+const closed = async () =>
+	(await flagEnabled("settings"))
+		? null
+		: NextResponse.json({ error: "Not found" }, { status: 404 });
+
 // removeWebhook takes down the webhook a connection registered; best effort, since the key
 // may already be revoked.
 async function removeWebhook(row: Connection) {
@@ -36,6 +43,8 @@ async function removeWebhook(row: Connection) {
 
 // GET /api/tracklines/connection: whether the user is connected (never the key)
 export async function GET() {
+	const off = await closed();
+	if (off) return off;
 	const userId = await signedInUser();
 	if (!userId) return unauthorized();
 	return NextResponse.json(status(await findConnection(userId)));
@@ -45,6 +54,8 @@ export async function GET() {
 // and register the sprint.started webhook. A refused webhook still connects.
 export async function POST(request: Request) {
 	try {
+		const off = await closed();
+		if (off) return off;
 		const userId = await signedInUser();
 		if (!userId) return unauthorized();
 
@@ -131,6 +142,8 @@ export async function POST(request: Request) {
 
 // DELETE /api/tracklines/connection: forget the key and remove the webhook it registered
 export async function DELETE() {
+	const off = await closed();
+	if (off) return off;
 	const userId = await signedInUser();
 	if (!userId) return unauthorized();
 	const row = await findConnection(userId);

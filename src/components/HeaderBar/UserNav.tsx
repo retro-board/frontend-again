@@ -1,10 +1,12 @@
 "use client";
 
 import { Show, SignInButton, UserButton } from "@clerk/nextjs";
+import { useFlags } from "@flags-gg/react-library";
 import Link from "next/link";
 import { Button } from "~/components/ui/button";
 
 export function UserNav() {
+	const { is } = useFlags();
 	return (
 		<>
 			<Show when="signed-out">
@@ -15,11 +17,13 @@ export function UserNav() {
 				</SignInButton>
 			</Show>
 			<Show when="signed-in">
-				<Link href="/settings">
-					<Button variant="ghost" size="sm">
-						Settings
-					</Button>
-				</Link>
+				{is("settings").enabled() && (
+					<Link href="/settings">
+						<Button variant="ghost" size="sm">
+							Settings
+						</Button>
+					</Link>
+				)}
 				<UserButton />
 			</Show>
 		</>

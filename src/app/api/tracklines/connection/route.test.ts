@@ -8,6 +8,10 @@ import { DELETE, GET, POST } from "./route";
 process.env.TRACKLINES_ENCRYPTION_KEY = "test-key";
 
 jest.mock("@clerk/nextjs/server", () => ({ auth: jest.fn() }));
+let mockSettingsFlag = true;
+jest.mock("~/lib/flags", () => ({
+	flagEnabled: async (name: string) => name === "settings" && mockSettingsFlag,
+}));
 jest.mock("next/server", () => ({
 	NextResponse: { json: jest.fn((data, init) => ({ data, init })) },
 }));
@@ -124,6 +128,21 @@ describe("TrackLin.es connection (RB-3)", () => {
 		mockTable.splice(0);
 		(auth as unknown as jest.Mock).mockResolvedValue({ userId: "clerk-1" });
 		jest.spyOn(console, "error").mockImplementation(() => {});
+		mockSettingsFlag = true;
+	});
+
+	it("is closed (404) while the settings flag is off", async () => {
+		mockTracklines({});
+		mockSettingsFlag = false;
+		expect((await connect(KEY)).init).toEqual({ status: 404 });
+		expect(((await GET()) as unknown as { init: ResponseInit }).init).toEqual({
+			status: 404,
+		});
+		expect(
+			((await DELETE()) as unknown as { init: ResponseInit }).init,
+		).toEqual({ status: 404 });
+		expect(calls).toHaveLength(0);
+		expect(mockTable).toHaveLength(0);
 	});
 
 	it("connects with a good key and registers the sprint webhook", async () => {
