@@ -21,6 +21,7 @@ const config = {
 				useESM: true,
 				tsconfig: {
 					jsx: "react-jsx",
+					rootDir: ".", // TypeScript 6 wants it set when emitting
 				},
 			},
 		],
