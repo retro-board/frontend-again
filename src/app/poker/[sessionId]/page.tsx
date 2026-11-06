@@ -43,6 +43,12 @@ import { Textarea } from "~/components/ui/textarea";
 import { usePokerChannel } from "~/hooks/usePokerChannel";
 import { usePokerTimer } from "~/hooks/usePokerTimer";
 import { useUserSync } from "~/hooks/useUserSync";
+import {
+	mostCommon,
+	RESULT_METHOD_LABELS,
+	RESULT_METHODS,
+	type ResultMethod,
+} from "~/lib/poker/score";
 import type {
 	AnonymousUser,
 	PokerSession,
@@ -213,6 +219,43 @@ export default function PokerSessionPage() {
 		},
 	});
 
+	// scoreStory ends voting, reveals the votes, and works out the current story's result. A
+	// most-common tie stops before the result is saved: the facilitator then picks one of the
+	// tied values (pick), which scores it.
+	const scoreStory = useCallback(
+		async (pick?: string) => {
+			if (!currentStory) return;
+			const response = await fetch(`/api/poker-sessions/${sessionId}/score`, {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ storyId: currentStory.id, pick }),
+			});
+			const data = await response.json().catch(() => ({}));
+			if (!response.ok)
+				throw new Error(data.error || "Failed to calculate score");
+
+			await endVoting(currentStory.id);
+			await fetch(`/api/poker-sessions/${sessionId}`, {
+				method: "PATCH",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ reveal_votes: true }),
+			});
+
+			if (!data.tie) {
+				await announceScore(currentStory.id, data.finalScore, data.votes);
+				setShowConsensusResult({
+					score: data.finalScore,
+					storyTitle: currentStory.title,
+				});
+				setTimeout(() => setShowConsensusResult(null), 5000);
+			}
+			await queryClient.invalidateQueries({
+				queryKey: ["poker-session", sessionId],
+			});
+		},
+		[currentStory, sessionId, endVoting, announceScore, queryClient],
+	);
+
 	// Function to finalize voting and calculate score
 	const handleFinalizeVoting = useCallback(async () => {
 		if (!currentStory || isFinalizingVoting) return;
@@ -230,47 +273,7 @@ export default function PokerSessionPage() {
 			const hasVotes = currentStory.votes && currentStory.votes.length > 0;
 
 			if (hasVotes) {
-				const response = await fetch(`/api/poker-sessions/${sessionId}/score`, {
-					method: "POST",
-					headers: { "Content-Type": "application/json" },
-					body: JSON.stringify({ storyId: currentStory.id }),
-				});
-
-				if (response.ok) {
-					const { finalScore, votes } = await response.json();
-
-					// Update the story with final estimate
-					await fetch(`/api/poker-sessions/${sessionId}/stories`, {
-						method: "PATCH",
-						headers: { "Content-Type": "application/json" },
-						body: JSON.stringify({
-							storyId: currentStory.id,
-							final_estimate: finalScore,
-						}),
-					});
-
-					// End voting and announce score
-					await endVoting(currentStory.id);
-					await announceScore(currentStory.id, finalScore, votes);
-
-					// Keep votes revealed to show finalized results immediately
-					await fetch(`/api/poker-sessions/${sessionId}`, {
-						method: "PATCH",
-						headers: { "Content-Type": "application/json" },
-						body: JSON.stringify({ reveal_votes: true }),
-					});
-
-					// Show prominent consensus result
-					setShowConsensusResult({
-						score: finalScore,
-						storyTitle: currentStory.title,
-					});
-
-					// Clear after 5 seconds
-					setTimeout(() => {
-						setShowConsensusResult(null);
-					}, 5000);
-				}
+				await scoreStory();
 			} else {
 				// No votes received
 				await endVoting(currentStory.id);
@@ -281,6 +284,10 @@ export default function PokerSessionPage() {
 			await queryClient.invalidateQueries({
 				queryKey: ["poker-session", sessionId],
 			});
+		} catch (error) {
+			toast.error(
+				error instanceof Error ? error.message : "Failed to finalize voting",
+			);
 		} finally {
 			setIsFinalizingVoting(false);
 		}
@@ -290,7 +297,7 @@ export default function PokerSessionPage() {
 		stopTimer,
 		sessionId,
 		endVoting,
-		announceScore,
+		scoreStory,
 		queryClient,
 		isFinalizingVoting,
 	]);
@@ -515,6 +522,36 @@ export default function PokerSessionPage() {
 		},
 	});
 
+	// The facilitator changes how results are worked out; stories already estimated keep theirs
+	const resultMethodMutation = useMutation({
+		mutationFn: async (result_method: ResultMethod) => {
+			const response = await fetch(`/api/poker-sessions/${sessionId}`, {
+				method: "PATCH",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ result_method }),
+			});
+			if (!response.ok) {
+				const error = await response.json();
+				throw new Error(error.error || "Failed to change result method");
+			}
+		},
+		onSuccess: () =>
+			queryClient.invalidateQueries({ queryKey: ["poker-session", sessionId] }),
+		onError: (error) => toast.error(error.message),
+	});
+
+	// A most-common tie, waiting for the facilitator to pick (derived, so it survives a refresh)
+	const tiedValues =
+		session?.result_method === "mode" &&
+		session.reveal_votes &&
+		currentStory &&
+		!currentStory.final_estimate
+			? mostCommon(
+					currentStory.votes.map((v) => v.vote_value),
+					session.estimation_type,
+				)
+			: [];
+
 	// Toggle reveal votes mutation
 	const toggleRevealMutation = useMutation({
 		mutationFn: async () => {
@@ -543,46 +580,11 @@ export default function PokerSessionPage() {
 					throw new Error(error.error || "Failed to reveal votes");
 				}
 
-				// Then calculate and save the consensus score
-				const scoreResponse = await fetch(
-					`/api/poker-sessions/${sessionId}/score`,
-					{
-						method: "POST",
-						headers: {
-							"Content-Type": "application/json",
-						},
-						body: JSON.stringify({
-							storyId: currentStory.id,
-						}),
-					},
-				);
-
-				if (!scoreResponse.ok) {
-					const error = await scoreResponse.json();
-					throw new Error(error.error || "Failed to calculate score");
-				}
-
-				const { finalScore, votes } = await scoreResponse.json();
-
-				// Stop the timer if it's running
+				// Stop the timer if it's running, then work out the result
 				if (sessionState.timer?.isActive) {
 					await stopTimer();
 				}
-
-				// End voting and announce score through the channel
-				await endVoting(currentStory.id);
-				await announceScore(currentStory.id, finalScore, votes);
-
-				// Show prominent consensus result
-				setShowConsensusResult({
-					score: finalScore,
-					storyTitle: currentStory.title,
-				});
-
-				// Clear after 5 seconds
-				setTimeout(() => {
-					setShowConsensusResult(null);
-				}, 5000);
+				await scoreStory();
 
 				return revealResponse.json();
 			}
@@ -846,6 +848,24 @@ export default function PokerSessionPage() {
 						</DialogContent>
 					</Dialog>
 					{isFacilitator && session?.status !== "completed" && (
+						<select
+							aria-label="How the result is worked out"
+							title="How the result is worked out"
+							className="h-9 rounded-md border bg-background px-2 text-sm"
+							value={session?.result_method ?? "average"}
+							disabled={resultMethodMutation.isPending}
+							onChange={(e) =>
+								resultMethodMutation.mutate(e.target.value as ResultMethod)
+							}
+						>
+							{RESULT_METHODS.map((method) => (
+								<option key={method} value={method}>
+									{RESULT_METHOD_LABELS[method]}
+								</option>
+							))}
+						</select>
+					)}
+					{isFacilitator && session?.status !== "completed" && (
 						<Button
 							variant="destructive"
 							onClick={() => {
@@ -1047,6 +1067,35 @@ export default function PokerSessionPage() {
 									</div>
 								)}
 
+								{tiedValues.length > 1 && (
+									<div className="mt-6 rounded-lg border border-amber-300 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-950">
+										<p className="mb-2 font-semibold">
+											Tie between {tiedValues.join(", ")}
+										</p>
+										{isFacilitator ? (
+											<div className="flex flex-wrap gap-2">
+												{tiedValues.map((value) => (
+													<Button
+														key={value}
+														variant="outline"
+														onClick={() =>
+															scoreStory(value).catch((error: Error) =>
+																toast.error(error.message),
+															)
+														}
+													>
+														Pick {value}
+													</Button>
+												))}
+											</div>
+										) : (
+											<p className="text-muted-foreground text-sm">
+												Waiting for the facilitator to pick one.
+											</p>
+										)}
+									</div>
+								)}
+
 								{session.reveal_votes && currentStory.votes.length > 0 && (
 									<div className="mt-6">
 										{currentStory.final_estimate && (
@@ -1062,6 +1111,15 @@ export default function PokerSessionPage() {
 														{currentStory.final_estimate}
 													</Badge>
 												</div>
+												{currentStory.result_method && (
+													<p className="mt-2 text-muted-foreground text-sm">
+														{currentStory.tied_values?.length
+															? `Tie between ${currentStory.tied_values.join(", ")}; the facilitator picked ${currentStory.final_estimate}`
+															: currentStory.result_method === "mode"
+																? "Most common vote"
+																: "Average of the votes, snapped to the nearest card"}
+													</p>
+												)}
 											</div>
 										)}
 										<h4 className="mb-3 font-semibold">Votes:</h4>

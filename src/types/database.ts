@@ -83,6 +83,7 @@ export interface PokerSession {
 	description?: string;
 	owner_id: string;
 	estimation_type: EstimationType;
+	result_method: "average" | "mode";
 	current_story_id?: string;
 	is_active: boolean;
 	reveal_votes: boolean;
@@ -100,6 +101,8 @@ export interface Story {
 	title: string;
 	description?: string;
 	final_estimate?: string;
+	result_method?: "average" | "mode" | null;
+	tied_values?: string[] | null;
 	position: number;
 	is_estimated: boolean;
 	created_at: Date;

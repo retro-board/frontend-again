@@ -28,6 +28,11 @@ import { Label } from "~/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "~/components/ui/radio-group";
 import { Textarea } from "~/components/ui/textarea";
 import { useUserSync } from "~/hooks/useUserSync";
+import {
+	RESULT_METHOD_LABELS,
+	RESULT_METHODS,
+	type ResultMethod,
+} from "~/lib/poker/score";
 import type { EstimationType, PokerSession } from "~/types/database";
 
 export default function PokerPage() {
@@ -40,6 +45,7 @@ export default function PokerPage() {
 	const [description, setDescription] = useState("");
 	const [estimationType, setEstimationType] =
 		useState<EstimationType>("fibonacci");
+	const [resultMethod, setResultMethod] = useState<ResultMethod>("average");
 
 	const elemId = useId();
 
@@ -69,10 +75,12 @@ export default function PokerPage() {
 			name,
 			description,
 			estimation_type,
+			result_method,
 		}: {
 			name: string;
 			description?: string;
 			estimation_type: EstimationType;
+			result_method: ResultMethod;
 		}) => {
 			if (!user) throw new Error("User not authenticated");
 
@@ -82,7 +90,12 @@ export default function PokerPage() {
 				headers: {
 					"Content-Type": "application/json",
 				},
-				body: JSON.stringify({ name, description, estimation_type }),
+				body: JSON.stringify({
+					name,
+					description,
+					estimation_type,
+					result_method,
+				}),
 			});
 
 			if (!response.ok) {
@@ -99,6 +112,7 @@ export default function PokerPage() {
 			setName("");
 			setDescription("");
 			setEstimationType("fibonacci");
+			setResultMethod("average");
 			router.push(`/poker/${session.id}`);
 		},
 		onError: (error) => {
@@ -113,6 +127,7 @@ export default function PokerPage() {
 				name,
 				description,
 				estimation_type: estimationType,
+				result_method: resultMethod,
 			});
 		}
 	};
@@ -236,6 +251,27 @@ export default function PokerPage() {
 										/>
 										<Label htmlFor="oneToTen">1-10 Scale</Label>
 									</div>
+								</RadioGroup>
+							</div>
+							<div className="grid gap-2">
+								<Label>How the result is worked out</Label>
+								<RadioGroup
+									value={resultMethod}
+									onValueChange={(value) =>
+										setResultMethod(value as ResultMethod)
+									}
+								>
+									{RESULT_METHODS.map((method) => (
+										<div key={method} className="flex items-center space-x-2">
+											<RadioGroupItem
+												value={method}
+												id={`${elemId}-${method}`}
+											/>
+											<Label htmlFor={`${elemId}-${method}`}>
+												{RESULT_METHOD_LABELS[method]}
+											</Label>
+										</div>
+									))}
 								</RadioGroup>
 							</div>
 						</div>

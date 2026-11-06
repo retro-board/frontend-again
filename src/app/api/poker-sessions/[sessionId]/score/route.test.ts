@@ -197,6 +197,8 @@ describe("POST /api/poker-sessions/[sessionId]/score", () => {
 				expect(response).toEqual({
 					data: {
 						finalScore: "5",
+						resultMethod: "average",
+						tiedValues: null,
 						votes: {
 							John: "3",
 							Jane: "5",
@@ -254,6 +256,8 @@ describe("POST /api/poker-sessions/[sessionId]/score", () => {
 				expect(response).toEqual({
 					data: {
 						finalScore: "3",
+						resultMethod: "average",
+						tiedValues: null,
 						votes: {
 							John: "3",
 							Jane: "?",
@@ -309,6 +313,8 @@ describe("POST /api/poker-sessions/[sessionId]/score", () => {
 				expect(response).toEqual({
 					data: {
 						finalScore: "?",
+						resultMethod: "average",
+						tiedValues: null,
 						votes: {
 							John: "?",
 							Jane: "?",
@@ -367,6 +373,8 @@ describe("POST /api/poker-sessions/[sessionId]/score", () => {
 				expect(response).toEqual({
 					data: {
 						finalScore: "M",
+						resultMethod: "average",
+						tiedValues: null,
 						votes: {
 							John: "S",
 							Jane: "M",
@@ -426,6 +434,8 @@ describe("POST /api/poker-sessions/[sessionId]/score", () => {
 				expect(response).toEqual({
 					data: {
 						finalScore: "4",
+						resultMethod: "average",
+						tiedValues: null,
 						votes: {
 							John: "3",
 							Jane: "4",
@@ -486,6 +496,8 @@ describe("POST /api/poker-sessions/[sessionId]/score", () => {
 			expect(response).toEqual({
 				data: {
 					finalScore: "3",
+					resultMethod: "average",
+					tiedValues: null,
 					votes: {
 						John: "3",
 						Guest123: "5",
@@ -530,6 +542,107 @@ describe("POST /api/poker-sessions/[sessionId]/score", () => {
 			expect(response).toEqual({
 				data: { error: "No votes found for this story" },
 				init: { status: 404 },
+			});
+		});
+	});
+
+	describe("most common (RB-4)", () => {
+		let update: jest.Mock;
+
+		// user, facilitator, a "mode" fibonacci session, then the given votes
+		const mockMode = (votes: string[]) => {
+			mockFrom.mockReset(); // a tie leaves the update mock unused and queued
+			mockAuth.mockResolvedValue({ userId });
+			mockFrom.mockReturnValueOnce({
+				select: jest.fn().mockReturnValue({
+					eq: jest.fn().mockReturnValue({
+						maybeSingle: jest
+							.fn()
+							.mockResolvedValue({ data: { id: dbUserId } }),
+					}),
+				}),
+			});
+			mockFrom.mockReturnValueOnce({
+				select: jest.fn().mockReturnValue({
+					eq: jest.fn().mockReturnValue({
+						eq: jest.fn().mockReturnValue({
+							eq: jest.fn().mockReturnValue({
+								maybeSingle: jest
+									.fn()
+									.mockResolvedValue({ data: { role: "facilitator" } }),
+							}),
+						}),
+					}),
+				}),
+			});
+			mockFrom.mockReturnValueOnce({
+				select: jest.fn().mockReturnValue({
+					eq: jest.fn().mockReturnValue({
+						single: jest.fn().mockResolvedValue({
+							data: { estimation_type: "fibonacci", result_method: "mode" },
+						}),
+					}),
+				}),
+			});
+			mockFrom.mockReturnValueOnce({
+				select: jest.fn().mockReturnValue({
+					eq: jest.fn().mockReturnValue({
+						neq: jest.fn().mockResolvedValue({
+							data: votes.map((vote_value, i) => ({
+								vote_value,
+								users: { name: `v${i}` },
+							})),
+						}),
+					}),
+				}),
+			});
+			update = jest.fn().mockReturnValue({
+				eq: jest.fn().mockResolvedValue({ data: null, error: null }),
+			});
+			mockFrom.mockReturnValueOnce({ update });
+		};
+
+		const post = (body: object) =>
+			POST(
+				new Request("http://localhost", {
+					method: "POST",
+					body: JSON.stringify({ storyId, ...body }),
+				}),
+				{ params: Promise.resolve({ sessionId }) },
+			);
+
+		it("returns a tie and saves nothing until the facilitator picks", async () => {
+			mockMode(["3", "8", "3", "8", "?"]);
+			const response = await post({});
+			expect(response).toEqual({
+				data: { tie: ["3", "8"], resultMethod: "mode" },
+				init: undefined,
+			});
+			expect(update).not.toHaveBeenCalled();
+		});
+
+		it("saves the facilitator's pick with the tied values", async () => {
+			mockMode(["3", "8", "3", "8"]);
+			const response = (await post({ pick: "8" })) as unknown as {
+				data: { finalScore: string; tiedValues: string[] };
+			};
+			expect(response.data.finalScore).toBe("8");
+			expect(response.data.tiedValues).toEqual(["3", "8"]);
+			expect(update).toHaveBeenCalledWith(
+				expect.objectContaining({
+					final_estimate: "8",
+					result_method: "mode",
+					tied_values: ["3", "8"],
+				}),
+			);
+		});
+
+		it("ignores a pick that isn't one of the tied values", async () => {
+			mockMode(["3", "8"]);
+			const response = await post({ pick: "13" });
+			expect(response).toEqual({
+				data: { tie: ["3", "8"], resultMethod: "mode" },
+				init: undefined,
 			});
 		});
 	});

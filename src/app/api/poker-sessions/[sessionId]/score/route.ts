@@ -2,95 +2,7 @@ import { auth } from "@clerk/nextjs/server";
 import { error as reportError } from "bugfixes";
 import { NextResponse } from "next/server";
 import { db } from "~/lib/db";
-import { ESTIMATION_VALUES } from "~/types/database";
-
-// Calculate the mean score and round to nearest valid estimation value
-function calculateScore(
-	votes: string[],
-	estimationType: keyof typeof ESTIMATION_VALUES,
-): string {
-	const validValues = ESTIMATION_VALUES[estimationType];
-
-	// Filter out question marks and non-numeric values for calculation
-	const numericVotes = votes.filter((v) => v !== "?");
-
-	if (numericVotes.length === 0) {
-		return "?";
-	}
-
-	// Convert to numeric values for calculation
-	let numericValues: number[] = [];
-
-	if (estimationType === "fibonacci" || estimationType === "oneToTen") {
-		numericValues = numericVotes
-			.map((v) => Number.parseInt(v, 10))
-			.filter((n) => !Number.isNaN(n));
-	} else if (estimationType === "tshirt") {
-		// Map t-shirt sizes to numeric values
-		const sizeMap: Record<string, number> = {
-			XS: 1,
-			S: 2,
-			M: 3,
-			L: 4,
-			XL: 5,
-			XXL: 6,
-		};
-		numericValues = numericVotes
-			.map((v) => sizeMap[v] || 0)
-			.filter((n) => n > 0);
-	}
-
-	if (numericValues.length === 0) {
-		return "?";
-	}
-
-	// Calculate mean
-	const mean =
-		numericValues.reduce((sum, val) => sum + val, 0) / numericValues.length;
-
-	// Round to nearest integer
-	const rounded = Math.round(mean);
-
-	if (estimationType === "fibonacci" || estimationType === "oneToTen") {
-		// Find the nearest valid value
-		const numericValid = validValues
-			.filter((v) => v !== "?")
-			.map((v) => Number.parseInt(v, 10))
-			.filter((n) => !Number.isNaN(n))
-			.sort((a, b) => a - b);
-
-		// Find the closest value to the rounded mean
-		if (numericValid.length === 0) {
-			return "?";
-		}
-
-		const firstValue = numericValid[0];
-		if (firstValue === undefined) {
-			return "?";
-		}
-
-		let closest = firstValue;
-		let minDiff = Math.abs(closest - rounded);
-
-		for (const val of numericValid) {
-			const diff = Math.abs(val - rounded);
-			if (diff < minDiff) {
-				minDiff = diff;
-				closest = val;
-			}
-		}
-
-		return closest.toString();
-	}
-
-	if (estimationType === "tshirt") {
-		const sizes = ["XS", "S", "M", "L", "XL", "XXL"];
-		const index = Math.min(rounded - 1, sizes.length - 1);
-		return sizes[Math.max(0, index)] ?? "?";
-	}
-
-	return "?";
-}
+import { type ResultMethod, scoreVotes } from "~/lib/poker/score";
 
 export async function POST(
 	request: Request,
@@ -99,7 +11,7 @@ export async function POST(
 	try {
 		const resolvedParams = await params;
 		const { userId } = await auth();
-		const { storyId } = await request.json();
+		const { storyId, pick } = await request.json();
 
 		if (!userId) {
 			return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -135,7 +47,7 @@ export async function POST(
 		// Get session
 		const { data: session } = await db
 			.from("poker_sessions")
-			.select("estimation_type")
+			.select("estimation_type, result_method")
 			.eq("id", resolvedParams.sessionId)
 			.single();
 
@@ -165,7 +77,19 @@ export async function POST(
 
 		// Calculate the final score
 		const voteValues = votes.map((v) => v.vote_value);
-		const finalScore = calculateScore(voteValues, session.estimation_type);
+		const resultMethod: ResultMethod = session.result_method ?? "average";
+		const result = scoreVotes(
+			voteValues,
+			session.estimation_type,
+			resultMethod,
+			typeof pick === "string" ? pick : undefined,
+		);
+
+		// A most-common tie: nothing is saved until the facilitator picks one of the tied values
+		if ("tie" in result) {
+			return NextResponse.json({ tie: result.tie, resultMethod });
+		}
+		const { finalScore, tiedValues } = result;
 
 		// Update the story with the final estimate
 		await db
@@ -174,6 +98,8 @@ export async function POST(
 				final_estimate: finalScore,
 				is_estimated: true,
 				estimated_at: new Date().toISOString(),
+				result_method: resultMethod,
+				tied_values: tiedValues,
 			})
 			.eq("id", storyId);
 
@@ -192,6 +118,8 @@ export async function POST(
 		return NextResponse.json({
 			finalScore,
 			votes: voteMap,
+			resultMethod,
+			tiedValues,
 		});
 	} catch (error) {
 		reportError("Score calculation error:", error);
