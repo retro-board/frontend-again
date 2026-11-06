@@ -6,6 +6,10 @@ import { Calendar, Hash, Plus, Users } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useId, useState } from "react";
 import { toast } from "sonner";
+import {
+	TracklinesSetup,
+	tracklinesRequest,
+} from "~/components/poker/TracklinesSetup";
 import { Button } from "~/components/ui/button";
 import {
 	Card,
@@ -45,9 +49,17 @@ export default function PokerPage() {
 	const [description, setDescription] = useState("");
 	const [estimationType, setEstimationType] =
 		useState<EstimationType>("fibonacci");
+	const [tracklinesSource, setTracklinesSource] = useState<{
+		project_id: string;
+		board_id: string;
+	} | null>(null);
 	const [resultMethod, setResultMethod] = useState<ResultMethod>("average");
 
 	const elemId = useId();
+	const changeOpen = (value: boolean) => {
+		setOpen(value);
+		setTracklinesSource(null);
+	};
 
 	const { data: sessions, isLoading } = useQuery({
 		queryKey: ["poker-sessions", user?.id],
@@ -84,6 +96,16 @@ export default function PokerPage() {
 		}) => {
 			if (!user) throw new Error("User not authenticated");
 
+			if (tracklinesSource)
+				return (
+					await tracklinesRequest("/api/tracklines/poker", {
+						name,
+						description,
+						result_method,
+						...tracklinesSource,
+					})
+				).session;
+
 			// Use API route to create session (bypasses RLS)
 			const response = await fetch("/api/poker-sessions", {
 				method: "POST",
@@ -108,16 +130,17 @@ export default function PokerPage() {
 		},
 		onSuccess: (session) => {
 			queryClient.invalidateQueries({ queryKey: ["poker-sessions"] });
-			setOpen(false);
+			changeOpen(false);
 			setName("");
 			setDescription("");
 			setEstimationType("fibonacci");
 			setResultMethod("average");
+			setTracklinesSource(null);
 			router.push(`/poker/${session.id}`);
 		},
 		onError: (error) => {
 			console.error("Mutation error:", error);
-			toast.error("Failed to create session. Check console for details.");
+			toast.error(error.message);
 		},
 	});
 
@@ -187,7 +210,7 @@ export default function PokerPage() {
 		<div className="container mx-auto py-8">
 			<div className="mb-8 flex items-center justify-between">
 				<h1 className="font-bold text-3xl">Sprint Poker Sessions</h1>
-				<Dialog open={open} onOpenChange={setOpen}>
+				<Dialog open={open} onOpenChange={changeOpen}>
 					<DialogTrigger asChild>
 						<Button>
 							<Plus className="mr-2 h-4 w-4" />
@@ -202,6 +225,7 @@ export default function PokerPage() {
 							</DialogDescription>
 						</DialogHeader>
 						<div className="grid gap-4 py-4">
+							<TracklinesSetup onChange={setTracklinesSource} />
 							<div className="grid gap-2">
 								<Label htmlFor="name">Session Name</Label>
 								<Input
@@ -221,9 +245,10 @@ export default function PokerPage() {
 									rows={3}
 								/>
 							</div>
-							<div className="grid gap-2">
+							<div className={tracklinesSource ? "hidden" : "grid gap-2"}>
 								<Label>Estimation Type</Label>
 								<RadioGroup
+									disabled={!!tracklinesSource}
 									value={estimationType}
 									onValueChange={(value) =>
 										setEstimationType(value as EstimationType)
@@ -276,12 +301,18 @@ export default function PokerPage() {
 							</div>
 						</div>
 						<DialogFooter>
-							<Button variant="outline" onClick={() => setOpen(false)}>
+							<Button variant="outline" onClick={() => changeOpen(false)}>
 								Cancel
 							</Button>
 							<Button
 								onClick={handleCreateSession}
-								disabled={!name.trim() || createSessionMutation.isPending}
+								disabled={
+									!name.trim() ||
+									createSessionMutation.isPending ||
+									(!!tracklinesSource &&
+										(!tracklinesSource.project_id ||
+											!tracklinesSource.board_id))
+								}
 							>
 								{createSessionMutation.isPending
 									? "Creating..."
@@ -296,7 +327,7 @@ export default function PokerPage() {
 				<Card>
 					<CardContent className="flex h-64 flex-col items-center justify-center">
 						<p className="mb-4 text-muted-foreground">No poker sessions yet</p>
-						<Button onClick={() => setOpen(true)}>
+						<Button onClick={() => changeOpen(true)}>
 							<Plus className="mr-2 h-4 w-4" />
 							Create your first session
 						</Button>

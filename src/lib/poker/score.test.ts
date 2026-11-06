@@ -68,3 +68,47 @@ describe("scoreVotes", () => {
 		});
 	});
 });
+
+describe("TrackLin.es board card sets", () => {
+	it("snaps both new numeric scales and excludes non-card values", () => {
+		expect(averageScore(["2", "4", "8"], "powers")).toBe("4");
+		expect(averageScore(["1", "4", "5"], "linear")).toBe("3");
+		expect(averageScore(["?", "abstain", "999"], "powers")).toBe("?");
+	});
+	it("limits fibonacci and tshirt results to the connected board's actual cards", () => {
+		expect(
+			averageScore(["21", "89"], "fibonacci", [
+				"1",
+				"2",
+				"3",
+				"5",
+				"8",
+				"13",
+				"21",
+			]),
+		).toBe("21");
+		expect(
+			averageScore(["XL", "XXL"], "tshirt", ["XS", "S", "M", "L", "XL"]),
+		).toBe("XL");
+		expect(
+			mostCommon(["XXL", "XL"], "tshirt", ["XS", "S", "M", "L", "XL"]),
+		).toEqual(["XL"]);
+	});
+	it("supports both result methods and a facilitator-decided tie on powers", () => {
+		expect(scoreVotes(["2", "8", "8"], "powers", "average")).toEqual({
+			finalScore: "4",
+			tiedValues: null,
+		});
+		expect(scoreVotes(["2", "8", "8"], "powers", "mode")).toEqual({
+			finalScore: "8",
+			tiedValues: null,
+		});
+		expect(scoreVotes(["2", "8"], "powers", "mode")).toEqual({
+			tie: ["2", "8"],
+		});
+		expect(scoreVotes(["2", "8"], "powers", "mode", "8")).toEqual({
+			finalScore: "8",
+			tiedValues: ["2", "8"],
+		});
+	});
+});

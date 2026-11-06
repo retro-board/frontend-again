@@ -2,6 +2,7 @@ import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { reportError } from "~/lib/bugfixes";
 import { db } from "~/lib/db";
+import { averageScore } from "~/lib/poker/score";
 import { ESTIMATION_VALUES } from "~/types/database";
 
 // Calculate the mean score and round up to nearest valid estimation value
@@ -155,7 +156,15 @@ export async function POST(
 
 		// Calculate the score
 		const voteValues = activeVotes.map((v) => v.vote_value);
-		const finalScore = calculateScore(voteValues, session.estimation_type);
+		const finalScore =
+			session.estimation_values ||
+			["powers", "linear"].includes(session.estimation_type)
+				? averageScore(
+						voteValues,
+						session.estimation_type,
+						session.estimation_values ?? undefined,
+					)
+				: calculateScore(voteValues, session.estimation_type);
 
 		// Update the story with the final estimate
 		const { error: updateError } = await db

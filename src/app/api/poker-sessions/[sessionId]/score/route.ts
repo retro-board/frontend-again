@@ -47,7 +47,7 @@ export async function POST(
 		// Get session
 		const { data: session } = await db
 			.from("poker_sessions")
-			.select("estimation_type, result_method")
+			.select("estimation_type, result_method, estimation_values")
 			.eq("id", resolvedParams.sessionId)
 			.single();
 
@@ -83,6 +83,7 @@ export async function POST(
 			session.estimation_type,
 			resultMethod,
 			typeof pick === "string" ? pick : undefined,
+			session.estimation_values ?? undefined,
 		);
 
 		// A most-common tie: nothing is saved until the facilitator picks one of the tied values
