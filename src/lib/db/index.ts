@@ -1,5 +1,5 @@
-import { error as reportError } from "bugfixes";
 import { Pool, type QueryResultRow } from "pg";
+import { reportError } from "~/lib/bugfixes";
 
 let pool: Pool | undefined;
 export function getPool() {

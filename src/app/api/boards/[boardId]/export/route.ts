@@ -1,10 +1,10 @@
 import { auth, currentUser } from "@clerk/nextjs/server";
-import { error as reportError } from "bugfixes";
 import { cookies } from "next/headers";
 import {
 	createBoardExportFilename,
 	createBoardMarkdownExport,
 } from "~/lib/boards/export-markdown";
+import { reportError } from "~/lib/bugfixes";
 import { db } from "~/lib/db";
 
 export async function GET(

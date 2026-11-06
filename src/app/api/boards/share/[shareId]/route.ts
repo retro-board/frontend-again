@@ -1,5 +1,5 @@
-import { error as reportError } from "bugfixes";
 import { NextResponse } from "next/server";
+import { reportError } from "~/lib/bugfixes";
 import { db } from "~/lib/db";
 
 export async function GET(

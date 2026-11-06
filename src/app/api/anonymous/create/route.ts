@@ -1,7 +1,7 @@
-import { error as reportError } from "bugfixes";
 import { nanoid } from "nanoid";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+import { reportError } from "~/lib/bugfixes";
 import { db } from "~/lib/db";
 
 export async function POST(request: Request) {

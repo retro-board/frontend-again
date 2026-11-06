@@ -8,8 +8,8 @@ export async function reportServer(
 ): Promise<void> {
 	if (typeof window !== "undefined") return;
 	try {
-		const { error } = await import("bugfixes");
-		error(message, detail);
+		const { reportError } = await import("~/lib/bugfixes");
+		reportError(message, detail);
 	} catch {
 		// reporting must never replace the failure it reports
 	}
