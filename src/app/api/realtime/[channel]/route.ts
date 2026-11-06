@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
-import { error as reportError } from "bugfixes";
 import { NextResponse } from "next/server";
+import { reportError } from "~/lib/bugfixes";
 import { db } from "~/lib/db";
 import { authorizeChannel } from "~/lib/realtime/authorize";
 import { pokerMessage } from "~/lib/realtime/messages";

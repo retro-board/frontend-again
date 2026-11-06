@@ -1,4 +1,4 @@
-import { error as reportError } from "bugfixes";
+import { reportError } from "~/lib/bugfixes";
 import { publish } from "./server";
 
 // Re-export types from client for convenience

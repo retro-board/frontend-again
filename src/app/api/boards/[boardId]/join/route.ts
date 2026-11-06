@@ -1,7 +1,7 @@
 import { auth, currentUser } from "@clerk/nextjs/server";
-import { error as reportError } from "bugfixes";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+import { reportError } from "~/lib/bugfixes";
 import { db } from "~/lib/db";
 
 export async function POST(

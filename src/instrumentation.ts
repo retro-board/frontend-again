@@ -1,11 +1,10 @@
 import { reportServer } from "~/lib/report";
 
 // Next.js calls register once when the server starts. The Bugfixes SDK reads
-// BUGFIXES_AGENT_KEY / BUGFIXES_AGENT_SECRET / BUGFIXES_LOCAL_ONLY from the environment;
-// without them it only logs locally.
+// BUGFIXES_AGENT_KEY / BUGFIXES_AGENT_SECRET / BUGFIXES_LOCAL_ONLY from the environment
+// (in ~/lib/bugfixes); without them it only logs locally.
 export async function register() {
-	const { loadConfigFromEnv, setDefaultConfig } = await import("bugfixes");
-	setDefaultConfig(loadConfigFromEnv());
+	await import("~/lib/bugfixes"); // loads the Bugfixes config from env
 }
 
 // onRequestError: a page, route or proxy that crashed on the server goes to Bugfixes.
