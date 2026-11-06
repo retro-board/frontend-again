@@ -4,7 +4,7 @@ import { FlagsProvider } from "@flags-gg/react-library";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider, useTheme } from "next-themes";
 import { type ReactNode, useEffect, useState } from "react";
-import { env, flagConfig } from "~/env";
+import { flagConfig } from "~/env";
 import { reportClient } from "~/lib/report";
 
 export default function ClientProvider({ children }: { children: ReactNode }) {
@@ -25,13 +25,6 @@ export default function ClientProvider({ children }: { children: ReactNode }) {
 		};
 	}, []);
 
-	// || not ??: an empty build arg should still fall back to the default environment
-	const flagsConfig = {
-		...flagConfig,
-		environmentId:
-			env.NEXT_PUBLIC_FLAGS_ENVIRONMENT || flagConfig.environmentId,
-	};
-
 	return (
 		<QueryClientProvider client={queryClient}>
 			<ThemeProvider
@@ -40,7 +33,7 @@ export default function ClientProvider({ children }: { children: ReactNode }) {
 				disableTransitionOnChange
 				attribute={"class"}
 			>
-				<FlagsProvider options={flagsConfig}>{children}</FlagsProvider>
+				<FlagsProvider options={flagConfig}>{children}</FlagsProvider>
 			</ThemeProvider>
 		</QueryClientProvider>
 	);
