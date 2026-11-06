@@ -26,6 +26,13 @@ describe("createBoardMarkdownExport", () => {
 						{
 							id: "card-3",
 							content: "Document the release checklist",
+							items: [
+								{
+									ticket_key: "TL-12",
+									title: "Release",
+									url: "https://tracklin.es/tickets/id",
+								},
+							],
 							position: 0,
 							author: { name: "Alex" },
 							votes: [{ id: "vote-4", user_id: "user-2" }],
@@ -77,6 +84,9 @@ describe("createBoardMarkdownExport", () => {
 		);
 		expect(markdown).toContain("2. Anon Owl (1 vote)");
 		expect(markdown).toContain("## Action Items");
+		expect(markdown).toContain(
+			"[TL-12](https://tracklin.es/tickets/id) — Release",
+		);
 		expect(markdown).toContain("### Action Items (1 card, 1 vote)");
 		expect(markdown).toContain("1. Alex (1 vote)");
 	});

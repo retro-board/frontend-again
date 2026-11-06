@@ -16,6 +16,7 @@ type ExportVote = {
 };
 
 export type ExportCard = {
+	items?: { ticket_key: string; title: string; url: string }[];
 	id: string;
 	content: string;
 	position: number;
@@ -151,6 +152,10 @@ function formatCard(card: ExportCard, index: number) {
 		`${index}. ${getAuthorName(card)}${voteCount > 0 ? ` (${voteCount} ${voteLabel})` : ""}`,
 		"",
 		formatQuotedContent(card.content),
+		...(card.items ?? []).map(
+			(item) =>
+				`- [${item.ticket_key.replace(/[[\]]/g, "")}](${item.url}) — ${item.title.replace(/\n/g, " ")}`,
+		),
 	].join("\n");
 }
 
@@ -265,6 +270,10 @@ export function createBoardMarkdownExport({
 				`${index + 1}. ${card.columnName} - ${getAuthorName(card)} (${getVoteCount(card)} votes)`,
 				"",
 				formatQuotedContent(card.content),
+				...(card.items ?? []).map(
+					(item) =>
+						`- [${item.ticket_key.replace(/[[\]]/g, "")}](${item.url}) — ${item.title.replace(/\n/g, " ")}`,
+				),
 				"",
 			]),
 		);

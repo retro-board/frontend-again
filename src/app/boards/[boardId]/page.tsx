@@ -17,6 +17,7 @@ import { BoardExportButton } from "~/components/boards/BoardExportButton";
 import { BoardSettings } from "~/components/boards/BoardSettings";
 import { BoardTimer } from "~/components/boards/BoardTimer";
 import { Card as CardComponent } from "~/components/boards/Card";
+import { SprintItems } from "~/components/boards/SprintItems";
 import { Button } from "~/components/ui/button";
 import {
 	Dialog,
@@ -628,6 +629,7 @@ export default function BoardPage() {
 				</div>
 
 				<div className="w-80 overflow-y-auto border-l p-4">
+					<SprintItems boardId={boardId} />
 					<BoardTimer board={board} isOwner={isOwner} />
 
 					{/* Grace period countdown */}

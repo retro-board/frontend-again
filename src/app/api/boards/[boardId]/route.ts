@@ -108,6 +108,7 @@ export async function GET(
           *,
           author:users(*),
           anonymous_author:anonymous_users(*),
+          items:card_items(*),
           votes:card_votes(*)
         )
       `)

@@ -19,6 +19,7 @@ import { Input } from "~/components/ui/input";
 import { cn } from "~/lib/utils";
 import type { AnonymousUser, Board, ColumnWithCards } from "~/types/database";
 import { Card } from "./Card";
+import { SprintItemPicker } from "./SprintItems";
 
 interface BoardColumnProps {
 	column: ColumnWithCards;
@@ -46,6 +47,7 @@ export function BoardColumn({
 	const queryClient = useQueryClient();
 	const [isAddingCard, setIsAddingCard] = useState(false);
 	const [newCardContent, setNewCardContent] = useState("");
+	const [selectedItems, setSelectedItems] = useState<string[]>([]);
 
 	// Disable dropping on action columns for non-owners
 	const isDropDisabled = column.is_action && !isOwner;
@@ -72,6 +74,7 @@ export function BoardColumn({
 					content,
 					position,
 					is_anonymous: !!anonymousUser,
+					...(selectedItems.length ? { item_ids: selectedItems } : {}),
 				}),
 			});
 
@@ -85,6 +88,7 @@ export function BoardColumn({
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["board"] });
 			setNewCardContent("");
+			setSelectedItems([]);
 			setIsAddingCard(false);
 		},
 	});
@@ -172,6 +176,16 @@ export function BoardColumn({
 									}
 								}}
 								autoFocus
+							/>
+							{createCardMutation.error && (
+								<p role="alert" className="text-destructive text-sm">
+									{createCardMutation.error.message}
+								</p>
+							)}
+							<SprintItemPicker
+								boardId={boardId}
+								selected={selectedItems}
+								onChange={setSelectedItems}
 							/>
 							<div className="flex gap-2">
 								<Button

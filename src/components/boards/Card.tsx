@@ -2,6 +2,7 @@
 
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { useFlags } from "@flags-gg/react-library";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Check, Edit2, EyeOff, ThumbsUp, Trash2, X } from "lucide-react";
 import { useState } from "react";
@@ -11,6 +12,7 @@ import { CardContent, Card as UICard } from "~/components/ui/card";
 import { Textarea } from "~/components/ui/textarea";
 import { cn } from "~/lib/utils";
 import type { Board, Card as CardType, CardVote } from "~/types/database";
+import { SprintItemPicker } from "./SprintItems";
 
 interface CardProps {
 	card: CardType & { votes?: CardVote[] };
@@ -32,6 +34,10 @@ export function Card({
 	isActionColumn,
 }: CardProps) {
 	const queryClient = useQueryClient();
+	const itemLinksEnabled = useFlags().is("rb-5").enabled();
+	const [selectedItems, setSelectedItems] = useState<string[]>(
+		(card.items ?? []).map((item) => item.ticket_id),
+	);
 	const [isEditing, setIsEditing] = useState(false);
 	const [editContent, setEditContent] = useState(card.content);
 
@@ -58,7 +64,11 @@ export function Card({
 				headers: {
 					"Content-Type": "application/json",
 				},
-				body: JSON.stringify({ cardId: card.id, content }),
+				body: JSON.stringify({
+					cardId: card.id,
+					content,
+					...(itemLinksEnabled ? { item_ids: selectedItems } : {}),
+				}),
 			});
 
 			if (!response.ok) {
@@ -95,15 +105,16 @@ export function Card({
 			// Return a context object with the snapshotted value
 			return { previousBoard };
 		},
-		onError: (_err, _newContent, context) => {
+		onError: (error, _newContent, context) => {
+			toast.error(error.message);
 			// If the mutation fails, use the context returned from onMutate to roll back
 			queryClient.setQueryData(["board", boardId], context?.previousBoard);
 		},
 		onSettled: () => {
 			// Always refetch after error or success
 			queryClient.invalidateQueries({ queryKey: ["board", boardId] });
-			setIsEditing(false);
 		},
+		onSuccess: () => setIsEditing(false),
 	});
 
 	const deleteCardMutation = useMutation({
@@ -198,6 +209,11 @@ export function Card({
 								onClick={(e) => e.stopPropagation()}
 								onPointerDown={(e) => e.stopPropagation()}
 							/>
+							<SprintItemPicker
+								boardId={boardId}
+								selected={selectedItems}
+								onChange={setSelectedItems}
+							/>
 							<div className="flex gap-1">
 								<Button
 									size="sm"
@@ -227,6 +243,24 @@ export function Card({
 					) : (
 						<>
 							<p className="mb-2 whitespace-pre-wrap text-sm">{card.content}</p>
+							{itemLinksEnabled && (
+								<div className="flex flex-wrap gap-1">
+									{card.items?.map((item) => (
+										<a
+											key={item.ticket_id}
+											href={item.url}
+											title={item.title}
+											target="_blank"
+											rel="noreferrer"
+											className="rounded bg-muted px-2 py-1 text-xs underline"
+											onPointerDown={(event) => event.stopPropagation()}
+											onClick={(event) => event.stopPropagation()}
+										>
+											{item.ticket_key}
+										</a>
+									))}
+								</div>
+							)}
 							<div className="flex items-center justify-between">
 								{boardPhase === "voting" && !isActionColumn && (
 									<Button
@@ -259,6 +293,9 @@ export function Card({
 											className="h-8 w-8 p-0"
 											onClick={(e) => {
 												e.stopPropagation();
+												setSelectedItems(
+													(card.items ?? []).map((item) => item.ticket_id),
+												);
 												setIsEditing(true);
 											}}
 											onPointerDown={(e) => e.stopPropagation()}

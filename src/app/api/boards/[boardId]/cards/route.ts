@@ -3,10 +3,16 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { reportError } from "~/lib/bugfixes";
 import { db } from "~/lib/db";
+import { flagEnabled } from "~/lib/flags";
 import {
 	broadcastToBoard,
 	type CardEventPayload,
 } from "~/lib/realtime/channels-server";
+import {
+	type SprintItem,
+	saveCardItems,
+	selectedItems,
+} from "~/lib/tracklines/retros";
 
 export async function POST(
 	request: Request,
@@ -23,7 +29,21 @@ export async function POST(
 		}
 
 		const body = await request.json();
-		const { column_id, content, position, is_anonymous } = body;
+		const { column_id, content, position, is_anonymous, item_ids } = body;
+
+		let linkedItems: SprintItem[] | undefined;
+		if (item_ids !== undefined) {
+			if (!(await flagEnabled("rb-5")))
+				return NextResponse.json({ error: "Not found" }, { status: 404 });
+			try {
+				linkedItems = await selectedItems(resolvedParams.boardId, item_ids);
+			} catch {
+				return NextResponse.json(
+					{ error: "Invalid sprint items" },
+					{ status: 400 },
+				);
+			}
+		}
 
 		let authorId = "";
 		let isAuthorized = false;
@@ -112,7 +132,7 @@ export async function POST(
 			.eq("id", column_id)
 			.single();
 
-		if (!column) {
+		if (!column || column.board_id !== resolvedParams.boardId) {
 			return NextResponse.json({ error: "Column not found" }, { status: 404 });
 		}
 
@@ -239,15 +259,16 @@ export async function POST(
 			cardData.anonymous_author_id = authorId;
 		}
 
-		const { data: card, error } = await db
-			.from("cards")
-			.insert(cardData)
-			.select()
-			.single();
+		const { data: card, error } = linkedItems
+			? await saveCardItems(cardData, linkedItems)
+			: await db.from("cards").insert(cardData).select().single();
 
-		if (error) {
+		if (error || !card) {
 			reportError("Error creating card:", error);
-			return NextResponse.json({ error: error.message }, { status: 500 });
+			return NextResponse.json(
+				{ error: error?.message ?? "Could not save card" },
+				{ status: 500 },
+			);
 		}
 
 		// Broadcast card created event with full payload
@@ -292,7 +313,21 @@ export async function PATCH(
 		}
 
 		const body = await request.json();
-		const { cardId, content, column_id, position } = body;
+		const { cardId, content, column_id, position, item_ids } = body;
+
+		let linkedItems: SprintItem[] | undefined;
+		if (item_ids !== undefined) {
+			if (!(await flagEnabled("rb-5")))
+				return NextResponse.json({ error: "Not found" }, { status: 404 });
+			try {
+				linkedItems = await selectedItems(resolvedParams.boardId, item_ids);
+			} catch {
+				return NextResponse.json(
+					{ error: "Invalid sprint items" },
+					{ status: 400 },
+				);
+			}
+		}
 
 		let authorId: string | null = null;
 
@@ -353,7 +388,7 @@ export async function PATCH(
 				.eq("id", column_id)
 				.single();
 
-			if (!targetColumn) {
+			if (!targetColumn || targetColumn.board_id !== resolvedParams.boardId) {
 				return NextResponse.json(
 					{ error: "Target column not found" },
 					{ status: 404 },
@@ -392,11 +427,21 @@ export async function PATCH(
 			}
 		}
 
-		const { data: card, error } = await query.select().single();
+		const { data: card, error } = linkedItems
+			? await saveCardItems(updateData, linkedItems, {
+					cardId,
+					boardId: resolvedParams.boardId,
+					authorId: authorId ?? "",
+					anonymous: !userId,
+				})
+			: await query.select().single();
 
-		if (error) {
+		if (error || !card) {
 			reportError("Error updating card:", error);
-			return NextResponse.json({ error: error.message }, { status: 500 });
+			return NextResponse.json(
+				{ error: error?.message ?? "Could not save card" },
+				{ status: 500 },
+			);
 		}
 
 		// Broadcast card position update if position or column changed
