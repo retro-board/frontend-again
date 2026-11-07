@@ -3,6 +3,7 @@ import { db } from "~/lib/db";
 import { POST } from "./route";
 
 // Mock dependencies
+jest.mock("~/lib/tracklines/poker", () => ({ syncStoryEstimate: jest.fn() }));
 jest.mock("@clerk/nextjs/server", () => ({
 	auth: jest.fn(),
 }));

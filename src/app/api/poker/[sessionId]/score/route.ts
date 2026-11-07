@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { reportError } from "~/lib/bugfixes";
 import { db } from "~/lib/db";
 import { averageScore } from "~/lib/poker/score";
+import { syncStoryEstimate } from "~/lib/tracklines/poker";
 import { ESTIMATION_VALUES } from "~/types/database";
 
 // Calculate the mean score and round up to nearest valid estimation value
@@ -180,6 +181,8 @@ export async function POST(
 			reportError("Error updating story:", updateError);
 			return NextResponse.json({ error: updateError.message }, { status: 500 });
 		}
+
+		await syncStoryEstimate(resolvedParams.sessionId, storyId);
 
 		// Create a votes map for the response
 		const votesMap: Record<string, string> = {};

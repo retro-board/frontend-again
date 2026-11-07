@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { reportError } from "~/lib/bugfixes";
 import { db } from "~/lib/db";
 import { type ResultMethod, scoreVotes } from "~/lib/poker/score";
+import { syncStoryEstimate } from "~/lib/tracklines/poker";
 
 export async function POST(
 	request: Request,
@@ -103,6 +104,8 @@ export async function POST(
 				tied_values: tiedValues,
 			})
 			.eq("id", storyId);
+
+		await syncStoryEstimate(resolvedParams.sessionId, storyId);
 
 		// Format votes for response
 		const voteMap: Record<string, string> = {};
