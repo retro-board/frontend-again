@@ -19,6 +19,7 @@ import { useCallback, useEffect, useId, useState } from "react";
 import { toast } from "sonner";
 import { Markdown } from "~/components/Markdown";
 import { usePaged } from "~/components/Pager";
+import { LabelFilter } from "~/components/poker/LabelFilter";
 import { ParticipantList } from "~/components/poker/ParticipantList";
 import { TracklinesPlanning } from "~/components/poker/TracklinesPlanning";
 import { TracklinesStory } from "~/components/poker/TracklinesStory";
@@ -215,19 +216,21 @@ export default function PokerSessionPage() {
 		(s) => s.id === session.current_story_id,
 	);
 
-	// The stories list can be narrowed to one TrackLin.es label (e.g. "frontend"); it's only a
+	// The stories list can be narrowed to TrackLin.es labels (e.g. "frontend"); it's only a
 	// view: every backlog ticket stays in the session, in case one is labelled wrong
-	const [storyLabel, setStoryLabel] = useState("");
+	const [storyLabels, setStoryLabels] = useState<string[]>([]);
 	const labelCounts = new Map<string, number>();
 	for (const story of session?.stories ?? [])
 		for (const label of story.tracklines_labels ?? [])
 			labelCounts.set(label, (labelCounts.get(label) ?? 0) + 1);
-	const storyLabels = [...labelCounts].sort((a, b) => b[1] - a[1]);
+	const labelOptions = [...labelCounts].sort((a, b) => b[1] - a[1]);
 	const storyList = usePaged(
 		(session?.stories ?? []).filter(
 			(story) =>
-				!storyLabel ||
-				hasLabel({ labels: story.tracklines_labels }, storyLabel),
+				!storyLabels.length ||
+				storyLabels.some((label) =>
+					hasLabel({ labels: story.tracklines_labels }, label),
+				),
 		),
 	);
 
@@ -1189,20 +1192,12 @@ export default function PokerSessionPage() {
 						<CardHeader>
 							<div className="flex flex-wrap items-center justify-between gap-2">
 								<CardTitle>Stories</CardTitle>
-								{storyLabels.length > 0 && (
-									<select
-										aria-label="Filter stories by label"
-										className="rounded border bg-background p-2 text-sm"
-										value={storyLabel}
-										onChange={(event) => setStoryLabel(event.target.value)}
-									>
-										<option value="">All labels</option>
-										{storyLabels.map(([label, count]) => (
-											<option key={label} value={label}>
-												{label} ({count})
-											</option>
-										))}
-									</select>
+								{labelOptions.length > 0 && (
+									<LabelFilter
+										labels={labelOptions}
+										selected={storyLabels}
+										onChange={setStoryLabels}
+									/>
 								)}
 							</div>
 						</CardHeader>
