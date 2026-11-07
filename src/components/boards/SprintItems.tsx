@@ -54,7 +54,7 @@ export function SprintItems({ boardId }: { boardId: string }) {
 					</Button>
 				</SheetTrigger>
 			</div>
-			<SheetContent side="bottom" className="max-h-[70dvh] gap-0 rounded-t-2xl">
+			<SheetContent side="right" className="max-h-[70dvh] gap-0 rounded-t-2xl">
 				<div
 					aria-hidden="true"
 					className="mx-auto mt-3 h-1 w-12 shrink-0 rounded-full bg-muted-foreground/30"
