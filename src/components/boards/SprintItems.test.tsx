@@ -51,7 +51,7 @@ test("shows ticket links, estimates, refresh, and a cached-data note", async () 
 	);
 	expect(
 		await screen.findByRole("dialog", { name: "Sprint tickets" }),
-	).toHaveClass("bottom-0");
+	).toHaveClass("right-0");
 	expect(await screen.findByRole("link", { name: "TL-22" })).toHaveAttribute(
 		"href",
 		item.url,

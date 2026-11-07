@@ -2,7 +2,7 @@
 
 import { useFlags } from "@flags-gg/react-library";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronUp, ListTodo, RefreshCw } from "lucide-react";
+import { ChevronLeft, ListTodo, RefreshCw } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import {
 	Sheet,
@@ -50,16 +50,12 @@ export function SprintItems({ boardId }: { boardId: string }) {
 								({data?.items.length ?? 0})
 							</span>
 						</span>
-						<ChevronUp className="size-4" />
+						<ChevronLeft className="size-4" />
 					</Button>
 				</SheetTrigger>
 			</div>
-			<SheetContent side="right" className="max-h-[70dvh] gap-0 rounded-t-2xl">
-				<div
-					aria-hidden="true"
-					className="mx-auto mt-3 h-1 w-12 shrink-0 rounded-full bg-muted-foreground/30"
-				/>
-				<SheetHeader className="container mx-auto shrink-0 pr-12">
+			<SheetContent side="right" className="w-full gap-0 sm:max-w-md">
+				<SheetHeader className="shrink-0 pr-12">
 					<div className="flex flex-wrap items-center gap-3">
 						<SheetTitle>Sprint tickets</SheetTitle>
 						<Button
@@ -76,7 +72,7 @@ export function SprintItems({ boardId }: { boardId: string }) {
 						Review this sprint's tickets and link them to your retro cards.
 					</SheetDescription>
 				</SheetHeader>
-				<div className="container mx-auto min-h-0 space-y-3 overflow-y-auto px-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+				<div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 pb-6">
 					{(data?.stale || error) && (
 						<p role="status">
 							{data?.note ?? "Could not load sprint items. Try refreshing."}
