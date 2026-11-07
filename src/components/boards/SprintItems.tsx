@@ -94,7 +94,9 @@ export function SprintItems({ boardId }: { boardId: string }) {
 								>
 									{item.key}
 								</a>
-								<span className="min-w-0 flex-1 break-words">{item.title}</span>
+								<span className="wrap-anywhere min-w-0 flex-1">
+									{item.title}
+								</span>
 								<span className="text-muted-foreground text-sm">
 									({item.estimate ?? "Unestimated"})
 								</span>

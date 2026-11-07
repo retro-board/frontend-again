@@ -8,8 +8,10 @@ import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import {
 	Sheet,
+	SheetClose,
 	SheetContent,
 	SheetDescription,
+	SheetFooter,
 	SheetHeader,
 	SheetTitle,
 	SheetTrigger,
@@ -94,11 +96,8 @@ export function TracklinesPlanning({
 					<ChevronLeft className="size-4" />
 				</Button>
 			</SheetTrigger>
-			<SheetContent
-				side="right"
-				className="w-full gap-0 overflow-y-auto sm:max-w-md"
-			>
-				<SheetHeader>
+			<SheetContent side="right" className="w-full gap-0 sm:max-w-md">
+				<SheetHeader className="shrink-0 pr-12">
 					<SheetTitle>Plan estimated tickets into future sprints</SheetTitle>
 					<SheetDescription>
 						Estimated tickets can go into a planned sprint; the rest stay in the
@@ -106,7 +105,7 @@ export function TracklinesPlanning({
 					</SheetDescription>
 				</SheetHeader>
 				<section
-					className="space-y-3 px-4 pb-6"
+					className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 pb-4"
 					aria-label="Plan TrackLin.es tickets"
 				>
 					{query.error && (
@@ -140,15 +139,21 @@ export function TracklinesPlanning({
 						return (
 							<div key={story.id} className="space-y-2 rounded-lg border p-3">
 								<div className="flex items-start justify-between gap-3">
-									<label htmlFor={`${id}-${story.id}`} className="space-y-0.5">
+									<label
+										htmlFor={`${id}-${story.id}`}
+										className="min-w-0 flex-1 space-y-0.5"
+									>
 										<span className="block font-mono text-muted-foreground text-xs">
 											{story.tracklines_key}
 										</span>
-										<span className="block font-medium text-sm">
+										<span className="wrap-anywhere block font-medium text-sm">
 											{story.title}
 										</span>
 									</label>
-									<Badge variant={counted ? "default" : "secondary"}>
+									<Badge
+										variant={counted ? "default" : "secondary"}
+										className="shrink-0"
+									>
 										{story.final_estimate ?? "Not estimated"}
 									</Badge>
 								</div>
@@ -198,6 +203,8 @@ export function TracklinesPlanning({
 						);
 					})}
 					{mutation.error && <p role="alert">{mutation.error.message}</p>}
+				</section>
+				<SheetFooter className="shrink-0 flex-row justify-between border-t">
 					{query.data && (
 						<Button
 							disabled={
@@ -217,7 +224,10 @@ export function TracklinesPlanning({
 							Plan selected tickets
 						</Button>
 					)}
-				</section>
+					<SheetClose asChild>
+						<Button variant="outline">Close</Button>
+					</SheetClose>
+				</SheetFooter>
 			</SheetContent>
 		</Sheet>
 	);
