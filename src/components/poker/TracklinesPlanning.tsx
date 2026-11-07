@@ -3,7 +3,7 @@
 import { useFlags } from "@flags-gg/react-library";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CalendarPlus, ChevronLeft } from "lucide-react";
-import { useId, useState } from "react";
+import { useState } from "react";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import {
@@ -34,14 +34,18 @@ export function TracklinesPlanning({
 	facilitator,
 	linked,
 	revision,
+	currentStoryId,
+	onSelect,
 }: {
 	sessionId: string;
 	facilitator: boolean;
 	linked: boolean;
 	revision?: string;
+	currentStoryId?: string;
+	// picking a ticket here makes it the current story and closes the drawer
+	onSelect?: (story: { id: string; title: string }) => void;
 }) {
 	const enabled = useFlags().is("rb-6").enabled();
-	const id = useId();
 	const client = useQueryClient();
 	const [choices, setChoices] = useState<Record<string, string>>({});
 	const [results, setResults] = useState<Record<string, PlanningOutcome>>({});
@@ -139,17 +143,23 @@ export function TracklinesPlanning({
 						return (
 							<div key={story.id} className="space-y-2 rounded-lg border p-3">
 								<div className="flex items-start justify-between gap-3">
-									<label
-										htmlFor={`${id}-${story.id}`}
-										className="min-w-0 flex-1 space-y-0.5"
-									>
-										<span className="block font-mono text-muted-foreground text-xs">
-											{story.tracklines_key}
-										</span>
-										<span className="wrap-anywhere block font-medium text-sm">
-											{story.title}
-										</span>
-									</label>
+									<SheetClose asChild>
+										<button
+											type="button"
+											className={`min-w-0 flex-1 space-y-0.5 rounded text-left hover:underline ${
+												story.id === currentStoryId ? "text-primary" : ""
+											}`}
+											aria-current={story.id === currentStoryId || undefined}
+											onClick={() => onSelect?.(story)}
+										>
+											<span className="block font-mono text-muted-foreground text-xs">
+												{story.tracklines_key}
+											</span>
+											<span className="wrap-anywhere block font-medium text-sm">
+												{story.title}
+											</span>
+										</button>
+									</SheetClose>
 									<Badge
 										variant={counted ? "default" : "secondary"}
 										className="shrink-0"
@@ -160,7 +170,7 @@ export function TracklinesPlanning({
 								{counted && !!query.data?.sprints.length && (
 									<div className="flex gap-2">
 										<select
-											id={`${id}-${story.id}`}
+											aria-label={`Sprint for ${story.tracklines_key}`}
 											className="min-w-0 flex-1 rounded border bg-background p-2 text-sm"
 											value={choices[story.id] ?? ""}
 											onChange={(event) =>

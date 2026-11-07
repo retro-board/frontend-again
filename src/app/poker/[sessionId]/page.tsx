@@ -1194,6 +1194,11 @@ export default function PokerSessionPage() {
 									>
 										<div className="flex items-center justify-between">
 											<div className="flex-1">
+												{story.tracklines_key && (
+													<p className="font-mono text-muted-foreground text-xs">
+														{story.tracklines_key}
+													</p>
+												)}
 												<p className="font-medium">{story.title}</p>
 												{story.description && (
 													// a preview: the full description shows when it's the current story
@@ -1232,6 +1237,14 @@ export default function PokerSessionPage() {
 						sessionId={sessionId}
 						facilitator={!!isFacilitator}
 						linked={!!session.tracklines_board_id}
+						currentStoryId={currentStory?.id}
+						onSelect={(story) => {
+							if (story.id !== currentStory?.id)
+								setCurrentStoryMutation.mutate({
+									storyId: story.id,
+									storyTitle: story.title,
+								});
+						}}
 						revision={session.stories
 							.map((story) => `${story.id}:${story.final_estimate ?? ""}`)
 							.join(",")}

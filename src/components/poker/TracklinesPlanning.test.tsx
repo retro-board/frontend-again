@@ -115,3 +115,26 @@ test("shows partial outcomes and retries only the failed ticket", async () => {
 		plans: [{ story_id: "a", planned_sprint_id: "future" }],
 	});
 });
+test("picking a ticket in the drawer selects it and closes the drawer", async () => {
+	(fetch as jest.Mock).mockResolvedValue({
+		ok: true,
+		json: async () => ({ sprints: [], stories, boardUrl: "https://x" }),
+	});
+	const onSelect = jest.fn();
+	render(
+		<QueryClientProvider client={new QueryClient()}>
+			<TracklinesPlanning
+				sessionId="s"
+				facilitator
+				linked
+				onSelect={onSelect}
+			/>
+		</QueryClientProvider>,
+	);
+	await openDrawer();
+	fireEvent.click(await screen.findByRole("button", { name: /TL-2/ }));
+	expect(onSelect).toHaveBeenCalledWith(expect.objectContaining({ id: "b" }));
+	await waitFor(() =>
+		expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
+	);
+});
