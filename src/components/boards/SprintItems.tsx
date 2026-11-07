@@ -40,9 +40,9 @@ export function SprintItems({ boardId }: { boardId: string }) {
 	if (!enabled || (!data?.linked && !error)) return null;
 	return (
 		<Sheet>
-			<div className="shrink-0 border-t bg-background px-4 py-2">
+			<div className="mb-4">
 				<SheetTrigger asChild>
-					<Button variant="ghost" className="w-full justify-between">
+					<Button variant="outline" className="w-full justify-between">
 						<span className="flex items-center gap-2">
 							<ListTodo className="size-4" />
 							Sprint tickets{" "}

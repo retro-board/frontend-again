@@ -628,13 +628,12 @@ export default function BoardPage() {
 							</DndContext>
 						</div>
 					</div>
-					<SprintItems boardId={boardId} />
 				</div>
 
 				<div className="w-80 overflow-y-auto border-l p-4">
 					<BoardTimer board={board} isOwner={isOwner} />
-
-					{/* Grace period countdown */}
+					
+          {/* Grace period countdown */}
 					{showGracePeriod && board?.phase === "voting" && (
 						<div className="mt-4 rounded-lg border-2 border-orange-500 bg-orange-50 p-4">
 							<div className="text-center">
@@ -666,6 +665,7 @@ export default function BoardPage() {
 							</div>
 						</div>
 					)}
+					<SprintItems boardId={boardId} />
 				</div>
 			</div>
 		</div>
