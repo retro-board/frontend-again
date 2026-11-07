@@ -11,34 +11,43 @@ export const RESULT_METHOD_LABELS: Record<ResultMethod, string> = {
 const SIZES = ["XS", "S", "M", "L", "XL", "XXL"];
 
 // averageScore: the mean of the counted votes, rounded to the nearest card on the scale; "?" with none.
-export function averageScore(votes: string[], type: EstimationType): string {
-	const numeric =
-		type === "tshirt"
-			? votes.map((v) => SIZES.indexOf(v) + 1).filter((n) => n > 0)
-			: votes
-					.map((v) => Number.parseInt(v, 10))
-					.filter((n) => !Number.isNaN(n));
-	if (numeric.length === 0) return "?";
-	const rounded = Math.round(
-		numeric.reduce((a, b) => a + b, 0) / numeric.length,
+export function averageScore(
+	votes: string[],
+	type: EstimationType,
+	allowed?: readonly string[],
+): string {
+	const scale = (allowed ?? ESTIMATION_VALUES[type]).filter(
+		(value) => value !== "?",
 	);
-
-	if (type === "tshirt")
-		return SIZES[Math.min(Math.max(rounded - 1, 0), SIZES.length - 1)] ?? "?";
-
-	const cards = ESTIMATION_VALUES[type]
-		.map((v) => Number.parseInt(v, 10))
-		.filter((n) => !Number.isNaN(n));
-	let closest = cards[0];
-	if (closest === undefined) return "?";
-	for (const card of cards)
-		if (Math.abs(card - rounded) < Math.abs(closest - rounded)) closest = card;
-	return closest.toString();
+	const counted = votes.filter((value) => scale.includes(value));
+	const numeric = counted
+		.map((value) =>
+			type === "tshirt" ? SIZES.indexOf(value) + 1 : Number(value),
+		)
+		.filter((value) => Number.isFinite(value));
+	if (!numeric.length) return "?";
+	const rounded = Math.round(
+		numeric.reduce((total, value) => total + value, 0) / numeric.length,
+	);
+	let closest = scale[0];
+	if (!closest) return "?";
+	const number = (value: string) =>
+		type === "tshirt" ? SIZES.indexOf(value) + 1 : Number(value);
+	for (const card of scale)
+		if (Math.abs(number(card) - rounded) < Math.abs(number(closest) - rounded))
+			closest = card;
+	return closest;
 }
 
 // mostCommon: the card(s) with the most counted votes, in scale order; [] with none.
-export function mostCommon(votes: string[], type: EstimationType): string[] {
-	const cards: string[] = ESTIMATION_VALUES[type].filter((v) => v !== "?");
+export function mostCommon(
+	votes: string[],
+	type: EstimationType,
+	allowed?: readonly string[],
+): string[] {
+	const cards: string[] = (allowed ?? ESTIMATION_VALUES[type]).filter(
+		(v) => v !== "?",
+	);
 	const counts = new Map<string, number>();
 	for (const v of votes)
 		if (cards.includes(v)) counts.set(v, (counts.get(v) ?? 0) + 1);
@@ -57,10 +66,11 @@ export function scoreVotes(
 	type: EstimationType,
 	method: ResultMethod,
 	pick?: string,
+	allowed?: readonly string[],
 ): ScoreResult {
 	if (method !== "mode")
-		return { finalScore: averageScore(votes, type), tiedValues: null };
-	const top = mostCommon(votes, type);
+		return { finalScore: averageScore(votes, type, allowed), tiedValues: null };
+	const top = mostCommon(votes, type, allowed);
 	if (top.length <= 1) return { finalScore: top[0] ?? "?", tiedValues: null };
 	if (pick && top.includes(pick)) return { finalScore: pick, tiedValues: top };
 	return { tie: top };

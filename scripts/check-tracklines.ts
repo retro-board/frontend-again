@@ -4,6 +4,11 @@ import { createServer } from "node:http";
 import { getPool } from "../src/lib/db";
 import type { Connection } from "../src/lib/tracklines/connection";
 import {
+	createTracklinesPoker,
+	planningState,
+	planPokerStories,
+} from "../src/lib/tracklines/poker";
+import {
 	createSprintRetro,
 	loadSprintItems,
 	saveCardItems,
@@ -17,10 +22,15 @@ if (!process.env.BACKEND_CHECK_DATABASE_URL)
 	);
 process.env.DATABASE_URL = process.env.BACKEND_CHECK_DATABASE_URL;
 process.env.TRACKLINES_ENCRYPTION_KEY = "integration-test-only";
+const projectId = randomUUID();
+const futureId = randomUUID();
 const boardId = randomUUID();
 const sprintId = randomUUID();
 const ticketId = randomUUID();
 let online = true;
+let failNextPlan = true;
+const plannedWrites: { ticket: string; target: string; estimate: string }[] =
+	[];
 let tickets = [{ id: ticketId, key: "TL-1", title: "Ship", estimate: "5" }];
 const server = createServer((request, response) => {
 	if (!online) {
@@ -29,11 +39,66 @@ const server = createServer((request, response) => {
 		return;
 	}
 	response.setHeader("content-type", "application/json");
+	if (request.method === "PUT") {
+		let body = "";
+		request.on("data", (chunk) => {
+			body += chunk;
+		});
+		request.on("end", () => {
+			if (failNextPlan) {
+				failNextPlan = false;
+				response.writeHead(409);
+				response.end(JSON.stringify({ error: "Capacity approval needed" }));
+				return;
+			}
+			const input = JSON.parse(body);
+			plannedWrites.push({
+				ticket: request.url ?? "",
+				target: input.planned_sprint_id,
+				estimate: input.estimate,
+			});
+			response.writeHead(204);
+			response.end();
+		});
+		return;
+	}
+	if (request.url?.includes("attachments")) {
+		response.end(
+			JSON.stringify([
+				{
+					id: randomUUID(),
+					name: "design.png",
+					url: "https://files.test/design",
+					content_type: "image/png",
+				},
+			]),
+		);
+		return;
+	}
+	if (request.url?.includes("planned-sprints")) {
+		response.end(
+			JSON.stringify([
+				{ id: futureId, board_id: boardId, number: 23 },
+				{ id: sprintId, board_id: boardId, number: 22 },
+			]),
+		);
+		return;
+	}
+	if (request.url?.includes("backlog")) {
+		response.end(JSON.stringify(tickets));
+		return;
+	}
 	const data =
 		request.url === "/projects"
-			? [{ id: "project", name: "TrackLines" }]
+			? [{ id: projectId, name: "TrackLines" }]
 			: request.url === `/boards/${boardId}`
-				? { id: boardId, project_id: "project", name: "Frontend" }
+				? {
+						id: boardId,
+						project_id: projectId,
+						name: "Frontend",
+						estimate_scale: "powers",
+						sprint: { id: sprintId },
+					}
 				: { id: sprintId, board_id: boardId, number: 22, tickets };
 	response.end(JSON.stringify(data));
 });
@@ -44,6 +109,7 @@ process.env.TRACKLINES_API_URL = `http://127.0.0.1:${address.port}`;
 const pool = getPool();
 let ownerId: string | undefined;
 let guestId: string | undefined;
+let pokerSessionId: string | undefined;
 try {
 	ownerId = (
 		await pool.query(
@@ -154,10 +220,76 @@ try {
 		).rows[0].n,
 		0,
 	);
+	online = true;
+	const session = await createTracklinesPoker(ownerId ?? "", {
+		name: "Integration poker",
+		project_id: projectId,
+		board_id: boardId,
+		result_method: "mode",
+	});
+	pokerSessionId = session.id;
+	assert.equal(session.estimation_type, "powers");
+	assert.deepEqual(session.estimation_values, ["1", "2", "4", "8", "16"]);
+	const imported = (
+		await pool.query(
+			"SELECT * FROM stories WHERE session_id=$1 ORDER BY position",
+			[session.id],
+		)
+	).rows;
+	assert.equal(imported.length, 2);
+	assert.equal(imported[0].tracklines_attachments[0].name, "design.png");
+	await pool.query(
+		"UPDATE stories SET is_estimated=true,final_estimate='4' WHERE session_id=$1",
+		[session.id],
+	);
+	assert.deepEqual(
+		(await planningState(session.id)).sprints.map((sprint) => sprint.id),
+		[futureId],
+	);
+	const forbidden = await planPokerStories(session.id, [
+		{ story_id: imported[0].id, planned_sprint_id: sprintId },
+	]);
+	assert.equal(forbidden[0]?.status, "failed");
+	assert.equal(plannedWrites.length, 0);
+	const batch = imported.map((story) => ({
+		story_id: story.id,
+		planned_sprint_id: futureId,
+	}));
+	const partial = await planPokerStories(session.id, batch);
+	assert.deepEqual(
+		partial.map((row) => row.status),
+		["failed", "planned"],
+	);
+	assert.equal(partial[0]?.error, "Capacity approval needed");
+	const firstPlan = batch[0];
+	assert.ok(firstPlan);
+	const retry = await planPokerStories(session.id, [firstPlan]);
+	assert.equal(retry[0]?.status, "planned");
+	assert.equal(plannedWrites.length, 2);
+	assert.ok(
+		plannedWrites.every(
+			(write) => write.target === futureId && write.estimate === "4",
+		),
+	);
+	await pool.query("UPDATE stories SET final_estimate='?' WHERE id=$1", [
+		imported[0].id,
+	]);
+	assert.equal(
+		(await planPokerStories(session.id, [firstPlan]))[0]?.status,
+		"skipped",
+	);
+	console.log(
+		"Poker integration checks passed: imported stories and attachments, board card sets, future-only planning, per-ticket failures, retry and abstention",
+	);
+
 	console.log(
 		"TrackLin.es checks passed: concurrent sprint webhook idempotency, default columns, live refresh, offline cache, anonymous links, unlink and authorization",
 	);
 } finally {
+	if (pokerSessionId)
+		await pool.query("DELETE FROM poker_sessions WHERE id=$1", [
+			pokerSessionId,
+		]);
 	if (ownerId) {
 		await pool.query("DELETE FROM boards WHERE owner_id=$1", [ownerId]);
 		await pool.query("DELETE FROM users WHERE id=$1", [ownerId]);

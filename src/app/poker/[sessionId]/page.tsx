@@ -18,6 +18,8 @@ import { useParams } from "next/navigation";
 import { useCallback, useEffect, useId, useState } from "react";
 import { toast } from "sonner";
 import { ParticipantList } from "~/components/poker/ParticipantList";
+import { TracklinesPlanning } from "~/components/poker/TracklinesPlanning";
+import { TracklinesStory } from "~/components/poker/TracklinesStory";
 import { VoteCard } from "~/components/poker/VoteCard";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
@@ -549,6 +551,7 @@ export default function PokerSessionPage() {
 			? mostCommon(
 					currentStory.votes.map((v) => v.vote_value),
 					session.estimation_type,
+					session.estimation_values ?? undefined,
 				)
 			: [];
 
@@ -738,8 +741,9 @@ export default function PokerSessionPage() {
 		}
 	};
 
-	const estimationValues =
-		ESTIMATION_VALUES[session?.estimation_type || "fibonacci"];
+	const estimationValues = session?.estimation_values
+		? [...session.estimation_values, "?"]
+		: ESTIMATION_VALUES[session?.estimation_type || "fibonacci"];
 
 	// Generate share URL
 	const shareUrl = session?.share_id
@@ -983,9 +987,13 @@ export default function PokerSessionPage() {
 									<div>
 										<CardTitle>Current Story</CardTitle>
 										<CardDescription>{currentStory.title}</CardDescription>
-										{currentStory.description && (
-											<p className="mt-2 text-sm">{currentStory.description}</p>
-										)}
+										<TracklinesStory story={currentStory} />
+										{!currentStory.tracklines_key &&
+											currentStory.description && (
+												<p className="mt-2 text-sm">
+													{currentStory.description}
+												</p>
+											)}
 									</div>
 									{sessionState.timer.isActive && (
 										<div
@@ -1213,6 +1221,14 @@ export default function PokerSessionPage() {
 					</Card>
 				</div>
 
+				<TracklinesPlanning
+					sessionId={sessionId}
+					facilitator={!!isFacilitator}
+					linked={!!session.tracklines_board_id}
+					revision={session.stories
+						.map((story) => `${story.id}:${story.final_estimate ?? ""}`)
+						.join(",")}
+				/>
 				{/* Participants */}
 				<div>
 					<ParticipantList

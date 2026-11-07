@@ -124,3 +124,11 @@ MIT
 With the `rb-5` flag enabled, signed `sprint.started` deliveries create one retro per connected user and sprint. Open that retro to refresh the sprint's ticket keys, titles and estimates; an unavailable connection shows the last saved list. Authors, including anonymous participants, can select sprint tickets while adding or editing cards. Their links are included in markdown exports.
 
 Deploy migration `005_tracklines_retros.sql` before enabling `rb-5` in both the client and server flag environments. The TrackLin.es board integration creates and promotes ticket flags; an unknown flag stays off. Normal retros remain available without a TrackLin.es connection. For an isolated database check, run `BACKEND_CHECK_DATABASE_URL=... bun scripts/check-tracklines.ts` after migrations.
+
+### TrackLin.es planning poker (RB-6)
+
+With `rb-6` enabled and your account connected, New Session offers Normal or TrackLin.es. Choose an accessible project and board to import its open backlog tickets, descriptions and attachments. Epics remain in TrackLin.es. The board supplies the exact voting cards, including powers of two and linear scales; average or most-common results stay on that scale.
+
+Facilitators can plan estimated stories into one of the board's future sprints. Current sprints are never offered or accepted. Each ticket shows its own outcome and failed writes can be retried individually; unknown or unestimated results are skipped. If no future sprint exists, follow the link to TrackLin.es to plan one. Normal sessions need no connection.
+
+Apply `006_tracklines_poker.sql` before enabling the feature. `scripts/check-tracklines.ts` exercises the import and future-only planning flow with a local TrackLin.es fixture API and an isolated PostgreSQL database.

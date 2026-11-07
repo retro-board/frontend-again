@@ -33,6 +33,7 @@ export interface Ticket {
 	estimate: string | null;
 	description?: string;
 	sprint_id?: string | null;
+	resolution?: string | null;
 }
 export interface Attachment {
 	id: string;

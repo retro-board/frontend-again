@@ -1,0 +1,12 @@
+ALTER TABLE poker_sessions DROP CONSTRAINT poker_sessions_estimation_type_check;
+ALTER TABLE poker_sessions ADD CONSTRAINT poker_sessions_estimation_type_check CHECK (estimation_type IN ('fibonacci','tshirt','oneToTen','powers','linear'));
+ALTER TABLE poker_sessions ADD COLUMN tracklines_project_id UUID;
+ALTER TABLE poker_sessions ADD COLUMN tracklines_board_id UUID;
+ALTER TABLE poker_sessions ADD COLUMN estimation_values TEXT[];
+ALTER TABLE stories ADD COLUMN tracklines_ticket_id UUID;
+ALTER TABLE stories ADD COLUMN tracklines_key TEXT;
+ALTER TABLE stories ADD COLUMN tracklines_url TEXT;
+ALTER TABLE stories ADD COLUMN tracklines_attachments JSONB NOT NULL DEFAULT '[]';
+ALTER TABLE stories ADD COLUMN tracklines_planned_sprint_id UUID;
+ALTER TABLE stories ADD COLUMN tracklines_planning_error TEXT;
+CREATE UNIQUE INDEX idx_stories_tracklines_ticket ON stories(session_id,tracklines_ticket_id) WHERE tracklines_ticket_id IS NOT NULL;

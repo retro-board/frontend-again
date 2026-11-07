@@ -1,4 +1,9 @@
-export type EstimationType = "fibonacci" | "tshirt" | "oneToTen";
+export type EstimationType =
+	| "fibonacci"
+	| "tshirt"
+	| "oneToTen"
+	| "powers"
+	| "linear";
 export type BoardRole = "owner" | "participant" | "observer";
 export type PokerRole = "facilitator" | "voter" | "observer";
 export type BoardPhase =
@@ -86,6 +91,8 @@ export interface BoardParticipant {
 }
 
 export interface PokerSession {
+	estimation_values?: string[] | null;
+	tracklines_board_id?: string | null;
 	id: string;
 	name: string;
 	description?: string;
@@ -104,6 +111,9 @@ export interface PokerSession {
 }
 
 export interface Story {
+	tracklines_key?: string | null;
+	tracklines_url?: string | null;
+	tracklines_attachments?: import("~/lib/tracklines/client").Attachment[];
 	id: string;
 	session_id: string;
 	title: string;
@@ -136,6 +146,8 @@ export interface PokerParticipant {
 
 // Estimation values for different types
 export const ESTIMATION_VALUES = {
+	powers: ["1", "2", "4", "8", "16", "?"],
+	linear: ["1", "2", "3", "4", "5", "?"],
 	fibonacci: ["0", "1", "2", "3", "5", "8", "13", "21", "34", "55", "89", "?"],
 	tshirt: ["XS", "S", "M", "L", "XL", "XXL", "?"],
 	oneToTen: ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "?"],
