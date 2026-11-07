@@ -234,3 +234,31 @@ export async function planPokerStories(
 	}
 	return results;
 }
+
+// syncStoryEstimate sends a story's result to its TrackLin.es ticket as soon as it's decided, so the ticket
+// is sized (and its history says so) without waiting to be planned. Never throws: the vote still counts;
+// a failure shows on the story like a planning one.
+export async function syncStoryEstimate(sessionId: string, storyId: string) {
+	const row = (
+		await getPool().query(
+			"SELECT s.id,s.tracklines_ticket_id,s.final_estimate,p.owner_id,p.tracklines_board_id FROM stories s JOIN poker_sessions p ON p.id=s.session_id WHERE s.id=$1 AND s.session_id=$2 AND s.tracklines_ticket_id IS NOT NULL AND p.tracklines_board_id IS NOT NULL",
+			[storyId, sessionId],
+		)
+	).rows[0];
+	if (!row?.final_estimate || row.final_estimate === "?") return;
+	let error: string | null = null;
+	try {
+		const api = await connectedClient(row.owner_id);
+		await api.setEstimate(
+			row.tracklines_ticket_id,
+			row.final_estimate,
+			row.tracklines_board_id,
+		);
+	} catch (e) {
+		error = e instanceof Error ? e.message : "Sending the estimate failed";
+	}
+	await getPool().query(
+		"UPDATE stories SET tracklines_planning_error=$2 WHERE id=$1",
+		[row.id, error],
+	);
+}

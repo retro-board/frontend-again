@@ -6,6 +6,7 @@ import {
 	planPokerStories,
 	pokerBacklog,
 	pokerSetup,
+	syncStoryEstimate,
 } from "./poker";
 import { tracklinesScale } from "./scales";
 
@@ -21,6 +22,7 @@ const api = {
 	attachments: jest.fn(),
 	plannedSprints: jest.fn(),
 	planTicket: jest.fn(),
+	setEstimate: jest.fn(),
 };
 const future = { id: "future", board_id: "board", number: 23 };
 const session = {
@@ -311,4 +313,36 @@ test("keeps each ticket's labels on its story, for filtering the list", async ()
 		expect.stringContaining("tracklines_labels"),
 		expect.arrayContaining([["frontend"]]),
 	);
+});
+
+test("sends a decided result to the ticket on the session's board, and keeps a failure on the story", async () => {
+	const row = {
+		id: "story",
+		tracklines_ticket_id: "ticket",
+		final_estimate: "4",
+		owner_id: "owner",
+		tracklines_board_id: "board",
+	};
+	query.mockResolvedValueOnce({ rows: [row] });
+	await syncStoryEstimate("session", "story");
+	expect(api.setEstimate).toHaveBeenCalledWith("ticket", "4", "board");
+	expect(query).toHaveBeenLastCalledWith(
+		expect.stringContaining("UPDATE stories"),
+		["story", null],
+	);
+
+	api.setEstimate.mockRejectedValueOnce(new Error("bad_estimate"));
+	query.mockResolvedValueOnce({ rows: [row] });
+	await syncStoryEstimate("session", "story");
+	expect(query).toHaveBeenLastCalledWith(
+		expect.stringContaining("UPDATE stories"),
+		["story", "bad_estimate"],
+	);
+
+	api.setEstimate.mockClear();
+	for (const rows of [[], [{ ...row, final_estimate: "?" }]]) {
+		query.mockResolvedValueOnce({ rows });
+		await syncStoryEstimate("session", "story");
+	}
+	expect(api.setEstimate).not.toHaveBeenCalled();
 });

@@ -5,6 +5,7 @@ import { reportError } from "~/lib/bugfixes";
 import { db } from "~/lib/db";
 import { PokerChannelClient } from "~/lib/realtime/poker-channel";
 import { serverRealtime } from "~/lib/realtime/server";
+import { syncStoryEstimate } from "~/lib/tracklines/poker";
 export async function POST(
 	request: Request,
 	{ params }: { params: Promise<{ sessionId: string }> },
@@ -163,6 +164,8 @@ export async function PATCH(
 			reportError("Error updating story:", error);
 			return NextResponse.json({ error: error.message }, { status: 500 });
 		}
+
+		await syncStoryEstimate(resolvedParams.sessionId, storyId);
 
 		return NextResponse.json({ story });
 	} catch (error) {

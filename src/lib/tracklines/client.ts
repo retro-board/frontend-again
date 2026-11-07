@@ -143,6 +143,12 @@ export function tracklines(key: string) {
 				planned_sprint_id: plannedSprintId,
 				estimate,
 			}),
+		// setEstimate sizes a backlog ticket without planning it, on boardId's scale (TL-851)
+		setEstimate: (ticketId: string, estimate: string, boardId: string) =>
+			call<void>("PUT", `/tickets/${id(ticketId)}/estimate`, {
+				estimate,
+				board_id: boardId,
+			}),
 		createWebhook: (url: string) =>
 			call<{ endpoint: { id: string }; secret: string }>(
 				"POST",
