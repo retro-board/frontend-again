@@ -119,3 +119,8 @@ bun run typecheck
 ## License
 
 MIT
+### TrackLin.es sprint retros (RB-5)
+
+With the `rb-5` flag enabled, signed `sprint.started` deliveries create one retro per connected user and sprint. Open that retro to refresh the sprint's ticket keys, titles and estimates; an unavailable connection shows the last saved list. Authors, including anonymous participants, can select sprint tickets while adding or editing cards. Their links are included in markdown exports.
+
+Deploy migration `005_tracklines_retros.sql` before enabling `rb-5` in both the client and server flag environments. The TrackLin.es board integration creates and promotes ticket flags; an unknown flag stays off. Normal retros remain available without a TrackLin.es connection. For an isolated database check, run `BACKEND_CHECK_DATABASE_URL=... bun scripts/check-tracklines.ts` after migrations.

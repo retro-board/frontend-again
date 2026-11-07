@@ -48,7 +48,15 @@ export interface Column {
 	created_at: Date;
 }
 
+export interface CardItem {
+	ticket_id: string;
+	ticket_key: string;
+	title: string;
+	url: string;
+}
+
 export interface Card {
+	items?: CardItem[];
 	id: string;
 	column_id: string;
 	content: string;

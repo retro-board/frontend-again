@@ -111,7 +111,8 @@ export async function GET(
 					*,
 					author:users(name, email),
 					anonymous_author:anonymous_users(display_name),
-					votes:card_votes(id, user_id, anonymous_user_id)
+					items:card_items(*),
+          votes:card_votes(id, user_id, anonymous_user_id)
 				)
 			`)
 			.eq("board_id", resolvedParams.boardId)

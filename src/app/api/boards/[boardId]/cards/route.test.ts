@@ -46,6 +46,7 @@ describe("/api/boards/[boardId]/cards POST", () => {
 
 			// Mock column fetch - regular column (not action) with board in setup
 			const mockColumn = {
+				board_id: "board_123",
 				id: "column_123",
 				name: "What went well",
 				is_action: false,
@@ -96,6 +97,7 @@ describe("/api/boards/[boardId]/cards POST", () => {
 
 			// Mock column fetch - action column with board in setup
 			const mockActionColumn = {
+				board_id: "board_123",
 				id: "column_action_123",
 				name: "Action Items",
 				is_action: true,
@@ -152,6 +154,7 @@ describe("/api/boards/[boardId]/cards POST", () => {
 
 			// Mock column fetch - regular column with board in creation phase
 			const mockColumn = {
+				board_id: "board_123",
 				id: "column_123",
 				name: "What went well",
 				is_action: false,
@@ -206,6 +209,7 @@ describe("/api/boards/[boardId]/cards POST", () => {
 
 			// Mock column fetch - action column with different owner
 			const mockActionColumn = {
+				board_id: "board_123",
 				id: "column_action_123",
 				name: "Action Items",
 				is_action: true,
@@ -259,6 +263,7 @@ describe("/api/boards/[boardId]/cards POST", () => {
 
 			// Mock column fetch - non-action column with paused timer
 			const mockColumn = {
+				board_id: "board_123",
 				id: "column_123",
 				name: "What went well",
 				is_action: false,
@@ -322,6 +327,7 @@ describe("/api/boards/[boardId]/cards POST", () => {
 
 			// Mock column fetch
 			const mockColumn = {
+				board_id: "board_123",
 				id: "column_123",
 				name: "What went well",
 				is_action: false,

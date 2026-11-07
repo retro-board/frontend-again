@@ -19,6 +19,7 @@ export function identifier(value: string) {
 
 // Only these schema relationships can be expanded by the server's queries.
 const foreignKeys: Record<string, Record<string, string>> = {
+	card_items: { cards: "card_id" },
 	boards: { users: "owner_id" },
 	columns: { boards: "board_id" },
 	cards: {

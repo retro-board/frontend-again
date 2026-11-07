@@ -1,4 +1,7 @@
 import { db } from "~/lib/db";
+import { flagEnabled } from "~/lib/flags";
+import type { Connection } from "~/lib/tracklines/connection";
+import { createSprintRetro, sprintEvent } from "~/lib/tracklines/retros";
 import { open, verifySignature } from "~/lib/tracklines/security";
 
 export const runtime = "nodejs";
@@ -14,7 +17,7 @@ export async function POST(
 	const body = await request.text();
 	const { data: row } = await db
 		.from("tracklines_connections")
-		.select("id, webhook_secret")
+		.select("*")
 		.eq("id", connectionId)
 		.maybeSingle();
 
@@ -32,6 +35,24 @@ export async function POST(
 	}
 	if (!signed) return new Response("bad signature", { status: 401 });
 
-	// ponytail: sprint.started is only acknowledged; RB-5 makes the sprint's retro from it
+	if (!(await flagEnabled("rb-5"))) return new Response(null, { status: 204 });
+	let event: { event?: string } | null = null;
+	try {
+		event = JSON.parse(body);
+	} catch {
+		return new Response("Invalid JSON", { status: 400 });
+	}
+	if (event?.event !== "sprint.started")
+		return new Response(null, { status: 204 });
+	const parsed = sprintEvent.safeParse(event);
+	if (!parsed.success)
+		return new Response("Invalid sprint event", { status: 400 });
+	try {
+		await createSprintRetro(row as Connection, parsed.data);
+	} catch {
+		return new Response("Could not create sprint retro; retry delivery", {
+			status: 503,
+		});
+	}
 	return new Response(null, { status: 204 });
 }

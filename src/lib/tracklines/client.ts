@@ -100,6 +100,10 @@ export function tracklines(key: string) {
 
 	return {
 		projects: () => call<Project[]>("GET", "/projects"),
+		board: (boardId: string) =>
+			call<BoardDetail>("GET", `/boards/${id(boardId)}`),
+		sprint: (sprintId: string) =>
+			call<Sprint & { tickets: Ticket[] }>("GET", `/sprints/${id(sprintId)}`),
 		boards: (projectId: string) =>
 			call<Board[]>("GET", `/projects/${id(projectId)}/boards`),
 		backlog: (projectId: string) =>

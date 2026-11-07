@@ -25,7 +25,7 @@ describe("usePokerTimer", () => {
 			expect(result.current.formattedTime).toBe("1:00");
 		});
 
-		it.skip("should update time remaining based on clock time", () => {
+		it("should update time remaining based on clock time", () => {
 			const { result, rerender } = renderHook(() => usePokerTimer());
 
 			act(() => {
@@ -36,8 +36,7 @@ describe("usePokerTimer", () => {
 
 			// Move clock forward and trigger update
 			act(() => {
-				jest.setSystemTime(new Date("2024-01-01T12:00:05Z"));
-				jest.advanceTimersByTime(0); // Trigger immediate update
+				jest.advanceTimersByTime(5000);
 			});
 			rerender();
 
@@ -87,7 +86,7 @@ describe("usePokerTimer", () => {
 			expect(result.current.formattedTime).toBe("0:30");
 		});
 
-		it.skip("should not start if end time is in the past", () => {
+		it("should not start if end time is in the past", () => {
 			const { result } = renderHook(() => usePokerTimer());
 
 			// Set end time in the past
@@ -98,7 +97,7 @@ describe("usePokerTimer", () => {
 			});
 
 			// Should still set active but with 0 time
-			expect(result.current.isActive).toBe(true);
+			expect(result.current.isActive).toBe(false);
 			expect(result.current.timeRemaining).toBe(0);
 		});
 	});
@@ -217,7 +216,7 @@ describe("usePokerTimer", () => {
 	});
 
 	describe("edge cases", () => {
-		it.skip("should handle restart while timer is active", () => {
+		it("should handle restart while timer is active", () => {
 			const { result, rerender } = renderHook(() => usePokerTimer());
 
 			act(() => {
@@ -228,8 +227,7 @@ describe("usePokerTimer", () => {
 
 			// Move time forward
 			act(() => {
-				jest.setSystemTime(new Date("2024-01-01T12:00:10Z"));
-				jest.advanceTimersByTime(0); // Trigger update
+				jest.advanceTimersByTime(10000);
 			});
 			rerender();
 
@@ -285,7 +283,7 @@ describe("usePokerTimer", () => {
 			expect(onExpire).toHaveBeenCalled();
 		});
 
-		it.skip("should handle negative duration", () => {
+		it("should handle negative duration", () => {
 			const { result } = renderHook(() => usePokerTimer());
 
 			act(() => {
@@ -293,7 +291,7 @@ describe("usePokerTimer", () => {
 			});
 
 			// Negative duration gets clamped to 0 by the timer logic
-			expect(result.current.isActive).toBe(true); // Still sets active
+			expect(result.current.isActive).toBe(false);
 			expect(result.current.timeRemaining).toBeLessThanOrEqual(0);
 		});
 	});
