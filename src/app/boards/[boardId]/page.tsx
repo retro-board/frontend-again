@@ -580,56 +580,58 @@ export default function BoardPage() {
 			</div>
 
 			<div className="flex flex-1 overflow-hidden">
-				<div className="flex-1 overflow-x-auto">
-					<div className="container mx-auto p-4">
-						<DndContext
-							collisionDetection={closestCenter}
-							onDragStart={(event) => {
-								const card = columns
-									.flatMap((col: ColumnWithCards) => col.cards)
-									.find(
-										(card: Card & { votes: CardVote[] }) =>
-											card.id === event.active.id,
-									);
-								setActiveCard(card || null);
-							}}
-							onDragEnd={handleDragEnd}
-						>
-							<div className="flex h-full gap-4">
-								{columns.map((column: ColumnWithCards) => (
-									<BoardColumn
-										key={column.id}
-										column={column}
-										currentUserId={currentUser?.id || anonymousData?.user?.id}
-										boardId={boardId}
-										onDeleteColumn={
-											isOwner
-												? () => deleteColumnMutation.mutate(column.id)
-												: undefined
-										}
-										isOwner={isOwner}
-										anonymousUser={anonymousData?.user}
-										boardPhase={board.phase}
-										phaseStartedAt={board.phase_started_at}
-										phaseEndsAt={board.phase_ends_at}
-									/>
-								))}
-							</div>
-							<DragOverlay>
-								{activeCard ? (
-									<CardComponent
-										card={activeCard}
-										boardId={boardId}
-										isDragging
-									/>
-								) : null}
-							</DragOverlay>
-						</DndContext>
+				<div className="flex min-w-0 flex-1 flex-col">
+					<div className="min-h-0 flex-1 overflow-auto">
+						<div className="container mx-auto p-4">
+							<DndContext
+								collisionDetection={closestCenter}
+								onDragStart={(event) => {
+									const card = columns
+										.flatMap((col: ColumnWithCards) => col.cards)
+										.find(
+											(card: Card & { votes: CardVote[] }) =>
+												card.id === event.active.id,
+										);
+									setActiveCard(card || null);
+								}}
+								onDragEnd={handleDragEnd}
+							>
+								<div className="flex h-full gap-4">
+									{columns.map((column: ColumnWithCards) => (
+										<BoardColumn
+											key={column.id}
+											column={column}
+											currentUserId={currentUser?.id || anonymousData?.user?.id}
+											boardId={boardId}
+											onDeleteColumn={
+												isOwner
+													? () => deleteColumnMutation.mutate(column.id)
+													: undefined
+											}
+											isOwner={isOwner}
+											anonymousUser={anonymousData?.user}
+											boardPhase={board.phase}
+											phaseStartedAt={board.phase_started_at}
+											phaseEndsAt={board.phase_ends_at}
+										/>
+									))}
+								</div>
+								<DragOverlay>
+									{activeCard ? (
+										<CardComponent
+											card={activeCard}
+											boardId={boardId}
+											isDragging
+										/>
+									) : null}
+								</DragOverlay>
+							</DndContext>
+						</div>
 					</div>
+					<SprintItems boardId={boardId} />
 				</div>
 
 				<div className="w-80 overflow-y-auto border-l p-4">
-					<SprintItems boardId={boardId} />
 					<BoardTimer board={board} isOwner={isOwner} />
 
 					{/* Grace period countdown */}
