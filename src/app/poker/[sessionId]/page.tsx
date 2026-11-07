@@ -18,6 +18,7 @@ import { useParams } from "next/navigation";
 import { useCallback, useEffect, useId, useState } from "react";
 import { toast } from "sonner";
 import { Markdown } from "~/components/Markdown";
+import { usePaged } from "~/components/Pager";
 import { ParticipantList } from "~/components/poker/ParticipantList";
 import { TracklinesPlanning } from "~/components/poker/TracklinesPlanning";
 import { TracklinesStory } from "~/components/poker/TracklinesStory";
@@ -206,6 +207,8 @@ export default function PokerSessionPage() {
 	const currentStory = session?.stories.find(
 		(s) => s.id === session.current_story_id,
 	);
+
+	const storyList = usePaged(session?.stories ?? []);
 
 	// Check if user is facilitator
 	const isFacilitator = session?.participants.some(
@@ -1173,7 +1176,7 @@ export default function PokerSessionPage() {
 						</CardHeader>
 						<CardContent>
 							<div className="space-y-2">
-								{session.stories.map((story) => (
+								{storyList.items.map((story) => (
 									// biome-ignore lint/a11y/useKeyWithClickEvents: hmm
 									// biome-ignore lint/a11y/noStaticElementInteractions: hmm
 									<div
@@ -1193,7 +1196,7 @@ export default function PokerSessionPage() {
 										}}
 									>
 										<div className="flex items-center justify-between">
-											<div className="flex-1">
+											<div className="wrap-anywhere min-w-0 flex-1">
 												{story.tracklines_key && (
 													<p className="font-mono text-muted-foreground text-xs">
 														{story.tracklines_key}
@@ -1221,6 +1224,7 @@ export default function PokerSessionPage() {
 										</div>
 									</div>
 								))}
+								{storyList.pager}
 								{session.stories.length === 0 && (
 									<p className="py-8 text-center text-muted-foreground">
 										No stories added yet

@@ -4,6 +4,7 @@ import { useFlags } from "@flags-gg/react-library";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CalendarPlus, ChevronLeft } from "lucide-react";
 import { useState } from "react";
+import { usePaged } from "~/components/Pager";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import {
@@ -60,6 +61,7 @@ export function TracklinesPlanning({
 		retry: false,
 		queryFn: () => tracklinesRequest(path),
 	});
+	const storyList = usePaged(query.data?.stories ?? []);
 	const mutation = useMutation({
 		mutationFn: async (storyIds: string[]) =>
 			tracklinesRequest(path, {
@@ -134,7 +136,7 @@ export function TracklinesPlanning({
 							.
 						</p>
 					)}
-					{query.data?.stories.map((story) => {
+					{storyList.items.map((story) => {
 						const counted =
 							story.is_estimated &&
 							!!story.final_estimate &&
@@ -212,6 +214,7 @@ export function TracklinesPlanning({
 							</div>
 						);
 					})}
+					{storyList.pager}
 					{mutation.error && <p role="alert">{mutation.error.message}</p>}
 				</section>
 				<SheetFooter className="shrink-0 flex-row justify-between border-t">
