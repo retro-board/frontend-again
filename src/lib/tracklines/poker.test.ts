@@ -1,9 +1,11 @@
 import { clientFor } from "./connection";
 import {
 	createTracklinesPoker,
+	nextPokerSessionName,
 	planningState,
 	planPokerStories,
 	pokerBacklog,
+	pokerSetup,
 } from "./poker";
 import { tracklinesScale } from "./scales";
 
@@ -47,6 +49,7 @@ beforeEach(() => {
 	api.board.mockResolvedValue({
 		id: "board",
 		project_id: "project",
+		name: "Frontend",
 		estimate_scale: "powers",
 		sprint: { id: "current" },
 	});
@@ -89,13 +92,17 @@ function planningRows(stories = [story]) {
 }
 test("imports backlog stories and attachments atomically on the board's scale", async () => {
 	query.mockImplementation(async (sql: string) => ({
-		rows: sql.startsWith("INSERT INTO poker_sessions") ? [session] : [],
+		rows: sql.startsWith("INSERT INTO poker_sessions")
+			? [session]
+			: sql.startsWith("INSERT INTO tracklines_poker_counters")
+				? [{ last_number: "1" }]
+				: [],
 	}));
 	expect(await createTracklinesPoker("owner", input)).toEqual(session);
 	expect(query).toHaveBeenCalledWith(
 		expect.stringContaining("INSERT INTO poker_sessions"),
 		[
-			"Poker",
+			"Frontend - 1",
 			null,
 			"owner",
 			"powers",
@@ -103,6 +110,7 @@ test("imports backlog stories and attachments atomically on the board's scale", 
 			"project",
 			"board",
 			["1", "2", "4", "8", "16"],
+			"1",
 		],
 	);
 	expect(api.attachments).toHaveBeenCalledTimes(1);
@@ -116,6 +124,7 @@ test("rejects no-scale boards, the wrong project, and disconnected accounts", as
 	api.board.mockResolvedValueOnce({
 		id: "board",
 		project_id: "project",
+		name: "Frontend",
 		estimate_scale: "none",
 	});
 	await expect(pokerBacklog(api as never, "project", "board")).rejects.toThrow(
@@ -239,4 +248,44 @@ test("an empty planned-sprint list cannot be bypassed by submitting an ID", asyn
 		)[0]?.status,
 	).toBe("failed");
 	expect(api.planTicket).not.toHaveBeenCalled();
+});
+
+test("accepts TrackLin.es setup without a manually entered session name", () => {
+	expect(
+		pokerSetup.parse({
+			project_id: "11111111-1111-4111-8111-111111111111",
+			board_id: "22222222-2222-4222-8222-222222222222",
+		}),
+	).toEqual(expect.objectContaining({ result_method: "average" }));
+});
+
+test("previews the next board-specific name for the connected user", async () => {
+	query
+		.mockResolvedValueOnce({ rows: [] })
+		.mockResolvedValueOnce({ rows: [{ last_number: "12" }] });
+	expect(await nextPokerSessionName("owner", "board", "Frontend")).toBe(
+		"Frontend - 1",
+	);
+	expect(await nextPokerSessionName("owner", "board", "Frontend")).toBe(
+		"Frontend - 13",
+	);
+	expect(query).toHaveBeenCalledWith(
+		expect.stringContaining("user_id=$1 AND board_id=$2"),
+		["owner", "board"],
+	);
+});
+
+test("rolls the numbering allocation back with a failed session creation", async () => {
+	query.mockImplementation(async (sql: string) => {
+		if (sql.startsWith("INSERT INTO tracklines_poker_counters"))
+			return { rows: [{ last_number: "7" }] };
+		if (sql.startsWith("INSERT INTO poker_sessions"))
+			throw new Error("session failed");
+		return { rows: [] };
+	});
+	await expect(createTracklinesPoker("owner", input)).rejects.toThrow(
+		"session failed",
+	);
+	expect(query).toHaveBeenCalledWith("ROLLBACK");
+	expect(query).not.toHaveBeenCalledWith("COMMIT");
 });

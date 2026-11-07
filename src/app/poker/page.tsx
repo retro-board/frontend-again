@@ -99,7 +99,6 @@ export default function PokerPage() {
 			if (tracklinesSource)
 				return (
 					await tracklinesRequest("/api/tracklines/poker", {
-						name,
 						description,
 						result_method,
 						...tracklinesSource,
@@ -145,7 +144,7 @@ export default function PokerPage() {
 	});
 
 	const handleCreateSession = () => {
-		if (name.trim()) {
+		if (tracklinesSource || name.trim()) {
 			createSessionMutation.mutate({
 				name,
 				description,
@@ -226,15 +225,17 @@ export default function PokerPage() {
 						</DialogHeader>
 						<div className="grid gap-4 py-4">
 							<TracklinesSetup onChange={setTracklinesSource} />
-							<div className="grid gap-2">
-								<Label htmlFor="name">Session Name</Label>
-								<Input
-									id={`${elemId}-name`}
-									value={name}
-									onChange={(e) => setName(e.target.value)}
-									placeholder="Sprint 23 Planning"
-								/>
-							</div>
+							{!tracklinesSource && (
+								<div className="grid gap-2">
+									<Label htmlFor={`${elemId}-name`}>Session Name</Label>
+									<Input
+										id={`${elemId}-name`}
+										value={name}
+										onChange={(e) => setName(e.target.value)}
+										placeholder="Sprint 23 Planning"
+									/>
+								</div>
+							)}
 							<div className="grid gap-2">
 								<Label htmlFor="description">Description (optional)</Label>
 								<Textarea
@@ -307,7 +308,7 @@ export default function PokerPage() {
 							<Button
 								onClick={handleCreateSession}
 								disabled={
-									!name.trim() ||
+									(!tracklinesSource && !name.trim()) ||
 									createSessionMutation.isPending ||
 									(!!tracklinesSource &&
 										(!tracklinesSource.project_id ||

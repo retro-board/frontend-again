@@ -50,6 +50,7 @@ export function TracklinesSetup({
 	});
 	const backlog = useQuery<{
 		tickets: { id: string }[];
+		session_name?: string;
 		scale: { values: string[] };
 	}>({
 		queryKey: ["tracklines-poker-backlog", project, board],
@@ -137,6 +138,11 @@ export function TracklinesSetup({
 							</option>
 						))}
 					</select>
+					{backlog.data?.session_name && (
+						<p role="status">
+							Session name: <strong>{backlog.data.session_name}</strong>
+						</p>
+					)}
 					{backlog.data && (
 						<p>
 							{backlog.data.tickets.length} backlog tickets · Cards:{" "}

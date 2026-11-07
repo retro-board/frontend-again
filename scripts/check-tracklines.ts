@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
+import { readFile } from "node:fs/promises";
 import { createServer } from "node:http";
-import { getPool } from "../src/lib/db";
+import { getPool, identifier } from "../src/lib/db";
 import type { Connection } from "../src/lib/tracklines/connection";
 import {
 	createTracklinesPoker,
@@ -31,7 +32,9 @@ let online = true;
 let failNextPlan = true;
 const plannedWrites: { ticket: string; target: string; estimate: string }[] =
 	[];
-let tickets = [{ id: ticketId, key: "TL-1", title: "Ship", estimate: "5" }];
+let tickets: { id: string; key: string; title: string; estimate: string }[] = [
+	{ id: ticketId, key: "TL-1", title: "Ship", estimate: "5" },
+];
 const server = createServer((request, response) => {
 	if (!online) {
 		response.writeHead(503);
@@ -109,8 +112,83 @@ process.env.TRACKLINES_API_URL = `http://127.0.0.1:${address.port}`;
 const pool = getPool();
 let ownerId: string | undefined;
 let guestId: string | undefined;
-let pokerSessionId: string | undefined;
+async function checkNamingBackfill() {
+	const client = await pool.connect();
+	try {
+		await client.query("BEGIN");
+		const schema = identifier(
+			`poker_names_${randomUUID().replaceAll("-", "")}`,
+		);
+		await client.query(`CREATE SCHEMA ${schema}`);
+		await client.query(`SET LOCAL search_path TO ${schema}, public`);
+		await client.query(
+			"CREATE TABLE users (id UUID PRIMARY KEY); CREATE TABLE poker_sessions (id UUID PRIMARY KEY, owner_id UUID REFERENCES users(id), tracklines_board_id UUID, created_at TIMESTAMPTZ, name TEXT)",
+		);
+		const firstUser = randomUUID();
+		const secondUser = randomUUID();
+		const board = randomUUID();
+		await client.query("INSERT INTO users VALUES ($1),($2)", [
+			firstUser,
+			secondUser,
+		]);
+		await client.query(
+			"INSERT INTO poker_sessions VALUES ($1,$2,$3,'2026-01-01','Existing name'),($4,$2,$3,'2026-01-02','Another name'),($5,$6,$3,'2026-01-03','Other user'),($7,$2,NULL,'2026-01-04','Normal session')",
+			[
+				randomUUID(),
+				firstUser,
+				board,
+				randomUUID(),
+				randomUUID(),
+				secondUser,
+				randomUUID(),
+			],
+		);
+		await client.query(
+			await readFile(
+				new URL(
+					"../db/migrations/007_poker_session_numbers.sql",
+					import.meta.url,
+				),
+				"utf8",
+			),
+		);
+		const counters = (
+			await client.query(
+				"SELECT user_id,last_number FROM tracklines_poker_counters",
+			)
+		).rows;
+		assert.equal(
+			counters.find((row) => row.user_id === firstUser)?.last_number,
+			"2",
+		);
+		assert.equal(
+			counters.find((row) => row.user_id === secondUser)?.last_number,
+			"1",
+		);
+		const existing = (
+			await client.query(
+				"SELECT name,tracklines_session_number FROM poker_sessions ORDER BY created_at",
+			)
+		).rows;
+		assert.deepEqual(
+			existing.map((row) => row.name),
+			["Existing name", "Another name", "Other user", "Normal session"],
+		);
+		assert.deepEqual(
+			existing.map((row) => row.tracklines_session_number),
+			["1", "2", "1", null],
+		);
+		console.log(
+			"Naming migration checks passed: existing names preserved, counters backfilled per user/board, normal sessions unchanged",
+		);
+	} finally {
+		await client.query("ROLLBACK");
+		client.release();
+	}
+}
+
 try {
+	await checkNamingBackfill();
 	ownerId = (
 		await pool.query(
 			"INSERT INTO users (clerk_id,email) VALUES ($1,'fixture@example.test') RETURNING id",
@@ -222,12 +300,11 @@ try {
 	);
 	online = true;
 	const session = await createTracklinesPoker(ownerId ?? "", {
-		name: "Integration poker",
 		project_id: projectId,
 		board_id: boardId,
 		result_method: "mode",
 	});
-	pokerSessionId = session.id;
+	assert.equal(session.name, "Frontend - 1");
 	assert.equal(session.estimation_type, "powers");
 	assert.deepEqual(session.estimation_values, ["1", "2", "4", "8", "16"]);
 	const imported = (
@@ -278,6 +355,45 @@ try {
 		(await planPokerStories(session.id, [firstPlan]))[0]?.status,
 		"skipped",
 	);
+	const namingInput = {
+		project_id: projectId,
+		board_id: boardId,
+		result_method: "average" as const,
+	};
+	const simultaneous = await Promise.all([
+		createTracklinesPoker(ownerId ?? "", namingInput),
+		createTracklinesPoker(ownerId ?? "", namingInput),
+	]);
+	assert.deepEqual(simultaneous.map((row) => row.name).sort(), [
+		"Frontend - 2",
+		"Frontend - 3",
+	]);
+	const third = simultaneous.find((row) => row.name === "Frontend - 3");
+	assert.ok(third);
+	await pool.query("DELETE FROM poker_sessions WHERE id=$1", [third.id]);
+	assert.equal(
+		(await createTracklinesPoker(ownerId ?? "", namingInput)).name,
+		"Frontend - 4",
+	);
+	const savedTickets = tickets;
+	tickets = [
+		{
+			id: "invalid-uuid",
+			key: "TL-INVALID",
+			title: "Broken import",
+			estimate: "3",
+		},
+	];
+	await assert.rejects(createTracklinesPoker(ownerId ?? "", namingInput));
+	tickets = savedTickets;
+	assert.equal(
+		(await createTracklinesPoker(ownerId ?? "", namingInput)).name,
+		"Frontend - 5",
+	);
+	console.log(
+		"Poker naming checks passed: generated names, concurrent allocation, deleted sessions and rolled-back numbering",
+	);
+
 	console.log(
 		"Poker integration checks passed: imported stories and attachments, board card sets, future-only planning, per-ticket failures, retry and abstention",
 	);
@@ -286,10 +402,8 @@ try {
 		"TrackLin.es checks passed: concurrent sprint webhook idempotency, default columns, live refresh, offline cache, anonymous links, unlink and authorization",
 	);
 } finally {
-	if (pokerSessionId)
-		await pool.query("DELETE FROM poker_sessions WHERE id=$1", [
-			pokerSessionId,
-		]);
+	if (ownerId)
+		await pool.query("DELETE FROM poker_sessions WHERE owner_id=$1", [ownerId]);
 	if (ownerId) {
 		await pool.query("DELETE FROM boards WHERE owner_id=$1", [ownerId]);
 		await pool.query("DELETE FROM users WHERE id=$1", [ownerId]);

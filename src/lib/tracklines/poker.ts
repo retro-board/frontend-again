@@ -6,7 +6,8 @@ import { clientFor } from "./connection";
 import { tracklinesScale } from "./scales";
 
 export const pokerSetup = z.object({
-	name: z.string().trim().min(1).max(200),
+	// Accept older clients while generating the stored name on the server.
+	name: z.string().max(200).optional(),
 	description: z.string().max(10000).optional(),
 	project_id: z.string().uuid(),
 	board_id: z.string().uuid(),
@@ -48,6 +49,25 @@ export async function pokerBacklog(
 	return { board, scale, tickets };
 }
 
+export function pokerSessionName(boardName: string, number: string | number) {
+	return `${boardName} - ${number}`;
+}
+
+export async function nextPokerSessionName(
+	userId: string,
+	boardId: string,
+	boardName: string,
+) {
+	const { rows } = await getPool().query(
+		"SELECT last_number FROM tracklines_poker_counters WHERE user_id=$1 AND board_id=$2",
+		[userId, boardId],
+	);
+	return pokerSessionName(
+		boardName,
+		(BigInt(rows[0]?.last_number ?? 0) + 1n).toString(),
+	);
+}
+
 export async function createTracklinesPoker(
 	userId: string,
 	input: z.infer<typeof pokerSetup>,
@@ -70,11 +90,17 @@ export async function createTracklinesPoker(
 	const client = await getPool().connect();
 	try {
 		await client.query("BEGIN");
+		const counter = await client.query(
+			"INSERT INTO tracklines_poker_counters AS c (user_id,board_id,last_number) VALUES ($1,$2,1) ON CONFLICT (user_id,board_id) DO UPDATE SET last_number=c.last_number+1 RETURNING last_number",
+			[userId, board.id],
+		);
+		const number = counter.rows[0]?.last_number;
+		if (!number) throw new Error("Could not allocate poker session number");
 		const session = (
 			await client.query(
-				"INSERT INTO poker_sessions (name,description,owner_id,estimation_type,result_method,tracklines_project_id,tracklines_board_id,estimation_values) VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *",
+				"INSERT INTO poker_sessions (name,description,owner_id,estimation_type,result_method,tracklines_project_id,tracklines_board_id,estimation_values,tracklines_session_number) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *",
 				[
-					input.name,
+					pokerSessionName(board.name, number),
 					input.description ?? null,
 					userId,
 					scale.type,
@@ -82,6 +108,7 @@ export async function createTracklinesPoker(
 					input.project_id,
 					board.id,
 					scale.values,
+					number,
 				],
 			)
 		).rows[0];
