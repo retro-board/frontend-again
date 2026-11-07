@@ -547,6 +547,8 @@ export default function PokerSessionPage() {
 			setSelectedVote(null);
 			setIsFinalizingVoting(false); // Reset when new story is selected
 			setShowConsensusResult(null); // Clear any previous consensus display
+			// back to the top, where the new story and its estimates are
+			window.scrollTo({ top: 0, behavior: "smooth" });
 		},
 		onError: (error) => toast.error(error.message || "Failed to switch story"),
 		// The story is saved before the live updates go out: refresh even if one of those fails
