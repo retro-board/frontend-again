@@ -47,12 +47,21 @@ export default function RootLayout({
 								routerConfig={extractRouterConfig(ourFileRouter)}
 							/>
 							<div
-								className={"relative flex min-h-screen flex-col bg-muted/49"}
+								className={
+									// a page marked data-fill-screen (the board) is sized to the window and scrolls inside
+									"relative flex min-h-screen flex-col bg-muted/49 has-[[data-fill-screen]]:h-dvh has-[[data-fill-screen]]:min-h-0"
+								}
 							>
-								<div className={"flex size-full flex-col sm:py-2"}>
+								<div
+									className={
+										"flex size-full flex-col has-[[data-fill-screen]]:min-h-0 sm:py-2"
+									}
+								>
 									<HeaderBar />
 									<main
-										className={"size-full flex-1 p-2 pb-0"}
+										className={
+											"size-full flex-1 p-2 pb-0 has-[[data-fill-screen]]:min-h-0"
+										}
 										suppressHydrationWarning
 									>
 										{children}

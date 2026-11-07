@@ -100,8 +100,8 @@ export function BoardColumn({
 	};
 
 	return (
-		<div className="w-80 flex-shrink-0">
-			<UICard className="h-full">
+		<div className="h-full w-80 flex-shrink-0">
+			<UICard className="h-full min-h-0">
 				<CardHeader
 					className="p-4"
 					style={{ backgroundColor: `${column.color}20` }}
@@ -132,7 +132,11 @@ export function BoardColumn({
 					</div>
 				</CardHeader>
 				<CardContent
-					className={cn("p-4", isDropDisabled && "bg-muted/50 opacity-50")}
+					// the column's own scroll area: the header stays put while its cards scroll
+					className={cn(
+						"min-h-0 flex-1 overflow-y-auto p-4",
+						isDropDisabled && "bg-muted/50 opacity-50",
+					)}
 					ref={setNodeRef}
 				>
 					{isDropDisabled && !isOwner && (
