@@ -1,4 +1,4 @@
-import { TracklinesError, tracklines } from "./client";
+import { hasLabel, TracklinesError, tracklines } from "./client";
 
 beforeEach(() => {
 	jest.clearAllMocks();
@@ -70,4 +70,9 @@ test("preserves TrackLin.es authorization errors so the connection can request a
 	await expect(tracklines("tl_s_test").boards("project")).rejects.toEqual(
 		new TracklinesError("Service key revoked", 403),
 	);
+});
+test("hasLabel matches labels case-insensitively", () => {
+	expect(hasLabel({ labels: ["Frontend"] }, "frontend")).toBe(true);
+	expect(hasLabel({ labels: ["backend"] }, "frontend")).toBe(false);
+	expect(hasLabel({}, "frontend")).toBe(false);
 });

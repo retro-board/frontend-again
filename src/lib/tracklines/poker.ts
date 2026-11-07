@@ -118,7 +118,7 @@ export async function createTracklinesPoker(
 		);
 		for (const [position, { ticket, attachments }] of stories.entries())
 			await client.query(
-				"INSERT INTO stories (session_id,title,description,position,tracklines_ticket_id,tracklines_key,tracklines_url,tracklines_attachments) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)",
+				"INSERT INTO stories (session_id,title,description,position,tracklines_ticket_id,tracklines_key,tracklines_url,tracklines_attachments,tracklines_labels) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)",
 				[
 					session.id,
 					ticket.title,
@@ -128,6 +128,7 @@ export async function createTracklinesPoker(
 					ticket.key,
 					`https://tracklin.es/tickets/${encodeURIComponent(ticket.id)}`,
 					JSON.stringify(attachments),
+					ticket.labels ?? [],
 				],
 			);
 		await client.query("COMMIT");

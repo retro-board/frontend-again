@@ -114,6 +114,7 @@ export interface Story {
 	tracklines_key?: string | null;
 	tracklines_url?: string | null;
 	tracklines_attachments?: import("~/lib/tracklines/client").Attachment[];
+	tracklines_labels?: string[];
 	id: string;
 	session_id: string;
 	title: string;

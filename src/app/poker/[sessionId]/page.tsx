@@ -53,6 +53,7 @@ import {
 	RESULT_METHODS,
 	type ResultMethod,
 } from "~/lib/poker/score";
+import { hasLabel } from "~/lib/tracklines/client";
 import type {
 	AnonymousUser,
 	PokerSession,
@@ -214,7 +215,21 @@ export default function PokerSessionPage() {
 		(s) => s.id === session.current_story_id,
 	);
 
-	const storyList = usePaged(session?.stories ?? []);
+	// The stories list can be narrowed to one TrackLin.es label (e.g. "frontend"); it's only a
+	// view: every backlog ticket stays in the session, in case one is labelled wrong
+	const [storyLabel, setStoryLabel] = useState("");
+	const labelCounts = new Map<string, number>();
+	for (const story of session?.stories ?? [])
+		for (const label of story.tracklines_labels ?? [])
+			labelCounts.set(label, (labelCounts.get(label) ?? 0) + 1);
+	const storyLabels = [...labelCounts].sort((a, b) => b[1] - a[1]);
+	const storyList = usePaged(
+		(session?.stories ?? []).filter(
+			(story) =>
+				!storyLabel ||
+				hasLabel({ labels: story.tracklines_labels }, storyLabel),
+		),
+	);
 
 	// Check if user is facilitator
 	const isFacilitator = session?.participants.some(
@@ -1172,7 +1187,24 @@ export default function PokerSessionPage() {
 					{/* Story List */}
 					<Card>
 						<CardHeader>
-							<CardTitle>Stories</CardTitle>
+							<div className="flex flex-wrap items-center justify-between gap-2">
+								<CardTitle>Stories</CardTitle>
+								{storyLabels.length > 0 && (
+									<select
+										aria-label="Filter stories by label"
+										className="rounded border bg-background p-2 text-sm"
+										value={storyLabel}
+										onChange={(event) => setStoryLabel(event.target.value)}
+									>
+										<option value="">All labels</option>
+										{storyLabels.map(([label, count]) => (
+											<option key={label} value={label}>
+												{label} ({count})
+											</option>
+										))}
+									</select>
+								)}
+							</div>
 						</CardHeader>
 						<CardContent>
 							<div className="space-y-2">

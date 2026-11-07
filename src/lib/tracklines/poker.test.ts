@@ -289,3 +289,26 @@ test("rolls the numbering allocation back with a failed session creation", async
 	expect(query).toHaveBeenCalledWith("ROLLBACK");
 	expect(query).not.toHaveBeenCalledWith("COMMIT");
 });
+test("keeps each ticket's labels on its story, for filtering the list", async () => {
+	api.backlog.mockResolvedValue([
+		{
+			id: "ticket",
+			key: "TL-1",
+			title: "UI",
+			type: "task",
+			labels: ["frontend"],
+		},
+	]);
+	query.mockImplementation(async (sql: string) => ({
+		rows: sql.startsWith("INSERT INTO poker_sessions")
+			? [session]
+			: sql.startsWith("INSERT INTO tracklines_poker_counters")
+				? [{ last_number: "1" }]
+				: [],
+	}));
+	await createTracklinesPoker("owner", input);
+	expect(query).toHaveBeenCalledWith(
+		expect.stringContaining("tracklines_labels"),
+		expect.arrayContaining([["frontend"]]),
+	);
+});

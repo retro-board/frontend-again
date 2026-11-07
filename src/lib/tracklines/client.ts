@@ -34,6 +34,7 @@ export interface Ticket {
 	description?: string;
 	sprint_id?: string | null;
 	resolution?: string | null;
+	labels?: string[];
 }
 export interface Attachment {
 	id: string;
@@ -60,6 +61,12 @@ export interface PlannedSprint {
 interface BoardDetail extends Board {
 	sprint?: Sprint;
 	columns: { tickets?: Ticket[] }[];
+}
+
+// TrackLin.es labels are case-insensitive
+export function hasLabel(ticket: { labels?: string[] }, label: string) {
+	const wanted = label.toLowerCase();
+	return !!ticket.labels?.some((l) => l.toLowerCase() === wanted);
 }
 
 const BASE = () =>
