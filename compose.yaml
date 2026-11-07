@@ -21,3 +21,27 @@ services:
       interval: 2s
       timeout: 2s
       retries: 20
+  # The site itself, built like production: docker compose --profile app up --build
+  # Reads .env; the database, Redis and Bugfixes settings below override it.
+  app:
+    profiles: ["app"]
+    build:
+      context: .
+      args:
+        NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY:-}
+        NEXT_PUBLIC_FLAGS_PROJECT_ID: ${NEXT_PUBLIC_FLAGS_PROJECT_ID:-}
+        NEXT_PUBLIC_FLAGS_AGENT_ID: ${NEXT_PUBLIC_FLAGS_AGENT_ID:-}
+        NEXT_PUBLIC_FLAGS_ENVIRONMENT: ${NEXT_PUBLIC_FLAGS_ENVIRONMENT:-}
+    env_file: .env
+    environment:
+      DATABASE_URL: postgres://retro:retro@postgres:5432/retro
+      REDIS_URL: redis://redis:6379
+      BUGFIXES_LOCAL_ONLY: "true" # local errors stay out of the production Bugfixes project
+    command: ["sh", "-c", "bun scripts/migrate.ts && exec bun server.js"]
+    ports:
+      - "127.0.0.1:3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
