@@ -40,7 +40,7 @@ export function SprintItems({ boardId }: { boardId: string }) {
 	if (!enabled || (!data?.linked && !error)) return null;
 	return (
 		<Sheet>
-			<div className="mb-4">
+			<div>
 				<SheetTrigger asChild>
 					<Button variant="outline" className="w-full justify-between">
 						<span className="flex items-center gap-2">

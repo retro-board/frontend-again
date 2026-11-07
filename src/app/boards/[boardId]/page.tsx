@@ -471,8 +471,9 @@ export default function BoardPage() {
 	}
 
 	return (
-		<div className="flex h-screen flex-col">
-			<div className="border-b p-4">
+		// fits the window under the site header: columns scroll sideways, each column's cards scroll inside it
+		<div data-fill-screen className="flex h-full min-h-0 flex-col">
+			<div className="shrink-0 border-b p-4">
 				<div className="container mx-auto flex items-center justify-between">
 					<div>
 						<h1 className="font-bold text-2xl">{board.name}</h1>
@@ -579,10 +580,10 @@ export default function BoardPage() {
 				</div>
 			</div>
 
-			<div className="flex flex-1 overflow-hidden">
+			<div className="flex min-h-0 flex-1 overflow-hidden">
 				<div className="flex min-w-0 flex-1 flex-col">
-					<div className="min-h-0 flex-1 overflow-auto">
-						<div className="container mx-auto p-4">
+					<div className="min-h-0 flex-1 overflow-x-auto overflow-y-hidden">
+						<div className="h-full w-max min-w-full p-4">
 							<DndContext
 								collisionDetection={closestCenter}
 								onDragStart={(event) => {
@@ -630,42 +631,47 @@ export default function BoardPage() {
 					</div>
 				</div>
 
-				<div className="w-80 overflow-y-auto border-l p-4">
-					<BoardTimer board={board} isOwner={isOwner} />
+				<div className="flex w-80 shrink-0 flex-col border-l">
+					<div className="min-h-0 flex-1 overflow-y-auto p-4">
+						<BoardTimer board={board} isOwner={isOwner} />
 
-					{/* Grace period countdown */}
-					{showGracePeriod && board?.phase === "voting" && (
-						<div className="mt-4 rounded-lg border-2 border-orange-500 bg-orange-50 p-4">
-							<div className="text-center">
-								<p className="font-semibold text-orange-900 text-sm">
-									All votes used!
-								</p>
-								<p className="mt-1 text-orange-700 text-xs">
-									Voting will end automatically in:
-								</p>
-								<p className="mt-2 font-bold text-2xl text-orange-900">
-									{gracePeriodSeconds}s
-								</p>
-								{isOwner && (
-									<button
-										type="button"
-										onClick={() => {
-											if (gracePeriodTimer) {
-												clearTimeout(gracePeriodTimer);
-												setGracePeriodTimer(null);
-												setShowGracePeriod(false);
-												toast("Grace period cancelled");
-											}
-										}}
-										className="mt-3 text-orange-600 text-xs underline hover:text-orange-800"
-									>
-										Cancel auto-end
-									</button>
-								)}
+						{/* Grace period countdown */}
+						{showGracePeriod && board?.phase === "voting" && (
+							<div className="mt-4 rounded-lg border-2 border-orange-500 bg-orange-50 p-4">
+								<div className="text-center">
+									<p className="font-semibold text-orange-900 text-sm">
+										All votes used!
+									</p>
+									<p className="mt-1 text-orange-700 text-xs">
+										Voting will end automatically in:
+									</p>
+									<p className="mt-2 font-bold text-2xl text-orange-900">
+										{gracePeriodSeconds}s
+									</p>
+									{isOwner && (
+										<button
+											type="button"
+											onClick={() => {
+												if (gracePeriodTimer) {
+													clearTimeout(gracePeriodTimer);
+													setGracePeriodTimer(null);
+													setShowGracePeriod(false);
+													toast("Grace period cancelled");
+												}
+											}}
+											className="mt-3 text-orange-600 text-xs underline hover:text-orange-800"
+										>
+											Cancel auto-end
+										</button>
+									)}
+								</div>
 							</div>
-						</div>
-					)}
-					<SprintItems boardId={boardId} />
+						)}
+					</div>
+					{/* pinned to the bottom of the sidebar; hidden when the board has no sprint tickets */}
+					<div className="shrink-0 border-t p-4 empty:hidden">
+						<SprintItems boardId={boardId} />
+					</div>
 				</div>
 			</div>
 		</div>
