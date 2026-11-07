@@ -41,7 +41,11 @@ test("loads accessible projects and boards, disables unestimated boards, and pre
 		ok: true,
 		json: async () =>
 			url.includes("board_id=")
-				? { tickets: [{ id: "ticket" }], scale: { values: ["1", "2", "4"] } }
+				? {
+						tickets: [{ id: "ticket" }],
+						scale: { values: ["1", "2", "4"] },
+						session_name: "Team - 3",
+					}
 				: url.includes("project_id=")
 					? {
 							boards: [
@@ -74,4 +78,7 @@ test("loads accessible projects and boards, disables unestimated boards, and pre
 		board_id: "board",
 	});
 	expect(await screen.findByText(/1 backlog tickets/)).toBeInTheDocument();
+	expect(screen.getByRole("status")).toHaveTextContent(
+		"Session name: Team - 3",
+	);
 });

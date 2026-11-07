@@ -132,3 +132,5 @@ With `rb-6` enabled and your account connected, New Session offers Normal or Tra
 Facilitators can plan estimated stories into one of the board's future sprints. Current sprints are never offered or accepted. Each ticket shows its own outcome and failed writes can be retried individually; unknown or unestimated results are skipped. If no future sprint exists, follow the link to TrackLin.es to plan one. Normal sessions need no connection.
 
 Apply `006_tracklines_poker.sql` before enabling the feature. `scripts/check-tracklines.ts` exercises the import and future-only planning flow with a local TrackLin.es fixture API and an isolated PostgreSQL database.
+
+TrackLin.es poker session names are generated from the board name and a sequential number, for example `Frontend - 1`. The number is allocated per connected user and board inside the creation transaction, so simultaneous requests get different names and failed imports do not consume numbers. Deleting a session does not reuse its number. Migration `007_poker_session_numbers.sql` reserves numbers for existing linked sessions without renaming them. Normal poker sessions still accept a custom name.

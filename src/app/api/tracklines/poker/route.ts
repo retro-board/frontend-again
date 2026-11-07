@@ -5,6 +5,7 @@ import { clientFor } from "~/lib/tracklines/connection";
 import {
 	connectedClient,
 	createTracklinesPoker,
+	nextPokerSessionName,
 	pokerBacklog,
 	pokerSetup,
 } from "~/lib/tracklines/poker";
@@ -26,9 +27,19 @@ export async function GET(request: Request) {
 		z.string().uuid().parse(project);
 		if (!board) return NextResponse.json({ boards: await api.boards(project) });
 		z.string().uuid().parse(board);
-		return NextResponse.json(
-			await pokerBacklog(await connectedClient(user), project, board),
+		const backlog = await pokerBacklog(
+			await connectedClient(user),
+			project,
+			board,
 		);
+		return NextResponse.json({
+			...backlog,
+			session_name: await nextPokerSessionName(
+				user,
+				backlog.board.id,
+				backlog.board.name,
+			),
+		});
 	} catch (error) {
 		return integrationError(error);
 	}
