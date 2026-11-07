@@ -52,6 +52,7 @@ test("shows ticket links, estimates, refresh, and a cached-data note", async () 
 	expect(
 		await screen.findByRole("dialog", { name: "Sprint tickets" }),
 	).toHaveClass("right-0");
+	expect(screen.getAllByRole("button", { name: "Close" })).toHaveLength(2); // X + footer
 	expect(await screen.findByRole("link", { name: "TL-22" })).toHaveAttribute(
 		"href",
 		item.url,
@@ -59,7 +60,7 @@ test("shows ticket links, estimates, refresh, and a cached-data note", async () 
 	expect(screen.getByText("(5)")).toBeInTheDocument();
 	expect(screen.getByRole("status")).toHaveTextContent("Showing saved tickets");
 	fireEvent.click(screen.getByRole("button", { name: "Refresh tickets" }));
-	fireEvent.click(screen.getByRole("button", { name: "Close" }));
+	fireEvent.click(screen.getByText("Close", { selector: "button" })); // the footer button
 	await waitFor(() =>
 		expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
 	);

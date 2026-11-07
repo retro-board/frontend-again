@@ -6,8 +6,10 @@ import { ChevronLeft, ListTodo, RefreshCw } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import {
 	Sheet,
+	SheetClose,
 	SheetContent,
 	SheetDescription,
+	SheetFooter,
 	SheetHeader,
 	SheetTitle,
 	SheetTrigger,
@@ -101,6 +103,11 @@ export function SprintItems({ boardId }: { boardId: string }) {
 					</ul>
 					{data?.items.length === 0 && <p>No tickets in this sprint yet.</p>}
 				</div>
+				<SheetFooter className="shrink-0 border-t">
+					<SheetClose asChild>
+						<Button variant="outline">Close</Button>
+					</SheetClose>
+				</SheetFooter>
 			</SheetContent>
 		</Sheet>
 	);
