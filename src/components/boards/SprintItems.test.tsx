@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { SprintItemPicker, SprintItems } from "./SprintItems";
 
 let mockEnabled = true;
@@ -45,6 +45,13 @@ test("does not request or show sprint items while the feature flag is off", () =
 });
 test("shows ticket links, estimates, refresh, and a cached-data note", async () => {
 	wrap(<SprintItems boardId="board" />);
+	expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+	fireEvent.click(
+		await screen.findByRole("button", { name: /Sprint tickets/ }),
+	);
+	expect(
+		await screen.findByRole("dialog", { name: "Sprint tickets" }),
+	).toHaveClass("bottom-0");
 	expect(await screen.findByRole("link", { name: "TL-22" })).toHaveAttribute(
 		"href",
 		item.url,
@@ -52,6 +59,11 @@ test("shows ticket links, estimates, refresh, and a cached-data note", async () 
 	expect(screen.getByText("(5)")).toBeInTheDocument();
 	expect(screen.getByRole("status")).toHaveTextContent("Showing saved tickets");
 	fireEvent.click(screen.getByRole("button", { name: "Refresh tickets" }));
+	fireEvent.click(screen.getByRole("button", { name: "Close" }));
+	await waitFor(() =>
+		expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
+	);
+	expect(screen.getByRole("button", { name: /Sprint tickets/ })).toHaveFocus();
 });
 test("lets authors select a sprint ticket or clear existing links", async () => {
 	const change = jest.fn();

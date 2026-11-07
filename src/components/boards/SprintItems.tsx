@@ -2,7 +2,16 @@
 
 import { useFlags } from "@flags-gg/react-library";
 import { useQuery } from "@tanstack/react-query";
+import { ChevronUp, ListTodo, RefreshCw } from "lucide-react";
 import { Button } from "~/components/ui/button";
+import {
+	Sheet,
+	SheetContent,
+	SheetDescription,
+	SheetHeader,
+	SheetTitle,
+	SheetTrigger,
+} from "~/components/ui/sheet";
 import type { SprintItem } from "~/lib/tracklines/retros";
 
 export function useSprintItems(boardId: string) {
@@ -30,46 +39,74 @@ export function SprintItems({ boardId }: { boardId: string }) {
 	const { enabled, data, error, refetch, isFetching } = useSprintItems(boardId);
 	if (!enabled || (!data?.linked && !error)) return null;
 	return (
-		<section
-			className="container mx-auto space-y-2 p-4"
-			aria-label="TrackLin.es sprint items"
-		>
-			<div className="flex items-center gap-3">
-				<h2 className="font-semibold">Sprint items</h2>
-				<Button
-					variant="outline"
-					size="sm"
-					disabled={isFetching}
-					onClick={() => void refetch()}
-				>
-					Refresh tickets
-				</Button>
-			</div>
-			{(data?.stale || error) && (
-				<p role="status">
-					{data?.note ?? "Could not load sprint items. Try refreshing."}
-				</p>
-			)}
-			<ul className="space-y-1">
-				{data?.items.map((item) => (
-					<li key={item.id}>
-						<a
-							className="underline"
-							href={item.url}
-							target="_blank"
-							rel="noreferrer"
-						>
-							{item.key}
-						</a>{" "}
-						— {item.title}{" "}
-						<span className="text-muted-foreground">
-							({item.estimate ?? "Unestimated"})
+		<Sheet>
+			<div className="shrink-0 border-t bg-background px-4 py-2">
+				<SheetTrigger asChild>
+					<Button variant="ghost" className="w-full justify-between">
+						<span className="flex items-center gap-2">
+							<ListTodo className="size-4" />
+							Sprint tickets{" "}
+							<span className="text-muted-foreground">
+								({data?.items.length ?? 0})
+							</span>
 						</span>
-					</li>
-				))}
-			</ul>
-			{data?.items.length === 0 && <p>No tickets in this sprint yet.</p>}
-		</section>
+						<ChevronUp className="size-4" />
+					</Button>
+				</SheetTrigger>
+			</div>
+			<SheetContent side="bottom" className="max-h-[70dvh] gap-0 rounded-t-2xl">
+				<div
+					aria-hidden="true"
+					className="mx-auto mt-3 h-1 w-12 shrink-0 rounded-full bg-muted-foreground/30"
+				/>
+				<SheetHeader className="container mx-auto shrink-0 pr-12">
+					<div className="flex flex-wrap items-center gap-3">
+						<SheetTitle>Sprint tickets</SheetTitle>
+						<Button
+							variant="outline"
+							size="sm"
+							disabled={isFetching}
+							onClick={() => void refetch()}
+						>
+							<RefreshCw className="mr-2 size-4" />
+							Refresh tickets
+						</Button>
+					</div>
+					<SheetDescription>
+						Review this sprint's tickets and link them to your retro cards.
+					</SheetDescription>
+				</SheetHeader>
+				<div className="container mx-auto min-h-0 space-y-3 overflow-y-auto px-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+					{(data?.stale || error) && (
+						<p role="status">
+							{data?.note ?? "Could not load sprint items. Try refreshing."}
+						</p>
+					)}
+					<ul className="divide-y">
+						{data?.items.map((item) => (
+							<li
+								key={item.id}
+								className="flex flex-wrap items-baseline gap-x-2 gap-y-1 py-3"
+							>
+								<a
+									className="font-medium underline"
+									href={item.url}
+									target="_blank"
+									rel="noreferrer"
+								>
+									{item.key}
+								</a>
+								<span className="min-w-0 flex-1 break-words">{item.title}</span>
+								<span className="text-muted-foreground text-sm">
+									({item.estimate ?? "Unestimated"})
+								</span>
+							</li>
+						))}
+					</ul>
+					{data?.items.length === 0 && <p>No tickets in this sprint yet.</p>}
+				</div>
+			</SheetContent>
+		</Sheet>
 	);
 }
 
