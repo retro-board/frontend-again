@@ -17,6 +17,7 @@ import {
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useId, useState } from "react";
 import { toast } from "sonner";
+import { Markdown } from "~/components/Markdown";
 import { ParticipantList } from "~/components/poker/ParticipantList";
 import { TracklinesPlanning } from "~/components/poker/TracklinesPlanning";
 import { TracklinesStory } from "~/components/poker/TracklinesStory";
@@ -517,11 +518,14 @@ export default function PokerSessionPage() {
 			return response.json();
 		},
 		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: ["poker-session", sessionId] });
 			setSelectedVote(null);
 			setIsFinalizingVoting(false); // Reset when new story is selected
 			setShowConsensusResult(null); // Clear any previous consensus display
 		},
+		onError: (error) => toast.error(error.message || "Failed to switch story"),
+		// The story is saved before the live updates go out: refresh even if one of those fails
+		onSettled: () =>
+			queryClient.invalidateQueries({ queryKey: ["poker-session", sessionId] }),
 	});
 
 	// The facilitator changes how results are worked out; stories already estimated keep theirs
@@ -990,9 +994,9 @@ export default function PokerSessionPage() {
 										<TracklinesStory story={currentStory} />
 										{!currentStory.tracklines_key &&
 											currentStory.description && (
-												<p className="mt-2 text-sm">
+												<Markdown className="mt-2 text-sm">
 													{currentStory.description}
-												</p>
+												</Markdown>
 											)}
 									</div>
 									{sessionState.timer.isActive && (
@@ -1192,9 +1196,10 @@ export default function PokerSessionPage() {
 											<div className="flex-1">
 												<p className="font-medium">{story.title}</p>
 												{story.description && (
-													<p className="mt-1 text-muted-foreground text-sm">
+													// a preview: the full description shows when it's the current story
+													<Markdown className="mt-1 line-clamp-3 text-muted-foreground text-sm [&_*]:my-0">
 														{story.description}
-													</p>
+													</Markdown>
 												)}
 											</div>
 											<div className="flex items-center gap-2">
@@ -1221,16 +1226,16 @@ export default function PokerSessionPage() {
 					</Card>
 				</div>
 
-				<TracklinesPlanning
-					sessionId={sessionId}
-					facilitator={!!isFacilitator}
-					linked={!!session.tracklines_board_id}
-					revision={session.stories
-						.map((story) => `${story.id}:${story.final_estimate ?? ""}`)
-						.join(",")}
-				/>
-				{/* Participants */}
+				{/* TrackLin.es planning (a side drawer) and participants */}
 				<div>
+					<TracklinesPlanning
+						sessionId={sessionId}
+						facilitator={!!isFacilitator}
+						linked={!!session.tracklines_board_id}
+						revision={session.stories
+							.map((story) => `${story.id}:${story.final_estimate ?? ""}`)
+							.join(",")}
+					/>
 					<ParticipantList
 						participants={session.participants}
 						anonymousParticipants={session.anonymous_participants}

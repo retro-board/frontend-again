@@ -6,6 +6,7 @@ import { authorizeChannel } from "~/lib/realtime/authorize";
 import { pokerMessage } from "~/lib/realtime/messages";
 import { pokerState } from "~/lib/realtime/poker-state";
 import { eventsKey, getRedis, publish } from "~/lib/realtime/server";
+import { sameOrigin } from "~/lib/request";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -128,8 +129,8 @@ export async function GET(request: Request, context: Context) {
 }
 
 export async function POST(request: Request, context: Context) {
-	const origin = request.headers.get("origin");
-	if (origin && origin !== new URL(request.url).origin)
+	// request.url is the internal address behind the proxy: compare the public host instead
+	if (!sameOrigin(request))
 		return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 	const { channel } = await context.params;
 	const identity = await authorizeChannel(channel);

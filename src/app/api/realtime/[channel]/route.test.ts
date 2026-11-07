@@ -94,6 +94,31 @@ test("rejects cross-origin requests and unknown events", async () => {
 	expect(publish).not.toHaveBeenCalled();
 });
 
+test("accepts the browser's origin behind the proxy (request.url is internal)", async () => {
+	authorize.mockResolvedValue({ ...member, role: "facilitator" });
+	const behindProxy = createMockRequest(
+		`http://localhost:8080/api/realtime/${channel}`,
+		{
+			method: "POST",
+			headers: {
+				origin: "https://retro-board.net",
+				host: "retro-board.net",
+				"x-forwarded-proto": "https",
+			},
+			body: {
+				event: "poker_message",
+				payload: {
+					type: "story_select",
+					storyId: "22222222-2222-4222-8222-222222222222",
+					storyTitle: "Next story",
+				},
+			},
+		},
+	);
+	expect((await POST(behindProxy, context)).status).toBe(200);
+	expect(publish).toHaveBeenCalled();
+});
+
 test("persists timers and derives their deadline on the server", async () => {
 	authorize.mockResolvedValue({ ...member, role: "facilitator" });
 	const eq = jest.fn().mockResolvedValue({ error: null });
