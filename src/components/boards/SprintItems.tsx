@@ -15,6 +15,7 @@ import {
 	SheetTrigger,
 } from "~/components/ui/sheet";
 import type { SprintItem } from "~/lib/tracklines/retros";
+import { cn } from "~/lib/utils";
 
 export function useSprintItems(boardId: string) {
 	const enabled = useFlags().is("rb-5").enabled();
@@ -37,11 +38,22 @@ export function useSprintItems(boardId: string) {
 	return { ...query, enabled };
 }
 
-export function SprintItems({ boardId }: { boardId: string }) {
+// The drag payload: a sprint ticket's id, dropped onto your own card to link it
+export const SPRINT_ITEM_MIME = "application/x-sprint-item";
+
+export function SprintItems({
+	boardId,
+	linkable = false,
+}: {
+	boardId: string;
+	// while cards are being written, tickets can be dragged onto your cards
+	linkable?: boolean;
+}) {
 	const { enabled, data, error, refetch, isFetching } = useSprintItems(boardId);
 	if (!enabled || (!data?.linked && !error)) return null;
 	return (
-		<Sheet>
+		// not modal, so the board stays usable (and droppable) beside the drawer
+		<Sheet modal={false}>
 			<div>
 				<SheetTrigger asChild>
 					<Button variant="outline" className="w-full justify-between">
@@ -71,7 +83,9 @@ export function SprintItems({ boardId }: { boardId: string }) {
 						</Button>
 					</div>
 					<SheetDescription>
-						Review this sprint's tickets and link them to your retro cards.
+						{linkable
+							? "Drag a ticket onto one of your cards to link it."
+							: "Review this sprint's tickets and link them to your retro cards."}
 					</SheetDescription>
 				</SheetHeader>
 				<div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 pb-6">
@@ -84,7 +98,15 @@ export function SprintItems({ boardId }: { boardId: string }) {
 						{data?.items.map((item) => (
 							<li
 								key={item.id}
-								className="flex flex-wrap items-baseline gap-x-2 gap-y-1 py-3"
+								className={cn(
+									"flex flex-wrap items-baseline gap-x-2 gap-y-1 py-3",
+									linkable && "cursor-grab active:cursor-grabbing",
+								)}
+								draggable={linkable}
+								onDragStart={(event) => {
+									event.dataTransfer.setData(SPRINT_ITEM_MIME, item.id);
+									event.dataTransfer.effectAllowed = "link";
+								}}
 							>
 								<a
 									className="font-medium underline"

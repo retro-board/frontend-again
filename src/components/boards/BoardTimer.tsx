@@ -24,6 +24,17 @@ const PHASE_LABELS: Record<BoardPhase, string> = {
 	completed: "Completed",
 };
 
+// What the advance button does from each phase (follows NEXT_PHASE in /api/boards/[boardId]/phase)
+const NEXT_ACTION: Record<BoardPhase, string> = {
+	setup: "Let participants join",
+	join: "Start adding cards",
+	creation: "Reveal cards",
+	reveal: "Start voting",
+	voting: "Start discussion",
+	discussion: "Complete retro",
+	completed: "Completed",
+};
+
 export function BoardTimer({ board, isOwner }: BoardTimerProps) {
 	const queryClient = useQueryClient();
 	const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
@@ -274,7 +285,7 @@ export function BoardTimer({ board, isOwner }: BoardTimerProps) {
 										}
 									>
 										<SkipForward className="mr-1 h-4 w-4" />
-										Next Phase
+										{NEXT_ACTION[board.phase]}
 									</Button>
 								</>
 							)}

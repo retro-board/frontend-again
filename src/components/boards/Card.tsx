@@ -12,7 +12,7 @@ import { CardContent, Card as UICard } from "~/components/ui/card";
 import { Textarea } from "~/components/ui/textarea";
 import { cn } from "~/lib/utils";
 import type { Board, Card as CardType, CardVote } from "~/types/database";
-import { SprintItemPicker } from "./SprintItems";
+import { SPRINT_ITEM_MIME, SprintItemPicker } from "./SprintItems";
 
 interface CardProps {
 	card: CardType & { votes?: CardVote[] };
@@ -117,6 +117,34 @@ export function Card({
 		onSuccess: () => setIsEditing(false),
 	});
 
+	// A sprint ticket dragged from the Sprint tickets drawer onto your own card links it
+	const [dropping, setDropping] = useState(false);
+	const linkItemMutation = useMutation({
+		mutationFn: async (itemId: string) => {
+			const response = await fetch(`/api/boards/${boardId}/cards`, {
+				method: "PATCH",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({
+					cardId: card.id,
+					item_ids: [
+						...(card.items ?? []).map((item) => item.ticket_id),
+						itemId,
+					],
+				}),
+			});
+			if (!response.ok) {
+				const error = await response.json();
+				throw new Error(error.error || "Failed to link ticket");
+			}
+			return response.json();
+		},
+		onSuccess: (_data, itemId) =>
+			setSelectedItems((previous) => [...previous, itemId]),
+		onError: (error) => toast.error(error.message),
+		onSettled: () =>
+			queryClient.invalidateQueries({ queryKey: ["board", boardId] }),
+	});
+
 	const deleteCardMutation = useMutation({
 		mutationFn: async () => {
 			const response = await fetch(
@@ -181,6 +209,9 @@ export function Card({
 		(currentUserId && currentUserId === card.author_id) ||
 		(currentAnonymousUserId &&
 			currentAnonymousUserId === card.anonymous_author_id);
+	// tickets can be dropped onto your own cards while cards are being written
+	const canLinkByDrop =
+		itemLinksEnabled && !!isOwner && boardPhase === "creation";
 	// Action cards are never masked, regular cards are masked during creation (except for owner)
 	const isMasked =
 		!isActionColumn && card.is_masked && boardPhase === "creation" && !isOwner;
@@ -191,7 +222,32 @@ export function Card({
 			style={style}
 			className={cn(isDragging && "opacity-50")}
 		>
-			<UICard className="cursor-move" {...attributes} {...listeners}>
+			<UICard
+				className={cn(
+					"cursor-move",
+					dropping && "ring-2 ring-primary ring-offset-2",
+				)}
+				{...attributes}
+				{...listeners}
+				{...(canLinkByDrop && {
+					onDragOver: (event: React.DragEvent) => {
+						if (!event.dataTransfer.types.includes(SPRINT_ITEM_MIME)) return;
+						event.preventDefault(); // allow the drop
+						event.dataTransfer.dropEffect = "link";
+						setDropping(true);
+					},
+					onDragLeave: () => setDropping(false),
+					onDrop: (event: React.DragEvent) => {
+						setDropping(false);
+						const itemId = event.dataTransfer.getData(SPRINT_ITEM_MIME);
+						if (!itemId) return;
+						event.preventDefault();
+						if (card.items?.some((item) => item.ticket_id === itemId))
+							return toast.info("That ticket is already linked");
+						linkItemMutation.mutate(itemId);
+					},
+				})}
+			>
 				<CardContent className="p-3">
 					{isMasked ? (
 						<div className="flex h-20 items-center justify-center text-muted-foreground">

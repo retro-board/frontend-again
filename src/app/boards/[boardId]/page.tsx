@@ -670,7 +670,10 @@ export default function BoardPage() {
 					</div>
 					{/* pinned to the bottom of the sidebar; hidden when the board has no sprint tickets */}
 					<div className="shrink-0 border-t p-4 empty:hidden">
-						<SprintItems boardId={boardId} />
+						<SprintItems
+							boardId={boardId}
+							linkable={board.phase === "creation"}
+						/>
 					</div>
 				</div>
 			</div>
