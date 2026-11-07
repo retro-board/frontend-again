@@ -105,8 +105,13 @@ export function tracklines(key: string) {
 			call<BoardDetail>("GET", `/boards/${id(boardId)}`),
 		sprint: (sprintId: string) =>
 			call<Sprint & { tickets: Ticket[] }>("GET", `/sprints/${id(sprintId)}`),
-		boards: (projectId: string) =>
-			call<Board[]>("GET", `/projects/${id(projectId)}/boards`),
+		boards: async (projectId: string) => {
+			const project = await call<Project & { boards?: Board[] }>(
+				"GET",
+				`/projects/${id(projectId)}`,
+			);
+			return project.boards ?? [];
+		},
 		backlog: (projectId: string) =>
 			call<Ticket[]>("GET", `/projects/${id(projectId)}/backlog`),
 		ticket: (ticketId: string) =>
