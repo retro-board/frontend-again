@@ -103,6 +103,12 @@ export default function PokerSessionPage() {
 		score: string;
 		storyTitle: string;
 	} | null>(null);
+	// the consensus modal closes itself after 5 seconds; a newer result restarts the clock
+	useEffect(() => {
+		if (!showConsensusResult) return;
+		const timer = setTimeout(() => setShowConsensusResult(null), 5000);
+		return () => clearTimeout(timer);
+	}, [showConsensusResult]);
 
 	const elemId = useId();
 
@@ -253,7 +259,6 @@ export default function PokerSessionPage() {
 					score: data.finalScore,
 					storyTitle: currentStory.title,
 				});
-				setTimeout(() => setShowConsensusResult(null), 5000);
 			}
 			await queryClient.invalidateQueries({
 				queryKey: ["poker-session", sessionId],
@@ -956,33 +961,28 @@ export default function PokerSessionPage() {
 				</div>
 			</div>
 
-			{/* Prominent Consensus Result Display */}
-			{showConsensusResult && (
-				<div className="slide-in-from-top mb-8 animate-in duration-500">
-					<Card className="border-green-500 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950 dark:to-emerald-950">
-						<CardContent className="p-8">
-							<div className="flex flex-col items-center justify-center gap-4">
-								<div className="flex items-center gap-2">
-									<CheckCircle2 className="h-8 w-8 text-green-600 dark:text-green-400" />
-									<h2 className="font-bold text-2xl text-green-900 dark:text-green-100">
-										Consensus Reached!
-									</h2>
-								</div>
-								<div className="text-center">
-									<p className="mb-2 text-gray-700 text-lg dark:text-gray-300">
-										{showConsensusResult.storyTitle}
-									</p>
-									<div className="inline-flex items-center justify-center">
-										<span className="rounded-xl bg-white px-8 py-4 font-bold text-5xl text-green-700 shadow-lg dark:bg-gray-900 dark:text-green-300">
-											{showConsensusResult.score}
-										</span>
-									</div>
-								</div>
-							</div>
-						</CardContent>
-					</Card>
-				</div>
-			)}
+			{/* Consensus result: a modal that closes itself after 5 seconds */}
+			<Dialog
+				open={!!showConsensusResult}
+				onOpenChange={(open) => !open && setShowConsensusResult(null)}
+			>
+				<DialogContent className="border-green-500 sm:max-w-md">
+					<DialogHeader className="items-center text-center sm:text-center">
+						<CheckCircle2 className="h-10 w-10 text-green-600 dark:text-green-400" />
+						<DialogTitle className="text-2xl text-green-900 dark:text-green-100">
+							Consensus Reached!
+						</DialogTitle>
+						<DialogDescription className="text-center text-base">
+							{showConsensusResult?.storyTitle}
+						</DialogDescription>
+					</DialogHeader>
+					<div className="flex justify-center py-2">
+						<span className="rounded-xl bg-green-50 px-8 py-4 font-bold text-5xl text-green-700 shadow-lg dark:bg-green-950 dark:text-green-300">
+							{showConsensusResult?.score}
+						</span>
+					</div>
+				</DialogContent>
+			</Dialog>
 
 			<div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
 				<div className="space-y-6 lg:col-span-2">

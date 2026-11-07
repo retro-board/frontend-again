@@ -61,7 +61,12 @@ export function TracklinesPlanning({
 		retry: false,
 		queryFn: () => tracklinesRequest(path),
 	});
-	const storyList = usePaged(query.data?.stories ?? []);
+	// estimated tickets first: they're the ones that can be planned (sort is stable)
+	const storyList = usePaged(
+		[...(query.data?.stories ?? [])].sort(
+			(a, b) => Number(plannable(b)) - Number(plannable(a)),
+		),
+	);
 	const mutation = useMutation({
 		mutationFn: async (storyIds: string[]) =>
 			tracklinesRequest(path, {
@@ -122,25 +127,8 @@ export function TracklinesPlanning({
 							</Button>
 						</div>
 					)}
-					{query.data && !query.data.sprints.length && (
-						<p>
-							No planned sprints yet.{" "}
-							<a
-								href={query.data.boardUrl}
-								className="underline"
-								target="_blank"
-								rel="noreferrer"
-							>
-								Plan a future sprint in TrackLin.es
-							</a>
-							.
-						</p>
-					)}
 					{storyList.items.map((story) => {
-						const counted =
-							story.is_estimated &&
-							!!story.final_estimate &&
-							story.final_estimate !== "?";
+						const counted = plannable(story);
 						const result = results[story.id];
 						return (
 							<div key={story.id} className="space-y-2 rounded-lg border p-3">
@@ -217,31 +205,57 @@ export function TracklinesPlanning({
 					{storyList.pager}
 					{mutation.error && <p role="alert">{mutation.error.message}</p>}
 				</section>
-				<SheetFooter className="shrink-0 flex-row justify-between border-t">
-					{query.data && (
-						<Button
-							disabled={
-								mutation.isPending || !Object.values(choices).some(Boolean)
-							}
-							onClick={() =>
-								mutation.mutate(
-									query.data?.stories
-										.filter(
-											(story) =>
-												story.is_estimated && story.final_estimate !== "?",
-										)
-										.map((story) => story.id) ?? [],
-								)
-							}
-						>
-							Plan selected tickets
-						</Button>
+				<SheetFooter className="shrink-0 border-t">
+					{query.data && !query.data.sprints.length && (
+						<p className="text-sm">
+							No planned sprints yet.{" "}
+							<a
+								href={query.data.boardUrl}
+								className="underline"
+								target="_blank"
+								rel="noreferrer"
+							>
+								Plan a future sprint in TrackLin.es
+							</a>
+							.
+						</p>
 					)}
-					<SheetClose asChild>
-						<Button variant="outline">Close</Button>
-					</SheetClose>
+					<div className="flex justify-between gap-2">
+						{query.data && (
+							<Button
+								disabled={
+									mutation.isPending || !Object.values(choices).some(Boolean)
+								}
+								onClick={() =>
+									mutation.mutate(
+										query.data?.stories
+											.filter(
+												(story) =>
+													story.is_estimated && story.final_estimate !== "?",
+											)
+											.map((story) => story.id) ?? [],
+									)
+								}
+							>
+								Plan selected tickets
+							</Button>
+						)}
+						<SheetClose asChild>
+							<Button variant="outline">Close</Button>
+						</SheetClose>
+					</div>
 				</SheetFooter>
 			</SheetContent>
 		</Sheet>
+	);
+}
+
+// plannable: it has a real estimate, so it can go into a planned sprint
+function plannable(story: {
+	is_estimated: boolean;
+	final_estimate: string | null;
+}) {
+	return (
+		story.is_estimated && !!story.final_estimate && story.final_estimate !== "?"
 	);
 }

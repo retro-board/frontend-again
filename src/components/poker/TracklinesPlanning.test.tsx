@@ -138,3 +138,29 @@ test("picking a ticket in the drawer selects it and closes the drawer", async ()
 		expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
 	);
 });
+test("lists estimated tickets first", async () => {
+	(fetch as jest.Mock).mockResolvedValue({
+		ok: true,
+		json: async () => ({
+			sprints: [],
+			stories: [
+				{
+					...stories[0],
+					id: "u",
+					tracklines_key: "TL-9",
+					is_estimated: false,
+					final_estimate: null,
+				},
+				...stories,
+			],
+			boardUrl: "https://x",
+		}),
+	});
+	wrap();
+	await openDrawer();
+	await screen.findByRole("button", { name: /TL-9/ });
+	const keys = screen
+		.getAllByText(/^TL-\d+$/)
+		.map((element) => element.textContent);
+	expect(keys).toEqual(["TL-1", "TL-2", "TL-9"]);
+});
