@@ -1,7 +1,7 @@
 "use client";
 
 import { useFlags } from "@flags-gg/react-library";
-import Markdown from "react-markdown";
+import { Markdown } from "~/components/Markdown";
 import type { Story } from "~/types/database";
 
 function safeURL(url: string) {
@@ -27,9 +27,7 @@ export function TracklinesStory({ story }: { story: Story }) {
 					{story.tracklines_key}
 				</a>
 			)}
-			<div className="space-y-2 text-sm">
-				<Markdown>{story.description ?? ""}</Markdown>
-			</div>
+			<Markdown className="text-sm">{story.description ?? ""}</Markdown>
 			<ul className="space-y-2">
 				{story.tracklines_attachments
 					?.filter((file) => safeURL(file.url))

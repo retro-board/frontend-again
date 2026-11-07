@@ -2,8 +2,18 @@
 
 import { useFlags } from "@flags-gg/react-library";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { CalendarPlus, ChevronLeft } from "lucide-react";
 import { useId, useState } from "react";
+import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
+import {
+	Sheet,
+	SheetContent,
+	SheetDescription,
+	SheetHeader,
+	SheetTitle,
+	SheetTrigger,
+} from "~/components/ui/sheet";
 import type { PlannedSprint } from "~/lib/tracklines/client";
 import type { PlanningOutcome } from "~/lib/tracklines/poker";
 import { tracklinesRequest } from "./TracklinesSetup";
@@ -66,110 +76,149 @@ export function TracklinesPlanning({
 		},
 	});
 	if (!enabled || !linked || !facilitator) return null;
+	const stories = query.data?.stories ?? [];
+	const estimated = stories.filter(
+		(story) => story.is_estimated && story.final_estimate !== "?",
+	).length;
 	return (
-		<section
-			className="mt-6 space-y-3 rounded border p-4"
-			aria-label="Plan TrackLin.es tickets"
-		>
-			<h2 className="font-semibold">
-				Plan estimated tickets into future sprints
-			</h2>
-			{query.error && (
-				<div role="alert">
-					{query.error.message}{" "}
-					<Button variant="outline" onClick={() => void query.refetch()}>
-						Retry
-					</Button>
-				</div>
-			)}
-			{query.data && !query.data.sprints.length && (
-				<p>
-					No planned sprints yet.{" "}
-					<a
-						href={query.data.boardUrl}
-						className="underline"
-						target="_blank"
-						rel="noreferrer"
-					>
-						Plan a future sprint in TrackLin.es
-					</a>
-					.
-				</p>
-			)}
-			{query.data?.stories.map((story) => {
-				const counted =
-					story.is_estimated &&
-					!!story.final_estimate &&
-					story.final_estimate !== "?";
-				const result = results[story.id];
-				return (
-					<div key={story.id} className="space-y-1 border-t pt-2">
-						<label htmlFor={`${id}-${story.id}`}>
-							{story.tracklines_key} — {story.title} (
-							{story.final_estimate ?? "Not estimated"})
-						</label>
-						{counted && !!query.data?.sprints.length && (
-							<div className="flex gap-2">
-								<select
-									id={`${id}-${story.id}`}
-									className="rounded border bg-background p-2"
-									value={choices[story.id] ?? ""}
-									onChange={(event) =>
-										setChoices((previous) => ({
-											...previous,
-											[story.id]: event.target.value,
-										}))
-									}
-								>
-									<option value="">Leave in backlog</option>
-									{query.data.sprints.map((sprint) => (
-										<option key={sprint.id} value={sprint.id}>
-											Sprint {sprint.number}
-											{sprint.goal ? ` — ${sprint.goal}` : ""}
-										</option>
-									))}
-								</select>
-								<Button
-									disabled={!choices[story.id] || mutation.isPending}
-									onClick={() => mutation.mutate([story.id])}
-								>
-									{result?.status === "failed" ||
-									story.tracklines_planning_error
-										? "Retry planning"
-										: "Plan ticket"}
-								</Button>
-							</div>
-						)}
-						<p role="status">
-							{!counted
-								? "Skipped — remains in backlog"
-								: (result?.error ??
-									story.tracklines_planning_error ??
-									(result?.status === "planned" ||
-									story.tracklines_planned_sprint_id
-										? "Planned successfully"
-										: "Awaiting sprint selection"))}
-						</p>
-					</div>
-				);
-			})}
-			{mutation.error && <p role="alert">{mutation.error.message}</p>}
-			{query.data && (
-				<Button
-					disabled={mutation.isPending || !Object.values(choices).some(Boolean)}
-					onClick={() =>
-						mutation.mutate(
-							query.data?.stories
-								.filter(
-									(story) => story.is_estimated && story.final_estimate !== "?",
-								)
-								.map((story) => story.id) ?? [],
-						)
-					}
-				>
-					Plan selected tickets
+		<Sheet>
+			<SheetTrigger asChild>
+				<Button variant="outline" className="mb-4 w-full justify-between">
+					<span className="flex items-center gap-2">
+						<CalendarPlus className="size-4" />
+						Plan in TrackLin.es
+						<span className="text-muted-foreground">
+							({estimated}/{stories.length} estimated)
+						</span>
+					</span>
+					<ChevronLeft className="size-4" />
 				</Button>
-			)}
-		</section>
+			</SheetTrigger>
+			<SheetContent
+				side="right"
+				className="w-full gap-0 overflow-y-auto sm:max-w-md"
+			>
+				<SheetHeader>
+					<SheetTitle>Plan estimated tickets into future sprints</SheetTitle>
+					<SheetDescription>
+						Estimated tickets can go into a planned sprint; the rest stay in the
+						backlog.
+					</SheetDescription>
+				</SheetHeader>
+				<section
+					className="space-y-3 px-4 pb-6"
+					aria-label="Plan TrackLin.es tickets"
+				>
+					{query.error && (
+						<div role="alert">
+							{query.error.message}{" "}
+							<Button variant="outline" onClick={() => void query.refetch()}>
+								Retry
+							</Button>
+						</div>
+					)}
+					{query.data && !query.data.sprints.length && (
+						<p>
+							No planned sprints yet.{" "}
+							<a
+								href={query.data.boardUrl}
+								className="underline"
+								target="_blank"
+								rel="noreferrer"
+							>
+								Plan a future sprint in TrackLin.es
+							</a>
+							.
+						</p>
+					)}
+					{query.data?.stories.map((story) => {
+						const counted =
+							story.is_estimated &&
+							!!story.final_estimate &&
+							story.final_estimate !== "?";
+						const result = results[story.id];
+						return (
+							<div key={story.id} className="space-y-2 rounded-lg border p-3">
+								<div className="flex items-start justify-between gap-3">
+									<label htmlFor={`${id}-${story.id}`} className="space-y-0.5">
+										<span className="block font-mono text-muted-foreground text-xs">
+											{story.tracklines_key}
+										</span>
+										<span className="block font-medium text-sm">
+											{story.title}
+										</span>
+									</label>
+									<Badge variant={counted ? "default" : "secondary"}>
+										{story.final_estimate ?? "Not estimated"}
+									</Badge>
+								</div>
+								{counted && !!query.data?.sprints.length && (
+									<div className="flex gap-2">
+										<select
+											id={`${id}-${story.id}`}
+											className="min-w-0 flex-1 rounded border bg-background p-2 text-sm"
+											value={choices[story.id] ?? ""}
+											onChange={(event) =>
+												setChoices((previous) => ({
+													...previous,
+													[story.id]: event.target.value,
+												}))
+											}
+										>
+											<option value="">Leave in backlog</option>
+											{query.data.sprints.map((sprint) => (
+												<option key={sprint.id} value={sprint.id}>
+													Sprint {sprint.number}
+													{sprint.goal ? ` — ${sprint.goal}` : ""}
+												</option>
+											))}
+										</select>
+										<Button
+											disabled={!choices[story.id] || mutation.isPending}
+											onClick={() => mutation.mutate([story.id])}
+										>
+											{result?.status === "failed" ||
+											story.tracklines_planning_error
+												? "Retry planning"
+												: "Plan ticket"}
+										</Button>
+									</div>
+								)}
+								<p role="status" className="text-muted-foreground text-xs">
+									{!counted
+										? "Skipped — remains in backlog"
+										: (result?.error ??
+											story.tracklines_planning_error ??
+											(result?.status === "planned" ||
+											story.tracklines_planned_sprint_id
+												? "Planned successfully"
+												: "Awaiting sprint selection"))}
+								</p>
+							</div>
+						);
+					})}
+					{mutation.error && <p role="alert">{mutation.error.message}</p>}
+					{query.data && (
+						<Button
+							disabled={
+								mutation.isPending || !Object.values(choices).some(Boolean)
+							}
+							onClick={() =>
+								mutation.mutate(
+									query.data?.stories
+										.filter(
+											(story) =>
+												story.is_estimated && story.final_estimate !== "?",
+										)
+										.map((story) => story.id) ?? [],
+								)
+							}
+						>
+							Plan selected tickets
+						</Button>
+					)}
+				</section>
+			</SheetContent>
+		</Sheet>
 	);
 }

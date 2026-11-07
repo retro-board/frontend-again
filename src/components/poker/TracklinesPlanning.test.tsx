@@ -36,10 +36,17 @@ function wrap(facilitator = true) {
 		</QueryClientProvider>,
 	);
 }
+// The planning list lives in a side drawer: open it from its button
+async function openDrawer() {
+	fireEvent.click(
+		await screen.findByRole("button", { name: /Plan in TrackLin\.es/ }),
+	);
+}
 beforeEach(() => jest.clearAllMocks());
 test("does not request planning controls for a non-facilitator", () => {
 	wrap(false);
 	expect(fetch).not.toHaveBeenCalled();
+	expect(screen.queryByRole("button")).not.toBeInTheDocument();
 });
 test("links to TrackLin.es when no planned sprints exist", async () => {
 	(fetch as jest.Mock).mockResolvedValue({
@@ -51,6 +58,7 @@ test("links to TrackLin.es when no planned sprints exist", async () => {
 		}),
 	});
 	wrap();
+	await openDrawer();
 	expect(await screen.findByText(/No planned sprints yet/)).toBeInTheDocument();
 	expect(screen.getByRole("link")).toHaveAttribute(
 		"href",
@@ -85,6 +93,7 @@ test("shows partial outcomes and retries only the failed ticket", async () => {
 		}),
 	);
 	wrap();
+	await openDrawer();
 	const selects = await screen.findAllByRole("combobox");
 	for (const select of selects)
 		fireEvent.change(select, { target: { value: "future" } });

@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { reportError } from "~/lib/bugfixes";
 import { db } from "~/lib/db";
 import { flagEnabled } from "~/lib/flags";
+import { publicOrigin } from "~/lib/request";
 import { TracklinesError, tracklines } from "~/lib/tracklines/client";
 import {
 	type Connection,
@@ -103,8 +104,8 @@ export async function POST(request: Request) {
 					.single();
 		if (saveError || !row) throw new Error(saveError?.message ?? "not saved");
 
-		// ponytail: the request's origin; set APP_URL if the app sits behind a proxy that rewrites Host
-		const origin = process.env.APP_URL || new URL(request.url).origin;
+		// APP_URL wins; otherwise the public origin the proxy forwarded (request.url is internal)
+		const origin = process.env.APP_URL || publicOrigin(request);
 		let webhook: Partial<Connection>;
 		try {
 			const { endpoint, secret } = await client.createWebhook(
