@@ -632,7 +632,6 @@ export default function BoardPage() {
 
 				<div className="w-80 overflow-y-auto border-l p-4">
 					<BoardTimer board={board} isOwner={isOwner} />
-					<SprintItems boardId={boardId} />
 					
           {/* Grace period countdown */}
 					{showGracePeriod && board?.phase === "voting" && (
@@ -666,6 +665,7 @@ export default function BoardPage() {
 							</div>
 						</div>
 					)}
+					<SprintItems boardId={boardId} />
 				</div>
 			</div>
 		</div>
