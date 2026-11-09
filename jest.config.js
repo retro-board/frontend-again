@@ -1,9 +1,14 @@
+import nextJest from "next/jest.js";
+
+// next/jest transpiles with SWC; ts-jest needs the TS compiler API, which TypeScript 7 dropped
+// next/jest loads next.config.ts, which validates env; tests mock ~/env
+process.env.SKIP_ENV_VALIDATION ??= "1";
+const createJestConfig = nextJest({ dir: "./" });
+
 /** @type {import('jest').Config} */
 const config = {
 	testEnvironment: "jsdom",
 	modulePathIgnorePatterns: ["<rootDir>/.next/"],
-	preset: "ts-jest/presets/default-esm",
-	extensionsToTreatAsEsm: [".ts", ".tsx"],
 	setupFilesAfterEnv: ["<rootDir>/src/test/setup.ts"],
 	testMatch: [
 		"<rootDir>/src/**/__tests__/**/*.{ts,tsx}",
@@ -13,18 +18,6 @@ const config = {
 		"^~/(.*)$": "<rootDir>/src/$1",
 		"^bugfixes$": "<rootDir>/src/test/bugfixes.ts",
 		"\\.(css|less|scss|sass)$": "identity-obj-proxy",
-	},
-	transform: {
-		"^.+\\.(ts|tsx)$": [
-			"ts-jest",
-			{
-				useESM: true,
-				tsconfig: {
-					jsx: "react-jsx",
-					rootDir: ".", // TypeScript 6 wants it set when emitting
-				},
-			},
-		],
 	},
 	transformIgnorePatterns: ["node_modules/(?!(@clerk|nanoid)/)"],
 	collectCoverageFrom: [
@@ -44,4 +37,4 @@ const config = {
 	},
 };
 
-export default config;
+export default createJestConfig(config);
