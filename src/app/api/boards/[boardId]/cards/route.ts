@@ -380,6 +380,38 @@ export async function PATCH(
 			authorId = anonymousUser.id;
 		}
 
+		const { data: member, error: memberError } = await db
+			.from(userId ? "board_participants" : "board_anonymous_participants")
+			.select("id")
+			.eq("board_id", resolvedParams.boardId)
+			.eq(userId ? "user_id" : "anonymous_user_id", authorId)
+			.maybeSingle();
+		if (memberError) throw new Error("Membership lookup failed");
+		if (!member)
+			return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+		const { data: source, error: sourceError } = await db
+			.from("cards")
+			.select("*, columns!inner(board_id, board:boards(owner_id))")
+			.eq("id", cardId)
+			.single();
+		if (
+			sourceError ||
+			!source ||
+			source.columns?.board_id !== resolvedParams.boardId
+		)
+			return NextResponse.json({ error: "Card not found" }, { status: 404 });
+		const isAuthor =
+			(userId ? source.author_id : source.anonymous_author_id) === authorId;
+		const isOwner = !!userId && source.columns.board?.owner_id === authorId;
+		if (
+			!isAuthor &&
+			(!isOwner || content !== undefined || item_ids !== undefined)
+		)
+			return NextResponse.json(
+				{ error: "Only the author can edit cards; the owner may move them" },
+				{ status: 403 },
+			);
+
 		// If changing column, check permissions for action columns
 		if (column_id !== undefined) {
 			// Get the target column and board info
