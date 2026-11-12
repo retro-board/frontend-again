@@ -1,6 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { reportError } from "~/lib/bugfixes";
+import { syncCustomer } from "~/lib/chewedfeed";
 import { db } from "~/lib/db";
 
 export async function POST(request: Request) {
@@ -64,6 +65,7 @@ export async function POST(request: Request) {
 			return NextResponse.json({ error: error.message }, { status: 500 });
 		}
 
+		await syncCustomer({ clerkId: userId, email, name }); // a new free customer in ChewedFeed HQ
 		return NextResponse.json({ user: newUser });
 	} catch (error) {
 		reportError("Sync user error:", error);

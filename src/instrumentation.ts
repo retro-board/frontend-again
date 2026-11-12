@@ -5,6 +5,11 @@ import { reportServer } from "~/lib/report";
 // (in ~/lib/bugfixes); without them it only logs locally.
 export async function register() {
 	await import("~/lib/bugfixes"); // loads the Bugfixes config from env
+	if (process.env.NEXT_RUNTIME !== "nodejs") return;
+	// at boot and hourly after, every user goes to ChewedFeed HQ as a customer
+	const { syncAllCustomers } = await import("~/lib/chewedfeed");
+	void syncAllCustomers();
+	setInterval(() => void syncAllCustomers(), 60 * 60 * 1000).unref();
 }
 
 // onRequestError: a page, route or proxy that crashed on the server goes to Bugfixes.
