@@ -1,7 +1,10 @@
-import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { reportError } from "~/lib/bugfixes";
 import { db } from "~/lib/db";
+import {
+	authorizeLegacyPoker,
+	requireSessionStory,
+} from "~/lib/poker/legacy-authorization";
 
 export async function GET(
 	request: Request,
@@ -9,12 +12,23 @@ export async function GET(
 ) {
 	try {
 		const resolvedParams = await params;
+		const authorization = await authorizeLegacyPoker(
+			resolvedParams.sessionId,
+			true,
+		);
+		if (authorization.response) return authorization.response;
 		const url = new URL(request.url);
 		const storyId = url.searchParams.get("storyId");
 
 		if (!storyId) {
 			return NextResponse.json({ error: "Story ID required" }, { status: 400 });
 		}
+
+		const storyError = await requireSessionStory(
+			resolvedParams.sessionId,
+			storyId,
+		);
+		if (storyError) return storyError;
 
 		// Get participants (excluding abstaining ones)
 		const { data: participants } = await db
@@ -72,7 +86,11 @@ export async function POST(
 ) {
 	try {
 		const resolvedParams = await params;
-		const { userId } = await auth();
+		const authorization = await authorizeLegacyPoker(
+			resolvedParams.sessionId,
+			true,
+		);
+		if (authorization.response) return authorization.response;
 		const body = await request.json();
 		const { action, storyId, timerDuration } = body;
 
@@ -83,6 +101,12 @@ export async function POST(
 			);
 		}
 
+		const storyError = await requireSessionStory(
+			resolvedParams.sessionId,
+			storyId,
+		);
+		if (storyError) return storyError;
+
 		// Verify user is the facilitator
 		const { data: session } = await db
 			.from("poker_sessions")
@@ -92,21 +116,6 @@ export async function POST(
 
 		if (!session) {
 			return NextResponse.json({ error: "Session not found" }, { status: 404 });
-		}
-
-		if (userId) {
-			const { data: dbUser } = await db
-				.from("users")
-				.select("id")
-				.eq("clerk_id", userId)
-				.single();
-
-			if (!dbUser || dbUser.id !== session.owner_id) {
-				return NextResponse.json(
-					{ error: "Only the facilitator can control voting" },
-					{ status: 403 },
-				);
-			}
 		}
 
 		if (action === "start") {

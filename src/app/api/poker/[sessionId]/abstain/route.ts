@@ -1,7 +1,7 @@
-import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { reportError } from "~/lib/bugfixes";
 import { db } from "~/lib/db";
+import { authorizeLegacyPoker } from "~/lib/poker/legacy-authorization";
 
 export async function POST(
 	request: Request,
@@ -9,25 +9,20 @@ export async function POST(
 ) {
 	try {
 		const resolvedParams = await params;
-		const { userId } = await auth();
+		const authorization = await authorizeLegacyPoker(
+			resolvedParams.sessionId,
+			false,
+		);
+		if (authorization.response) return authorization.response;
+		const identity = authorization.identity;
 		const body = await request.json();
-		const { isAbstaining, anonymousUserId } = body;
+		const { isAbstaining } = body;
 
 		// Determine the user identifier
 		let participantUserId: string | null = null;
 
-		if (userId) {
-			// Get user from database
-			const { data: dbUser } = await db
-				.from("users")
-				.select("id")
-				.eq("clerk_id", userId)
-				.single();
-
-			if (dbUser) {
-				participantUserId = dbUser.id;
-			}
-		}
+		const anonymousUserId = identity.anonymous ? identity.user.id : undefined;
+		participantUserId = identity.anonymous ? null : identity.user.id;
 
 		if (!participantUserId && !anonymousUserId) {
 			return NextResponse.json(

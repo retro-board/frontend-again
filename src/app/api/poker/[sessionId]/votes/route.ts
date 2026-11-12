@@ -1,17 +1,25 @@
-import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { reportError } from "~/lib/bugfixes";
 import { db } from "~/lib/db";
+import {
+	authorizeLegacyPoker,
+	requireSessionStory,
+} from "~/lib/poker/legacy-authorization";
 
 export async function POST(
 	request: Request,
 	{ params }: { params: Promise<{ sessionId: string }> },
 ) {
 	try {
-		const _resolvedParams = await params;
-		const { userId } = await auth();
+		const resolvedParams = await params;
+		const authorization = await authorizeLegacyPoker(
+			resolvedParams.sessionId,
+			false,
+		);
+		if (authorization.response) return authorization.response;
+		const identity = authorization.identity;
 		const body = await request.json();
-		const { storyId, voteValue, anonymousUserId } = body;
+		const { storyId, voteValue } = body;
 
 		if (!storyId || !voteValue) {
 			return NextResponse.json(
@@ -20,21 +28,17 @@ export async function POST(
 			);
 		}
 
+		const storyError = await requireSessionStory(
+			resolvedParams.sessionId,
+			storyId,
+		);
+		if (storyError) return storyError;
+
 		// Determine the user identifier
 		let voteUserId: string | null = null;
 
-		if (userId) {
-			// Get user from database
-			const { data: dbUser } = await db
-				.from("users")
-				.select("id")
-				.eq("clerk_id", userId)
-				.single();
-
-			if (dbUser) {
-				voteUserId = dbUser.id;
-			}
-		}
+		const anonymousUserId = identity.anonymous ? identity.user.id : undefined;
+		voteUserId = identity.anonymous ? null : identity.user.id;
 
 		// Check if user has already voted
 		const existingVoteQuery = db
