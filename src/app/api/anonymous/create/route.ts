@@ -3,15 +3,21 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { reportError } from "~/lib/bugfixes";
 import { db } from "~/lib/db";
+import { allowJoinRequest, anonymousDisplayName } from "~/lib/join-limits";
 
 export async function POST(request: Request) {
 	try {
-		const body = await request.json();
-		const { displayName } = body;
-
-		if (!displayName?.trim()) {
+		if (!(await allowJoinRequest(request, "create")))
 			return NextResponse.json(
-				{ error: "Display name is required" },
+				{ error: "Too many requests" },
+				{ status: 429, headers: { "Retry-After": "60" } },
+			);
+		const body = await request.json();
+		const displayName = anonymousDisplayName(body?.displayName);
+
+		if (!displayName) {
+			return NextResponse.json(
+				{ error: "Display name must be between 1 and 50 characters" },
 				{ status: 400 },
 			);
 		}

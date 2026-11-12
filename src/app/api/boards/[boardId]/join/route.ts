@@ -3,12 +3,18 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { reportError } from "~/lib/bugfixes";
 import { db } from "~/lib/db";
+import { allowJoinRequest } from "~/lib/join-limits";
 
 export async function POST(
-	_request: Request,
+	request: Request,
 	{ params }: { params: Promise<{ boardId: string }> },
 ) {
 	try {
+		if (!(await allowJoinRequest(request, "join")))
+			return NextResponse.json(
+				{ error: "Too many requests" },
+				{ status: 429, headers: { "Retry-After": "60" } },
+			);
 		const resolvedParams = await params;
 		const { userId } = await auth();
 		const cookieStore = await cookies();

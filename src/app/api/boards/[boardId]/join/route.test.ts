@@ -1,3 +1,8 @@
+jest.mock("~/lib/join-limits", () => ({
+	...jest.requireActual("~/lib/join-limits"),
+	allowJoinRequest: jest.fn().mockResolvedValue(true),
+}));
+
 import { currentUser } from "@clerk/nextjs/server";
 import { cookies } from "next/headers";
 import {
