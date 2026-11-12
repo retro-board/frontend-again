@@ -1,5 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
+import { combineCards } from "~/lib/boards/combine-cards";
 import { reportError } from "~/lib/bugfixes";
 import { db } from "~/lib/db";
 import {
@@ -77,102 +78,20 @@ export async function POST(
 			);
 		}
 
-		// Get source cards
-		const { data: sourceCards } = await db
-			.from("cards")
-			.select("*, column:columns(*)")
-			.in("id", sourceCardIds);
-
-		if (!sourceCards || sourceCards.length !== sourceCardIds.length) {
+		const result = await combineCards(
+			resolvedParams.boardId,
+			dbUser.id,
+			sourceCardIds,
+			targetCardId,
+			newContent,
+		);
+		if ("error" in result)
 			return NextResponse.json(
-				{ error: "One or more source cards not found" },
-				{ status: 404 },
+				{ error: result.error },
+				{ status: result.status },
 			);
-		}
-
-		// Verify all cards are from the same board
-		const columnIds = sourceCards.map((card) => card.column_id);
-		const { data: columns } = await db
-			.from("columns")
-			.select("board_id")
-			.in("id", columnIds);
-
-		const boardIds = new Set(columns?.map((col) => col.board_id));
-		if (boardIds.size !== 1 || !boardIds.has(resolvedParams.boardId)) {
-			return NextResponse.json(
-				{ error: "All cards must be from the same board" },
-				{ status: 400 },
-			);
-		}
-
-		let finalCardId = targetCardId;
-		let finalContent = newContent;
-
-		if (targetCardId) {
-			// Update existing target card with combined content
-			if (!finalContent) {
-				// Auto-generate combined content
-				finalContent = sourceCards.map((card) => card.content).join("\n---\n");
-			}
-
-			const { error: updateError } = await db
-				.from("cards")
-				.update({
-					content: finalContent,
-					updated_at: new Date().toISOString(),
-				})
-				.eq("id", targetCardId);
-
-			if (updateError) {
-				reportError("Error updating target card:", updateError);
-				return NextResponse.json(
-					{ error: updateError.message },
-					{ status: 500 },
-				);
-			}
-		} else {
-			// Create new card with combined content
-			const firstCard = sourceCards[0];
-			if (!firstCard)
-				return NextResponse.json({ error: "No source cards" }, { status: 400 });
-
-			const { data: newCard, error: createError } = await db
-				.from("cards")
-				.insert({
-					column_id: firstCard.column_id,
-					content: finalContent,
-					author_id: dbUser.id,
-					position: firstCard.position,
-					is_anonymous: false,
-					is_masked: false,
-				})
-				.select()
-				.single();
-
-			if (createError) {
-				reportError("Error creating combined card:", createError);
-				return NextResponse.json(
-					{ error: createError.message },
-					{ status: 500 },
-				);
-			}
-
-			finalCardId = newCard.id;
-		}
-
-		// Delete source cards (except target if it was one of them)
-		const cardsToDelete = sourceCardIds.filter((id) => id !== targetCardId);
-		if (cardsToDelete.length > 0) {
-			const { error: deleteError } = await db
-				.from("cards")
-				.delete()
-				.in("id", cardsToDelete);
-
-			if (deleteError) {
-				reportError("Error deleting source cards:", deleteError);
-				// Non-fatal, continue
-			}
-		}
+		const finalCardId = result.cardId;
+		const finalContent = result.content;
 
 		// Broadcast cards combined event
 		const combinePayload: CombineCardsPayload = {
