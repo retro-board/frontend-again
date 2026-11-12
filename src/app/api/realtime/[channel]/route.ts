@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 import { reportError } from "~/lib/bugfixes";
 import { db } from "~/lib/db";
+import { privatePokerEvent } from "~/lib/poker/vote-privacy";
 import { authorizeChannel } from "~/lib/realtime/authorize";
 import { pokerMessage } from "~/lib/realtime/messages";
 import { pokerState } from "~/lib/realtime/poker-state";
@@ -97,7 +98,7 @@ export async function GET(request: Request, context: Context) {
 					for (const [, messages] of entries ?? []) {
 						for (const [id, fields] of messages) {
 							cursor = id;
-							emit(JSON.parse(fields[1] ?? "{}"), id);
+							emit(privatePokerEvent(JSON.parse(fields[1] ?? "{}")), id);
 						}
 					}
 					if (!closed) controller.enqueue(encoder.encode(": heartbeat\n\n"));
@@ -177,6 +178,8 @@ export async function POST(request: Request, context: Context) {
 			{ status: 400 },
 		);
 	payload = parsed.data;
+	// Vote events announce participation; estimates are read after reveal.
+	if (type === "vote") delete payload.voteValue;
 	// Keep transient controls in PostgreSQL so new streams can restore a complete session.
 	const updates: Record<string, unknown> = {};
 	if (type === "timer_start") {

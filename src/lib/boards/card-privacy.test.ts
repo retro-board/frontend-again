@@ -63,3 +63,16 @@ it.each([
 		{ id: "other", is_mine: false },
 	]);
 });
+it("hides masked card text from others during creation", () => {
+	expect(
+		publicCard({ ...card, is_masked: true }, "other", false, "creation")
+			.content,
+	).toBe("");
+	expect(
+		publicCard({ ...card, is_masked: true }, "author", false, "creation")
+			.content,
+	).toBe("feedback");
+	expect(
+		publicCard({ ...card, is_masked: true }, "other", false, "voting").content,
+	).toBe("feedback");
+});

@@ -227,3 +227,20 @@ test("streams a poker snapshot and live events, then releases the Redis reader o
 	expect(connection.disconnect).toHaveBeenCalled();
 	expect(redis.zrem).toHaveBeenCalled();
 });
+
+test("vote events never publish the estimate", async () => {
+	const response = await POST(
+		request({
+			type: "vote",
+			storyId: "11111111-1111-4111-8111-111111111111",
+			voteValue: "8",
+		}),
+		context,
+	);
+	expect(response.status).toBe(200);
+	expect(publish).toHaveBeenCalledWith(
+		channel,
+		"poker_message",
+		expect.not.objectContaining({ voteValue: expect.anything() }),
+	);
+});
