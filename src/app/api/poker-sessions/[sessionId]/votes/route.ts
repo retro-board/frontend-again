@@ -16,15 +16,12 @@ export async function POST(
 		const cookieStore = await cookies();
 		const anonymousSessionId = cookieStore.get("anonymous_session_id")?.value;
 
-		console.log("Vote request:", { userId, anonymousSessionId });
-
 		if (!userId && !anonymousSessionId) {
 			return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 		}
 
 		const body = await request.json();
 		const { storyId, vote } = body;
-		console.log("Vote data:", { storyId, vote });
 
 		let dbUserId: string | null = null;
 		let anonymousUserId: string | null = null;
@@ -64,10 +61,6 @@ export async function POST(
 				.maybeSingle();
 
 			if (!anonymousUser) {
-				console.warn(
-					"Anonymous user not found for session:",
-					anonymousSessionId,
-				);
 				return NextResponse.json(
 					{ error: "Anonymous user not found" },
 					{ status: 404 },
@@ -75,7 +68,6 @@ export async function POST(
 			}
 
 			anonymousUserId = anonymousUser.id;
-			console.log("Found anonymous user:", anonymousUserId);
 
 			// Check if anonymous user is participant
 			const { data: participant } = await db
@@ -87,17 +79,11 @@ export async function POST(
 
 			if (participant) {
 				isAuthorized = true;
-				console.log("Anonymous user is participant");
 			} else {
-				console.log(
-					"Anonymous user is NOT participant of session:",
-					resolvedParams.sessionId,
-				);
 			}
 		}
 
 		if (!isAuthorized) {
-			console.warn("User not authorized to vote");
 			return NextResponse.json(
 				{ error: "Not authorized to vote in this session" },
 				{ status: 403 },
