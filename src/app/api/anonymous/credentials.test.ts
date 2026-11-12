@@ -60,6 +60,8 @@ it.each([
 	expect(projections).toHaveLength(1);
 	expect(projections[0]).not.toContain("anonymous_users(*)");
 	expect(projections[0]).toContain("anonymous_users(id, display_name)");
+	expect(projections[0]).not.toContain("users(*)");
+	expect(projections[0]).toContain("users(id, name, avatar_url)");
 	expect(JSON.stringify(await response.json())).not.toContain("session_id");
 });
 

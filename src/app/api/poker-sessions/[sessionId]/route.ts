@@ -87,12 +87,12 @@ export async function GET(
           *,
           votes:poker_votes(
             *,
-            user:users(*),
+            user:users(id, name, avatar_url),
             anonymous_user:anonymous_users(id, display_name)
           )
         ),
         participants:poker_participants(
-          user:users(*),
+          user:users(id, name, avatar_url),
           role
         ),
         anonymous_participants:poker_anonymous_participants(
