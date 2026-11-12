@@ -1,7 +1,10 @@
-import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { reportError } from "~/lib/bugfixes";
 import { db } from "~/lib/db";
+import {
+	authorizeLegacyPoker,
+	requireSessionStory,
+} from "~/lib/poker/legacy-authorization";
 import { averageScore } from "~/lib/poker/score";
 import { syncStoryEstimate } from "~/lib/tracklines/poker";
 import { ESTIMATION_VALUES } from "~/types/database";
@@ -85,13 +88,23 @@ export async function POST(
 ) {
 	try {
 		const resolvedParams = await params;
-		const { userId } = await auth();
+		const authorization = await authorizeLegacyPoker(
+			resolvedParams.sessionId,
+			true,
+		);
+		if (authorization.response) return authorization.response;
 		const body = await request.json();
 		const { storyId } = body;
 
 		if (!storyId) {
 			return NextResponse.json({ error: "Story ID required" }, { status: 400 });
 		}
+
+		const storyError = await requireSessionStory(
+			resolvedParams.sessionId,
+			storyId,
+		);
+		if (storyError) return storyError;
 
 		// Get session details
 		const { data: session, error: sessionError } = await db
@@ -105,20 +118,6 @@ export async function POST(
 		}
 
 		// Verify user is the facilitator
-		if (userId) {
-			const { data: dbUser } = await db
-				.from("users")
-				.select("id")
-				.eq("clerk_id", userId)
-				.single();
-
-			if (!dbUser || dbUser.id !== session.owner_id) {
-				return NextResponse.json(
-					{ error: "Only the facilitator can calculate scores" },
-					{ status: 403 },
-				);
-			}
-		}
 
 		// Get all votes for the story
 		const { data: votes, error: votesError } = await db
