@@ -137,7 +137,7 @@ export async function GET(
 						card: import("~/types/database").Card & {
 							votes?: import("~/types/database").CardVote[];
 						},
-					) => publicCard(card, viewerId, !userId),
+					) => publicCard(card, viewerId, !userId, board.phase),
 				)
 				.sort(
 					(a: { position: number }, b: { position: number }) =>

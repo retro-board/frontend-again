@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { reportError } from "~/lib/bugfixes";
 import { db } from "~/lib/db";
 import { RESULT_METHODS } from "~/lib/poker/score";
+import { publicPokerVotes } from "~/lib/poker/vote-privacy";
 export async function GET(
 	_request: Request,
 	{ params }: { params: Promise<{ sessionId: string }> },
@@ -19,6 +20,7 @@ export async function GET(
 		}
 
 		let isAuthorized = false;
+		let viewerId: string | undefined;
 
 		if (userId) {
 			// Get user from database
@@ -32,6 +34,7 @@ export async function GET(
 				return NextResponse.json({ error: "User not found" }, { status: 404 });
 			}
 
+			viewerId = dbUser.id;
 			// Check if user is a participant of this session
 			const { data: participant } = await db
 				.from("poker_participants")
@@ -52,6 +55,7 @@ export async function GET(
 				.maybeSingle();
 
 			if (anonymousUser) {
+				viewerId = anonymousUser.id;
 				// Check if anonymous user is a participant
 				const { data: participant } = await db
 					.from("poker_anonymous_participants")
@@ -102,6 +106,19 @@ export async function GET(
 			return NextResponse.json({ error: "Session not found" }, { status: 404 });
 		}
 
+		if (session.stories) {
+			session.stories = session.stories.map(
+				(story: { votes?: import("~/types/database").PokerVote[] }) => ({
+					...story,
+					votes: publicPokerVotes(
+						story.votes ?? [],
+						session.reveal_votes,
+						viewerId,
+						!userId,
+					),
+				}),
+			);
+		}
 		// Sort stories by position
 		if (session.stories) {
 			session.stories.sort(

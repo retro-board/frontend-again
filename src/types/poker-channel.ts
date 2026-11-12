@@ -24,7 +24,7 @@ export interface BaseChannelMessage {
 export interface VoteMessage extends BaseChannelMessage {
 	type: "vote";
 	storyId: string;
-	voteValue: string;
+	voteValue?: string;
 	userName?: string;
 }
 

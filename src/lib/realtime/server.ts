@@ -1,4 +1,5 @@
 import Redis from "ioredis";
+import { privatePokerEvent } from "~/lib/poker/vote-privacy";
 import type { RealtimeChannel, RealtimeClient } from "./client";
 
 let redis: Redis | undefined;
@@ -24,7 +25,7 @@ export async function publish(
 			1000,
 			"*",
 			"message",
-			JSON.stringify({ event, payload }),
+			JSON.stringify(privatePokerEvent({ event, payload })),
 		)
 		.expire(key, 43200)
 		.exec()
