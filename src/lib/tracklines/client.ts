@@ -121,6 +121,21 @@ export function tracklines(key: string) {
 		},
 		backlog: (projectId: string) =>
 			call<Ticket[]>("GET", `/projects/${id(projectId)}/backlog`),
+		createBacklogTask: (
+			projectId: string,
+			input: { title: string; description: string; labels: string[] },
+		) =>
+			call<Ticket>("POST", `/projects/${id(projectId)}/backlog`, {
+				...input,
+				type: "task",
+				priority: "medium",
+			}),
+		actionTickets: (projectId: string, marker: string) =>
+			call<Ticket[]>(
+				"GET",
+				`/search?${new URLSearchParams({ project: projectId, q: marker, limit: "50" })}`,
+			),
+
 		ticket: (ticketId: string) =>
 			call<Ticket>("GET", `/tickets/${id(ticketId)}`),
 		attachments: (ticketId: string) =>

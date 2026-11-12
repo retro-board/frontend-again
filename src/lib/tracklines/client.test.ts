@@ -76,3 +76,36 @@ test("hasLabel matches labels case-insensitively", () => {
 	expect(hasLabel({ labels: ["backend"] }, "frontend")).toBe(false);
 	expect(hasLabel({}, "frontend")).toBe(false);
 });
+test("creates tasks in the project backlog without a board column or sprint", async () => {
+	(fetch as jest.Mock).mockResolvedValue(
+		new Response(JSON.stringify({ id: "ticket", key: "TL-1" }), {
+			status: 201,
+		}),
+	);
+	await tracklines("tl_s_test").createBacklogTask("project/id", {
+		title: "Follow up",
+		description: "Retro action",
+		labels: ["Frontend"],
+	});
+	expect(fetch).toHaveBeenCalledWith(
+		"https://tracklines.test/api/projects/project%2Fid/backlog",
+		expect.objectContaining({
+			method: "POST",
+			body: JSON.stringify({
+				title: "Follow up",
+				description: "Retro action",
+				labels: ["Frontend"],
+				type: "task",
+				priority: "medium",
+			}),
+		}),
+	);
+});
+test("searches all project tickets for an action marker to recover retries", async () => {
+	(fetch as jest.Mock).mockResolvedValue(new Response("[]", { status: 200 }));
+	await tracklines("tl_s_test").actionTickets("project", "retro-action-card");
+	expect(fetch).toHaveBeenCalledWith(
+		"https://tracklines.test/api/search?project=project&q=retro-action-card&limit=50",
+		expect.objectContaining({ method: "GET" }),
+	);
+});

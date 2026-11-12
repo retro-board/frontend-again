@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { reportError } from "~/lib/bugfixes";
 import { db } from "~/lib/db";
 import { broadcastBoardEvent } from "~/lib/realtime/broadcast";
+import { syncRetroActions } from "~/lib/tracklines/actions";
 import type { BoardPhase } from "~/types/database";
 
 const NEXT_PHASE: Record<BoardPhase, BoardPhase> = {
@@ -154,6 +155,9 @@ export async function POST(
 			reportError("Error updating board phase:", error);
 			return NextResponse.json({ error: error.message }, { status: 500 });
 		}
+
+		if (action === "advance" && updatedBoard.phase === "completed")
+			await syncRetroActions(resolvedParams.boardId);
 
 		// Broadcast the appropriate event
 		if (action === "start") {

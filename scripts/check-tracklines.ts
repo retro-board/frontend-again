@@ -3,6 +3,10 @@ import { randomUUID } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { createServer } from "node:http";
 import { getPool, identifier } from "../src/lib/db";
+import {
+	retroActionItems,
+	syncRetroActions,
+} from "../src/lib/tracklines/actions";
 import type { Connection } from "../src/lib/tracklines/connection";
 import {
 	createTracklinesPoker,
@@ -35,6 +39,29 @@ const plannedWrites: { ticket: string; target: string; estimate: string }[] =
 let tickets: { id: string; key: string; title: string; estimate: string }[] = [
 	{ id: ticketId, key: "TL-1", title: "Ship", estimate: "5" },
 ];
+const actionWrites: {
+	id: string;
+	key: string;
+	title: string;
+	description: string;
+	labels: string[];
+	project: string;
+}[] = [];
+let loseNextActionReply = false;
+const originalFetch = globalThis.fetch;
+globalThis.fetch = ((input, init) =>
+	String(input) === "https://api.flags.gg/flags"
+		? Promise.resolve(
+				new Response(
+					JSON.stringify({
+						flags: ["rb-27", "rb-5"].map((name) => ({
+							enabled: true,
+							details: { name },
+						})),
+					}),
+				),
+			)
+		: originalFetch(input, init)) as typeof fetch;
 const server = createServer((request, response) => {
 	if (!online) {
 		response.writeHead(503);
@@ -42,6 +69,50 @@ const server = createServer((request, response) => {
 		return;
 	}
 	response.setHeader("content-type", "application/json");
+	if (
+		request.method === "POST" &&
+		request.url === `/projects/${projectId}/backlog`
+	) {
+		let body = "";
+		request.on("data", (chunk) => {
+			body += chunk;
+		});
+		request.on("end", () => {
+			const input = JSON.parse(body);
+			assert.equal(input.type, "task");
+			const ticket = {
+				...input,
+				id: randomUUID(),
+				key: `TL-A${actionWrites.length + 1}`,
+				project: projectId,
+			};
+			actionWrites.push(ticket);
+			response.writeHead(loseNextActionReply ? 503 : 201);
+			response.end(
+				loseNextActionReply
+					? JSON.stringify({ error: "Lost reply after creation" })
+					: JSON.stringify(ticket),
+			);
+			loseNextActionReply = false;
+		});
+		return;
+	}
+	if (request.url?.startsWith("/search?")) {
+		const query = new URL(request.url, "http://localhost").searchParams;
+		assert.equal(query.get("project"), projectId);
+		const marker = query.get("q") ?? "";
+		response.end(
+			JSON.stringify(
+				actionWrites.filter(
+					(ticket) =>
+						ticket.labels.includes(marker) ||
+						ticket.description.includes(`Source action: ${marker}`),
+				),
+			),
+		);
+		return;
+	}
+
 	if (request.method === "PUT") {
 		let body = "";
 		request.on("data", (chunk) => {
@@ -229,6 +300,77 @@ try {
 	).rows;
 	assert.equal(columns.length, 3);
 	assert.equal(columns[2].is_action, true);
+	const actionId = (
+		await pool.query(
+			"INSERT INTO cards(column_id,content,position,author_id,is_masked) VALUES ($1,'Fix flaky tests',0,$2,false) RETURNING id",
+			[columns[2].id, ownerId],
+		)
+	).rows[0].id;
+	await syncRetroActions(first);
+	assert.equal(actionWrites.length, 0, "Nothing is sent before Complete retro");
+	await pool.query("UPDATE boards SET phase='completed' WHERE id=$1", [first]);
+	await Promise.all([syncRetroActions(first), syncRetroActions(first)]);
+	assert.equal(actionWrites.length, 1);
+	assert.equal(actionWrites[0]?.project, projectId);
+	assert.ok(actionWrites[0]?.labels.includes("Frontend"));
+	assert.ok(
+		(await retroActionItems(first)).actions.some(
+			(action) => action.id === actionId && action.ticketKey === "TL-A1",
+		),
+	);
+	const maskedAction = (
+		await pool.query(
+			"INSERT INTO cards(column_id,content,position,author_id,is_masked) VALUES ($1,'Masked action',1,$2,true) RETURNING id",
+			[columns[2].id, ownerId],
+		)
+	).rows[0].id;
+	await syncRetroActions(first);
+	assert.equal(actionWrites.length, 1);
+	assert.equal(
+		(await retroActionItems(first)).actions.find(
+			(action) => action.id === maskedAction,
+		)?.content,
+		"",
+	);
+	await pool.query("UPDATE cards SET is_masked=false WHERE id=$1", [
+		maskedAction,
+	]);
+	online = false;
+	await syncRetroActions(first);
+	assert.ok(
+		(await retroActionItems(first)).actions.find(
+			(action) => action.id === maskedAction,
+		)?.error,
+	);
+	online = true;
+	loseNextActionReply = true;
+	await syncRetroActions(first);
+	assert.equal(actionWrites.length, 2);
+	await syncRetroActions(first);
+	assert.equal(actionWrites.length, 2);
+	assert.equal(
+		(await retroActionItems(first)).actions.find(
+			(action) => action.id === maskedAction,
+		)?.ticketKey,
+		"TL-A2",
+	);
+	const feedbackId = (
+		await pool.query(
+			"INSERT INTO cards(column_id,content,position,author_id,is_masked) VALUES ($1,'Normal feedback',0,$2,false) RETURNING id",
+			[columns[0].id, ownerId],
+		)
+	).rows[0].id;
+	await syncRetroActions(first);
+	assert.equal(actionWrites.length, 2);
+	assert.ok(
+		!(await retroActionItems(first)).actions.some(
+			(action) => action.id === feedbackId,
+		),
+	);
+	console.log(
+		"Retro action checks passed: backlog destination, concurrent deduplication, mask/reveal, offline retry and lost-response recovery",
+	);
+
 	assert.equal(
 		(
 			await pool.query(
@@ -402,6 +544,7 @@ try {
 		"TrackLin.es checks passed: concurrent sprint webhook idempotency, default columns, live refresh, offline cache, anonymous links, unlink and authorization",
 	);
 } finally {
+	globalThis.fetch = originalFetch;
 	if (ownerId)
 		await pool.query("DELETE FROM poker_sessions WHERE owner_id=$1", [ownerId]);
 	if (ownerId) {
