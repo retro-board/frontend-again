@@ -84,3 +84,31 @@ it.each(["author", "owner"])("allows the %s to move a card", async (role) => {
 		});
 	expect((await patch({})).status).toBe(200);
 });
+
+it.each([
+	"creation",
+	"reveal",
+	"voting",
+	"discussion",
+	"completed",
+])("enforces content edit rules in %s", async (phase) => {
+	mocks.maybeSingleMock.mockResolvedValueOnce({ data: { id: "member" } });
+	mocks.singleMock
+		.mockResolvedValueOnce({
+			data: {
+				author_id: mockDbUser.id,
+				columns: {
+					board_id: "board",
+					board: { owner_id: mockDbUser.id, phase },
+				},
+			},
+		})
+		.mockResolvedValueOnce({
+			data: { id: "card", column_id: "column", position: 2 },
+			error: null,
+		});
+	expect((await patch({ content: "changed" })).status).toBe(
+		phase === "creation" ? 200 : 403,
+	);
+	if (phase !== "creation") expect(mocks.updateMock).not.toHaveBeenCalled();
+});

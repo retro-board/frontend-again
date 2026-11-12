@@ -392,7 +392,7 @@ export async function PATCH(
 			return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 		const { data: source, error: sourceError } = await db
 			.from("cards")
-			.select("*, columns!inner(board_id, board:boards(owner_id))")
+			.select("*, columns!inner(board_id, board:boards(owner_id, phase))")
 			.eq("id", cardId)
 			.single();
 		if (
@@ -401,6 +401,17 @@ export async function PATCH(
 			source.columns?.board_id !== resolvedParams.boardId
 		)
 			return NextResponse.json({ error: "Card not found" }, { status: 404 });
+		if (
+			(content !== undefined || item_ids !== undefined) &&
+			["reveal", "voting", "discussion", "completed"].includes(
+				source.columns.board?.phase,
+			)
+		)
+			return NextResponse.json(
+				{ error: "Card content cannot be edited in this phase" },
+				{ status: 403 },
+			);
+
 		const isAuthor =
 			(userId ? source.author_id : source.anonymous_author_id) === authorId;
 		const isOwner = !!userId && source.columns.board?.owner_id === authorId;
