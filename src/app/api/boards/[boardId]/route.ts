@@ -132,8 +132,12 @@ export async function GET(
 		const sortedColumns = (columns || []).map((column) => ({
 			...column,
 			cards: column.cards
-				.map((card: import("~/types/database").Card) =>
-					publicCard(card, viewerId, !userId),
+				.map(
+					(
+						card: import("~/types/database").Card & {
+							votes?: import("~/types/database").CardVote[];
+						},
+					) => publicCard(card, viewerId, !userId),
 				)
 				.sort(
 					(a: { position: number }, b: { position: number }) =>

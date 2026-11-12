@@ -114,6 +114,12 @@ function getUniqueContributorCount(cards: ExportCard[]) {
 }
 
 function getUniqueVoterCount(cards: ExportCard[]) {
+	if (
+		cards.some((card) =>
+			card.votes?.some((vote) => !vote.user_id && !vote.anonymous_user_id),
+		)
+	)
+		return "Private";
 	return new Set(
 		cards.flatMap((card) =>
 			(card.votes ?? []).map((vote) => {

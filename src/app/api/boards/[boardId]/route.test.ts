@@ -69,6 +69,10 @@ describe("/api/boards/[boardId] GET", () => {
 							is_anonymous: true,
 							author_id: "other",
 							author: { name: "Secret" },
+							votes: [
+								{ id: "vote-other", user_id: "other" },
+								{ id: "vote-mine", user_id: mockDbUser.id },
+							],
 						},
 					],
 				},
@@ -96,6 +100,10 @@ describe("/api/boards/[boardId] GET", () => {
 				position: 0,
 				is_anonymous: true,
 				is_mine: false,
+				votes: [
+					{ id: "vote-other", is_mine: false },
+					{ id: "vote-mine", is_mine: true },
+				],
 			});
 			expect(currentUser).toHaveBeenCalled();
 			expect(databaseMocks.insertMock).toHaveBeenCalledWith(

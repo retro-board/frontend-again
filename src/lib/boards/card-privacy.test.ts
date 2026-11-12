@@ -44,3 +44,22 @@ it("omits actor identity on anonymous realtime events", () => {
 	expect(cardActor(true, "clerk-author")).toEqual({});
 	expect(cardActor(false, "clerk-author")).toEqual({ userId: "clerk-author" });
 });
+
+it.each([
+	false,
+	true,
+])("keeps all voter identities private (anonymous viewer: %s)", (anonymous) => {
+	const votes = [
+		{ id: "mine", user_id: "me", anonymous_user_id: "guest" },
+		{ id: "other", user_id: "someone", anonymous_user_id: "another" },
+	];
+	const result = publicCard(
+		{ ...card, votes },
+		anonymous ? "guest" : "me",
+		anonymous,
+	);
+	expect(result.votes).toEqual([
+		{ id: "mine", is_mine: true },
+		{ id: "other", is_mine: false },
+	]);
+});

@@ -76,6 +76,7 @@ export interface Card {
 }
 
 export interface CardVote {
+	is_mine?: boolean;
 	id: string;
 	card_id: string;
 	user_id?: string;
