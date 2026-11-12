@@ -2,6 +2,9 @@ import { auth } from "@clerk/nextjs/server";
 import { db } from "~/lib/db";
 import { POST } from "./route";
 
+jest.mock("~/lib/poker/story-scope", () => ({
+	sessionHasStory: jest.fn().mockResolvedValue(true),
+}));
 // Mock dependencies
 jest.mock("~/lib/tracklines/poker", () => ({ syncStoryEstimate: jest.fn() }));
 jest.mock("@clerk/nextjs/server", () => ({

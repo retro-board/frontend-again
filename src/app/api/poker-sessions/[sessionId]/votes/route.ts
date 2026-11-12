@@ -2,8 +2,8 @@ import { auth } from "@clerk/nextjs/server";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { reportError } from "~/lib/bugfixes";
-
 import { db } from "~/lib/db";
+import { sessionHasStory, validPokerVote } from "~/lib/poker/story-scope";
 import { PokerChannelClient } from "~/lib/realtime/poker-channel";
 import { serverRealtime } from "~/lib/realtime/server";
 export async function POST(
@@ -103,6 +103,20 @@ export async function POST(
 				{ status: 403 },
 			);
 		}
+
+		if (!(await sessionHasStory(resolvedParams.sessionId, storyId)))
+			return NextResponse.json({ error: "Story not found" }, { status: 404 });
+
+		const { data: scale } = await db
+			.from("poker_sessions")
+			.select("estimation_type, estimation_values")
+			.eq("id", resolvedParams.sessionId)
+			.single();
+		if (
+			!scale ||
+			!validPokerVote(vote, scale.estimation_type, scale.estimation_values)
+		)
+			return NextResponse.json({ error: "Invalid vote" }, { status: 400 });
 
 		// Check if user already voted
 		let existingVote = null;
@@ -263,6 +277,9 @@ export async function DELETE(
 		const body = await request.json();
 		const { storyId } = body;
 
+		if (!(await sessionHasStory(resolvedParams.sessionId, storyId)))
+			return NextResponse.json({ error: "Story not found" }, { status: 404 });
+
 		// Delete all votes for this story
 		const { error: deleteError } = await db
 			.from("poker_votes")
@@ -280,7 +297,8 @@ export async function DELETE(
 		const { error: updateError } = await db
 			.from("stories")
 			.update({ final_estimate: null, is_estimated: false, estimated_at: null })
-			.eq("id", storyId);
+			.eq("id", storyId)
+			.eq("session_id", resolvedParams.sessionId);
 
 		if (updateError) {
 			reportError("Error clearing story estimate:", updateError);

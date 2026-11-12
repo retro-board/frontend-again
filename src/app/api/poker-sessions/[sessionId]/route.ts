@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { reportError } from "~/lib/bugfixes";
 import { db } from "~/lib/db";
 import { RESULT_METHODS } from "~/lib/poker/score";
+import { sessionHasStory } from "~/lib/poker/story-scope";
 import { publicPokerVotes } from "~/lib/poker/vote-privacy";
 export async function GET(
 	_request: Request,
@@ -188,6 +189,11 @@ export async function PATCH(
 				{ error: "Only facilitators can modify sessions" },
 				{ status: 403 },
 			);
+		}
+
+		if (current_story_id !== undefined && current_story_id !== null) {
+			if (!(await sessionHasStory(resolvedParams.sessionId, current_story_id)))
+				return NextResponse.json({ error: "Story not found" }, { status: 404 });
 		}
 
 		// Update session
