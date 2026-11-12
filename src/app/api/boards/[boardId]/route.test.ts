@@ -62,7 +62,15 @@ describe("/api/boards/[boardId] GET", () => {
 				{
 					id: "col_1",
 					name: "Column 1",
-					cards: [],
+					cards: [
+						{
+							id: "private-card",
+							position: 0,
+							is_anonymous: true,
+							author_id: "other",
+							author: { name: "Secret" },
+						},
+					],
 				},
 			];
 			// The columns query doesn't use maybeSingle/single, it returns array directly
@@ -83,6 +91,12 @@ describe("/api/boards/[boardId] GET", () => {
 
 			expect(response.status).toBe(200);
 			expect(data.board).toEqual(mockBoard);
+			expect(data.columns[0].cards[0]).toEqual({
+				id: "private-card",
+				position: 0,
+				is_anonymous: true,
+				is_mine: false,
+			});
 			expect(currentUser).toHaveBeenCalled();
 			expect(databaseMocks.insertMock).toHaveBeenCalledWith(
 				expect.objectContaining({

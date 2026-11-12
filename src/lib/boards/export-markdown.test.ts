@@ -49,6 +49,8 @@ describe("createBoardMarkdownExport", () => {
 							id: "card-2",
 							content: "Pairing helped us catch issues early",
 							position: 1,
+							is_anonymous: true,
+							author: { name: "Secret Name", email: "secret@example.com" },
 							anonymous_author: { display_name: "Anon Owl" },
 							votes: [{ id: "vote-1", anonymous_user_id: "anon-1" }],
 						},
@@ -82,7 +84,10 @@ describe("createBoardMarkdownExport", () => {
 		expect(markdown).toContain(
 			"> The deployment was smooth\n> No rollback required",
 		);
-		expect(markdown).toContain("2. Anon Owl (1 vote)");
+		expect(markdown).toContain("2. Anonymous participant (1 vote)");
+		expect(markdown).not.toContain("Secret Name");
+		expect(markdown).not.toContain("secret@example.com");
+		expect(markdown).not.toContain("Anon Owl");
 		expect(markdown).toContain("## Action Items");
 		expect(markdown).toContain(
 			"[TL-12](https://tracklin.es/tickets/id) — Release",

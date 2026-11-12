@@ -1,6 +1,7 @@
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+import { publicCard } from "~/lib/boards/card-privacy";
 import { reportError } from "~/lib/bugfixes";
 import { db } from "~/lib/db";
 
@@ -19,6 +20,7 @@ export async function GET(
 		}
 
 		let isAuthorized = false;
+		let viewerId: string | undefined;
 
 		if (userId) {
 			// Get user from database using admin client
@@ -51,6 +53,8 @@ export async function GET(
 				return NextResponse.json({ error: "User not found" }, { status: 404 });
 			}
 
+			viewerId = dbUser.id;
+
 			// Check authorization using admin client
 			const { data: participant } = await db
 				.from("board_participants")
@@ -69,6 +73,7 @@ export async function GET(
 				.maybeSingle();
 
 			if (anonymousUser) {
+				viewerId = anonymousUser.id;
 				// Check if anonymous user is a participant
 				const { data: participant } = await db
 					.from("board_anonymous_participants")
@@ -126,10 +131,14 @@ export async function GET(
 		// Sort cards within each column
 		const sortedColumns = (columns || []).map((column) => ({
 			...column,
-			cards: column.cards.sort(
-				(a: { position: number }, b: { position: number }) =>
-					a.position - b.position,
-			),
+			cards: column.cards
+				.map((card: import("~/types/database").Card) =>
+					publicCard(card, viewerId, !userId),
+				)
+				.sort(
+					(a: { position: number }, b: { position: number }) =>
+						a.position - b.position,
+				),
 		}));
 
 		return NextResponse.json({ board, columns: sortedColumns });

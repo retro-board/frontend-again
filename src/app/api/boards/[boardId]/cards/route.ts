@@ -1,6 +1,7 @@
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+import { cardActor } from "~/lib/boards/card-privacy";
 import { reportError } from "~/lib/bugfixes";
 import { db } from "~/lib/db";
 import { flagEnabled } from "~/lib/flags";
@@ -275,7 +276,7 @@ export async function POST(
 		const eventPayload: CardEventPayload = {
 			cardId: card.id,
 			columnId: column_id,
-			userId: userId || undefined,
+			...cardActor(card.is_anonymous, userId),
 			content: cardData.is_masked ? undefined : content,
 			position,
 			isAnonymous: cardData.is_anonymous,
@@ -449,9 +450,9 @@ export async function PATCH(
 			const eventPayload: CardEventPayload = {
 				cardId: card.id,
 				columnId: column_id || card.column_id,
-				userId: userId || undefined,
+				...cardActor(card.is_anonymous, userId),
 				position: position !== undefined ? position : card.position,
-				isAnonymous: !!card.anonymous_author_id,
+				isAnonymous: card.is_anonymous,
 			};
 			await broadcastToBoard(
 				resolvedParams.boardId,
