@@ -63,7 +63,7 @@ Run three services in one project/environment:
 | PostgreSQL | Persistent application data | `DATABASE_URL=${{Postgres.DATABASE_URL}}` |
 | Redis or Valkey | Shared events, reconnect replay and presence | `REDIS_URL=${{Redis.REDIS_URL}}` |
 
-Replace `Postgres` and `Redis` with your service names. Use Railway's private service reference variables. Only the app needs a public domain; no separate realtime service is needed. Keep Redis available while the app runs, and enable persistence on its volume if event history should survive Redis restarts.
+Replace `Postgres` and `Redis` with your service names. Use Railway's private service reference variables. Only the app needs a public domain; no separate realtime service is needed. Keep Redis available while the app runs, and enable persistence on its volume if event history should survive Redis restarts. Anonymous identity creation is limited to 10 requests per client address per minute, and board/poker joins share a limit of 30 per minute across app instances. These Redis-backed limits return HTTP 429 with Retry-After: 60. Display names are trimmed and must contain 1–50 characters. Joining by board/session ID remains supported.
 
 The Dockerfile builds the standalone app, and `railway.toml` runs `bun scripts/migrate.ts` as a pre-deploy command before `bun server.js`. Migrations use a PostgreSQL advisory lock, transactions and checksums. A failed migration prevents the new deployment from starting.
 
