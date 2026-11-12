@@ -51,6 +51,7 @@ export function Card({
 
 	const userVoted = card.votes?.some(
 		(vote) =>
+			vote.is_mine ||
 			(currentUserId && vote.user_id === currentUserId) ||
 			(currentAnonymousUserId &&
 				vote.anonymous_user_id === currentAnonymousUserId),
@@ -206,6 +207,7 @@ export function Card({
 	};
 
 	const isOwner =
+		card.is_mine ||
 		(currentUserId && currentUserId === card.author_id) ||
 		(currentAnonymousUserId &&
 			currentAnonymousUserId === card.anonymous_author_id);

@@ -76,6 +76,7 @@ function getColumnVoteCount(column: ExportColumn) {
 }
 
 function getAuthorName(card: ExportCard) {
+	if (card.is_anonymous) return "Anonymous participant";
 	if (card.anonymous_author?.display_name) {
 		return card.anonymous_author.display_name;
 	}
@@ -88,14 +89,11 @@ function getAuthorName(card: ExportCard) {
 		return card.author.email;
 	}
 
-	if (card.is_anonymous) {
-		return "Anonymous participant";
-	}
-
 	return "Unknown author";
 }
 
 function getAuthorKey(card: ExportCard) {
+	if (card.is_anonymous) return "anonymous:unknown";
 	if (card.anonymous_author?.display_name) {
 		return `anonymous:${card.anonymous_author.display_name}`;
 	}
@@ -108,10 +106,6 @@ function getAuthorKey(card: ExportCard) {
 		return `user:${card.author.name}`;
 	}
 
-	if (card.is_anonymous) {
-		return "anonymous:unknown";
-	}
-
 	return `unknown:${card.id}`;
 }
 
@@ -120,6 +114,12 @@ function getUniqueContributorCount(cards: ExportCard[]) {
 }
 
 function getUniqueVoterCount(cards: ExportCard[]) {
+	if (
+		cards.some((card) =>
+			card.votes?.some((vote) => !vote.user_id && !vote.anonymous_user_id),
+		)
+	)
+		return "Private";
 	return new Set(
 		cards.flatMap((card) =>
 			(card.votes ?? []).map((vote) => {

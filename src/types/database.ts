@@ -65,6 +65,7 @@ export interface Card {
 	id: string;
 	column_id: string;
 	content: string;
+	is_mine?: boolean;
 	author_id?: string;
 	anonymous_author_id?: string;
 	position: number;
@@ -75,6 +76,7 @@ export interface Card {
 }
 
 export interface CardVote {
+	is_mine?: boolean;
 	id: string;
 	card_id: string;
 	user_id?: string;
