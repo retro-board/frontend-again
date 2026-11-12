@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { reportError } from "~/lib/bugfixes";
 import { db } from "~/lib/db";
 import { type ResultMethod, scoreVotes } from "~/lib/poker/score";
+import { sessionHasStory } from "~/lib/poker/story-scope";
 import { syncStoryEstimate } from "~/lib/tracklines/poker";
 
 export async function POST(
@@ -55,6 +56,9 @@ export async function POST(
 		if (!session) {
 			return NextResponse.json({ error: "Session not found" }, { status: 404 });
 		}
+
+		if (!(await sessionHasStory(resolvedParams.sessionId, storyId)))
+			return NextResponse.json({ error: "Story not found" }, { status: 404 });
 
 		// Get all votes for this story (excluding abstainers)
 		const { data: votes } = await db
