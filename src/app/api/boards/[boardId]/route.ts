@@ -111,7 +111,7 @@ export async function GET(
         *,
         cards(
           *,
-          author:users(*),
+          author:users(id, name, avatar_url),
           anonymous_author:anonymous_users(id, display_name),
           items:card_items(*),
           votes:card_votes(*)

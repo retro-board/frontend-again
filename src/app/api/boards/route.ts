@@ -30,7 +30,7 @@ export async function GET() {
 				*,
 				participants:board_participants(
 					*,
-					user:users(*)
+					user:users(id, name, avatar_url)
 				)
 			`)
 			.eq("owner_id", dbUser.id)
@@ -50,7 +50,7 @@ export async function GET() {
 					*,
 					participants:board_participants(
 						*,
-						user:users(*)
+						user:users(id, name, avatar_url)
 					)
 				)
 			`)

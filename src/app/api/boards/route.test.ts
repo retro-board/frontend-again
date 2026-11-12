@@ -8,7 +8,7 @@ import {
 	setupDatabaseMocks,
 	setupUnauthenticatedUser,
 } from "~/test/helpers";
-import { POST } from "./route";
+import { GET, POST } from "./route";
 
 // Mock dependencies
 jest.mock("@clerk/nextjs/server");
@@ -151,4 +151,20 @@ describe("/api/boards POST", () => {
 		expect(response.status).toBe(500);
 		expect(data.error).toBe("Failed to sync user to database");
 	});
+});
+
+it("limits participants to public profile columns in the board list", async () => {
+	setupAuthenticatedUser();
+	const mocks = setupDatabaseMocks();
+	mocks.maybeSingleMock.mockResolvedValue({ data: mockDbUser, error: null });
+	mocks.orderMock.mockResolvedValue({ data: [], error: null });
+	expect((await GET()).status).toBe(200);
+	const projections = mocks.selectMock.mock.calls
+		.map(([value]) => value)
+		.filter((value) => value?.includes("user:users("));
+	expect(projections).toHaveLength(2);
+	for (const projection of projections) {
+		expect(projection).toContain("user:users(id, name, avatar_url)");
+		expect(projection).not.toContain("users(*)");
+	}
 });

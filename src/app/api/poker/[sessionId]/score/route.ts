@@ -96,7 +96,9 @@ export async function POST(
 		// Get session details
 		const { data: session, error: sessionError } = await db
 			.from("poker_sessions")
-			.select("*, owner:users!poker_sessions_owner_id_fkey(*)")
+			.select(
+				"*, owner:users!poker_sessions_owner_id_fkey(id, name, avatar_url)",
+			)
 			.eq("id", resolvedParams.sessionId)
 			.single();
 

@@ -63,7 +63,7 @@ export async function POST(
 				vote_value,
 				user_id,
 				anonymous_user_id,
-				users!poker_votes_user_id_fkey(name, email),
+				users!poker_votes_user_id_fkey(name),
 				anonymous_users(display_name)
 			`)
 			.eq("story_id", storyId)
@@ -114,8 +114,7 @@ export async function POST(
 			const user = vote.users as any;
 			// biome-ignore lint/suspicious/noExplicitAny: Database relation type
 			const anonUser = vote.anonymous_users as any;
-			const voterName =
-				user?.name || user?.email || anonUser?.display_name || "Anonymous";
+			const voterName = user?.name || anonUser?.display_name || "Anonymous";
 			voteMap[voterName] = vote.vote_value;
 		}
 
