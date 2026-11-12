@@ -27,7 +27,7 @@ export async function POST(request: Request) {
 		// Check if anonymous user already exists for this session
 		const { data: existingUser } = await db
 			.from("anonymous_users")
-			.select("*")
+			.select("id, display_name")
 			.eq("session_id", sessionId)
 			.maybeSingle();
 
@@ -40,7 +40,7 @@ export async function POST(request: Request) {
 				.from("anonymous_users")
 				.update({ display_name: displayName })
 				.eq("id", existingUser.id)
-				.select()
+				.select("id, display_name")
 				.single();
 
 			if (error) {
@@ -57,7 +57,7 @@ export async function POST(request: Request) {
 					session_id: sessionId,
 					display_name: displayName,
 				})
-				.select()
+				.select("id, display_name")
 				.single();
 
 			if (error) {
