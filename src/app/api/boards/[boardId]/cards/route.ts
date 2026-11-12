@@ -5,6 +5,7 @@ import { cardActor } from "~/lib/boards/card-privacy";
 import { reportError } from "~/lib/bugfixes";
 import { db } from "~/lib/db";
 import { flagEnabled } from "~/lib/flags";
+import { authorizeChannel } from "~/lib/realtime/authorize";
 import {
 	broadcastToBoard,
 	type CardEventPayload,
@@ -519,6 +520,9 @@ export async function DELETE(
 			return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 		}
 
+		if (!(await authorizeChannel(`board:${resolvedParams.boardId}`)))
+			return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
 		const { searchParams } = new URL(request.url);
 		const cardId = searchParams.get("cardId");
 
@@ -539,7 +543,10 @@ export async function DELETE(
 			.eq("id", cardId)
 			.single();
 
-		if (!card?.column?.board) {
+		if (
+			!card?.column?.board ||
+			card.column.board_id !== resolvedParams.boardId
+		) {
 			return NextResponse.json({ error: "Card not found" }, { status: 404 });
 		}
 
@@ -611,12 +618,17 @@ export async function DELETE(
 			deleteQuery = deleteQuery.eq("anonymous_author_id", anonymousUser.id);
 		}
 
-		const { error } = await deleteQuery;
+		const { data: deleted, error } = await deleteQuery
+			.select("id")
+			.maybeSingle();
 
 		if (error) {
 			reportError("Error deleting card:", error);
 			return NextResponse.json({ error: error.message }, { status: 500 });
 		}
+
+		if (!deleted)
+			return NextResponse.json({ error: "Card not found" }, { status: 404 });
 
 		// Broadcast card deleted event
 		await broadcastToBoard(resolvedParams.boardId, "card_deleted", {
