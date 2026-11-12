@@ -14,7 +14,7 @@ export async function GET() {
 
 		const { data: anonymousUser } = await db
 			.from("anonymous_users")
-			.select("*")
+			.select("id, display_name")
 			.eq("session_id", sessionId)
 			.maybeSingle();
 

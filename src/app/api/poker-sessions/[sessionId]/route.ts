@@ -84,7 +84,7 @@ export async function GET(
           votes:poker_votes(
             *,
             user:users(*),
-            anonymous_user:anonymous_users(*)
+            anonymous_user:anonymous_users(id, display_name)
           )
         ),
         participants:poker_participants(
@@ -92,7 +92,7 @@ export async function GET(
           role
         ),
         anonymous_participants:poker_anonymous_participants(
-          anonymous_user:anonymous_users(*)
+          anonymous_user:anonymous_users(id, display_name)
         )
       `)
 			.eq("id", resolvedParams.sessionId)
