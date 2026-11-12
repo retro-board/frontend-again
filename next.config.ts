@@ -4,10 +4,22 @@
  */
 import "~/env";
 import type { NextConfig } from "next";
+import { securityHeaders } from "~/lib/security-headers";
 
 /** @type {import("next").NextConfig} */
 const config: NextConfig = {
 	output: "standalone",
+	async headers() {
+		return [
+			{
+				source: "/(.*)",
+				headers: securityHeaders(
+					process.env.NODE_ENV === "production",
+					process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
+				),
+			},
+		];
+	},
 	serverExternalPackages: ["pg", "ioredis"],
 };
 
