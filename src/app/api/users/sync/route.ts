@@ -1,17 +1,29 @@
-import { auth } from "@clerk/nextjs/server";
+import { auth, currentUser } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { reportError } from "~/lib/bugfixes";
 import { syncCustomer } from "~/lib/chewedfeed";
 import { db } from "~/lib/db";
 
-export async function POST(request: Request) {
+export async function POST(_request: Request) {
 	try {
 		const { userId } = await auth();
 		if (!userId) {
 			return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 		}
-		const body = await request.json();
-		const { email, name, avatar_url } = body;
+		const profile = await currentUser();
+		if (!profile || profile.id !== userId)
+			return NextResponse.json(
+				{ error: "Profile unavailable" },
+				{ status: 401 },
+			);
+		const email =
+			profile.emailAddresses.find(
+				(address) => address.id === profile.primaryEmailAddressId,
+			)?.emailAddress ??
+			profile.emailAddresses[0]?.emailAddress ??
+			"";
+		const name = profile.fullName ?? profile.username ?? "";
+		const avatar_url = profile.imageUrl;
 
 		// Check if user already exists
 		const { data: existingUser, error: checkError } = await db
