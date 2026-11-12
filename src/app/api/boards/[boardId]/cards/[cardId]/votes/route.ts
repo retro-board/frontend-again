@@ -1,6 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+import { toggleBoardVote } from "~/lib/boards/toggle-vote";
 import { reportError } from "~/lib/bugfixes";
 import { db } from "~/lib/db";
 import { broadcastBoardEvent } from "~/lib/realtime/broadcast";
@@ -54,154 +55,23 @@ export async function POST(
 			isAnonymous = true;
 		}
 
-		// Get board details
-		const { data: board } = await db
-			.from("boards")
-			.select("votes_per_user, phase")
-			.eq("id", resolvedParams.boardId)
-			.single();
-
-		if (!board) {
-			return NextResponse.json({ error: "Board not found" }, { status: 404 });
-		}
-
-		// Check if in voting phase
-		if (board.phase !== "voting") {
+		const result = await toggleBoardVote(
+			resolvedParams.boardId,
+			resolvedParams.cardId,
+			voterId,
+			isAnonymous,
+		);
+		if ("error" in result)
 			return NextResponse.json(
-				{ error: "Voting is only allowed during the voting phase" },
-				{ status: 400 },
+				{ error: result.error },
+				{ status: result.status },
 			);
-		}
-
-		// Check if card is in an action column (cannot vote on action items)
-		const { data: card } = await db
-			.from("cards")
-			.select(`
-				id,
-				column_id,
-				columns!inner(
-					id,
-					is_action
-				)
-			`)
-			.eq("id", resolvedParams.cardId)
-			.single();
-
-		if (!card) {
-			return NextResponse.json({ error: "Card not found" }, { status: 404 });
-		}
-
-		// Check if the column is an action column
-		const cardData = card as { columns?: { is_action?: boolean } };
-		if (cardData.columns?.is_action) {
-			return NextResponse.json(
-				{ error: "Cannot vote on action items" },
-				{ status: 400 },
-			);
-		}
-
-		// Check existing vote
-		const existingVoteQuery = db
-			.from("card_votes")
-			.select("id")
-			.eq("card_id", resolvedParams.cardId);
-
-		if (isAnonymous) {
-			existingVoteQuery.eq("anonymous_user_id", voterId);
-		} else {
-			existingVoteQuery.eq("user_id", voterId);
-		}
-
-		const { data: existingVote } = await existingVoteQuery.maybeSingle();
-
-		if (existingVote) {
-			// Remove vote
-			const { error } = await db
-				.from("card_votes")
-				.delete()
-				.eq("id", existingVote.id);
-
-			if (error) {
-				reportError("Error removing vote:", error);
-				return NextResponse.json({ error: error.message }, { status: 500 });
-			}
-
-			// Broadcast vote removed event
-			await broadcastBoardEvent(resolvedParams.boardId, "vote_removed", {
-				cardId: resolvedParams.cardId,
-			});
-
-			return NextResponse.json({ voted: false });
-		}
-		// Count user's votes for this board
-		const votesCountQuery = db
-			.from("card_votes")
-			.select("card_id")
-			.in(
-				"card_id",
-				await db
-					.from("cards")
-					.select("id")
-					.in(
-						"column_id",
-						await db
-							.from("columns")
-							.select("id")
-							.eq("board_id", resolvedParams.boardId)
-							.then((res) => res.data?.map((col) => col.id) || []),
-					)
-					.then((res) => res.data?.map((card) => card.id) || []),
-			);
-
-		if (isAnonymous) {
-			votesCountQuery.eq("anonymous_user_id", voterId);
-		} else {
-			votesCountQuery.eq("user_id", voterId);
-		}
-
-		const { data: userVotes } = await votesCountQuery;
-		const voteCount = userVotes?.length || 0;
-
-		if (voteCount >= board.votes_per_user) {
-			return NextResponse.json(
-				{
-					error: `You can only vote on ${board.votes_per_user} items`,
-				},
-				{ status: 400 },
-			);
-		}
-
-		// Add vote
-		const voteData: {
-			card_id: string;
-			user_id?: string;
-			anonymous_user_id?: string;
-		} = {
-			card_id: resolvedParams.cardId,
-		};
-
-		if (isAnonymous) {
-			voteData.anonymous_user_id = voterId;
-		} else {
-			voteData.user_id = voterId;
-		}
-
-		const { error } = await db.from("card_votes").insert(voteData);
-
-		if (error) {
-			reportError("Error adding vote:", error);
-			return NextResponse.json({ error: error.message }, { status: 500 });
-		}
-
-		// Broadcast vote added event
-		await broadcastBoardEvent(resolvedParams.boardId, "vote_added", {
-			cardId: resolvedParams.cardId,
-		});
-
-		return NextResponse.json({
-			voted: true,
-			remainingVotes: board.votes_per_user - voteCount - 1,
-		});
+		await broadcastBoardEvent(
+			resolvedParams.boardId,
+			result.voted ? "vote_added" : "vote_removed",
+			{ cardId: resolvedParams.cardId },
+		);
+		return NextResponse.json(result);
 	} catch (error) {
 		reportError("Vote error:", error);
 		return NextResponse.json(

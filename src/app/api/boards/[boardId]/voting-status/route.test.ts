@@ -1,4 +1,5 @@
 import { cookies } from "next/headers";
+import { authorizeChannel } from "~/lib/realtime/authorize";
 import { broadcastBoardEvent } from "~/lib/realtime/broadcast";
 import {
 	createMockRequest,
@@ -11,6 +12,7 @@ import {
 import { GET, POST } from "./route";
 
 jest.mock("@clerk/nextjs/server");
+jest.mock("~/lib/realtime/authorize");
 jest.mock("next/headers");
 jest.mock("~/lib/db", () => ({
 	db: {
@@ -24,6 +26,9 @@ describe("/api/boards/[boardId]/voting-status", () => {
 
 	beforeEach(() => {
 		jest.clearAllMocks();
+		(authorizeChannel as jest.Mock).mockResolvedValue({
+			user: { id: "member" },
+		});
 		databaseMocks = setupDatabaseMocks();
 		(cookies as unknown as jest.Mock).mockResolvedValue({
 			get: jest.fn(() => ({ value: undefined })),
@@ -431,4 +436,16 @@ describe("/api/boards/[boardId]/voting-status", () => {
 			expect(data.error).toBe("Unauthorized");
 		});
 	});
+});
+
+it("refuses status access to nonparticipants", async () => {
+	setupAuthenticatedUser();
+	(authorizeChannel as jest.Mock).mockResolvedValue(null);
+	expect(
+		(
+			await GET(createMockRequest("http://localhost"), {
+				params: Promise.resolve({ boardId: "board" }),
+			})
+		).status,
+	).toBe(403);
 });
