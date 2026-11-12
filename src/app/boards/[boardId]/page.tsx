@@ -18,6 +18,7 @@ import { BoardSettings } from "~/components/boards/BoardSettings";
 import { BoardTimer } from "~/components/boards/BoardTimer";
 import { Card as CardComponent } from "~/components/boards/Card";
 import { SprintItems } from "~/components/boards/SprintItems";
+import { TracklinesActions } from "~/components/boards/TracklinesActions";
 import { Button } from "~/components/ui/button";
 import {
 	Dialog,
@@ -669,7 +670,8 @@ export default function BoardPage() {
 						)}
 					</div>
 					{/* pinned to the bottom of the sidebar; hidden when the board has no sprint tickets */}
-					<div className="shrink-0 border-t p-4 empty:hidden">
+					<div className="shrink-0 space-y-4 border-t p-4 empty:hidden">
+						<TracklinesActions boardId={boardId} isOwner={!!isOwner} />
 						<SprintItems
 							boardId={boardId}
 							linkable={board.phase === "creation"}
