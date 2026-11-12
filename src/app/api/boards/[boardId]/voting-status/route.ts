@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { reportError } from "~/lib/bugfixes";
 import { db } from "~/lib/db";
+import { authorizeChannel } from "~/lib/realtime/authorize";
 import { broadcastBoardEvent } from "~/lib/realtime/broadcast";
 
 export async function GET(
@@ -18,6 +19,9 @@ export async function GET(
 		if (!userId && !anonymousSessionId) {
 			return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 		}
+
+		if (!(await authorizeChannel(`board:${resolvedParams.boardId}`)))
+			return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
 		// Get board details
 		const { data: board } = await db
