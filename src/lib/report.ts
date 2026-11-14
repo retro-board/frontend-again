@@ -15,6 +15,11 @@ export async function reportServer(
 	}
 }
 
+// isRequestNoise: request errors that aren't the app's: a client that hung up mid-response, or a
+// stale tab (or a bot) posting a Server Action id this deployment doesn't have.
+export const isRequestNoise = (message: string) =>
+	message === "aborted" || message.startsWith("Failed to find Server Action");
+
 export type ClientReport = {
 	kind: string;
 	message: string;

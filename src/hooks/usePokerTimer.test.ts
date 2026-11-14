@@ -313,3 +313,24 @@ describe("usePokerTimer", () => {
 		});
 	});
 });
+
+describe("usePokerTimer re-sync (RB-10)", () => {
+	beforeEach(() => {
+		jest.useFakeTimers();
+		jest.setSystemTime(new Date("2024-01-01T12:00:00Z"));
+	});
+	afterEach(() => jest.useRealTimers());
+
+	it("doesn't restart an expired timer given the same deadline again", () => {
+		const onExpire = jest.fn();
+		const { result } = renderHook(() => usePokerTimer({ onExpire }));
+		const past = "2024-01-01T11:59:00Z";
+		act(() => result.current.startUntil(past));
+		expect(result.current.isActive).toBe(false);
+		act(() => result.current.startUntil(past));
+		expect(onExpire).toHaveBeenCalledTimes(1);
+		// a new deadline, or the same one after a stop, is a new timer
+		act(() => result.current.startUntil("2024-01-01T12:01:00Z"));
+		expect(result.current.isActive).toBe(true);
+	});
+});

@@ -207,6 +207,8 @@ export async function PATCH(
 		if (current_story_id !== undefined)
 			updateData.current_story_id = current_story_id;
 		if (reveal_votes !== undefined) updateData.reveal_votes = reveal_votes;
+		if (!Object.keys(updateData).length)
+			return NextResponse.json({ error: "Nothing to update" }, { status: 400 });
 
 		const { data: session, error } = await db
 			.from("poker_sessions")

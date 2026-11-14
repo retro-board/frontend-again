@@ -62,6 +62,14 @@ describe("PATCH /api/poker-sessions/[sessionId] result_method (RB-4)", () => {
 		});
 	});
 
+	it("rejects an update with nothing in it", async () => {
+		mockUser({ role: "facilitator" });
+		expect(await patch({})).toEqual({
+			data: { error: "Nothing to update" },
+			init: { status: 400 },
+		});
+	});
+
 	it("saves it for the facilitator", async () => {
 		mockUser({ role: "facilitator" });
 		const update = jest.fn().mockReturnValue({

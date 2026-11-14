@@ -14,9 +14,11 @@ export function usePokerTimer({
 	const [endsAt, setEndsAt] = useState<Date | null>(null);
 	const intervalRef = useRef<NodeJS.Timeout | null>(null);
 	const expiredRef = useRef(false);
+	const deadlineRef = useRef<number | null>(null);
 
 	// Start timer with duration in seconds
 	const start = useCallback((duration: number) => {
+		deadlineRef.current = null;
 		expiredRef.current = false;
 		setIsActive(true);
 		setTimeRemaining(duration);
@@ -26,6 +28,11 @@ export function usePokerTimer({
 	// Start timer with specific end time
 	const startUntil = useCallback((endTime: Date | string) => {
 		const end = typeof endTime === "string" ? new Date(endTime) : endTime;
+		// The same deadline again is the session state re-syncing, not a new timer. Restarting one
+		// that already expired would expire it again, and whoever syncs on isActive would restart
+		// it again: an endless render loop (React error #185).
+		if (deadlineRef.current === end.getTime()) return;
+		deadlineRef.current = end.getTime();
 		const now = new Date();
 		const remaining = Math.max(
 			0,
@@ -43,6 +50,7 @@ export function usePokerTimer({
 		setIsActive(false);
 		setTimeRemaining(0);
 		setEndsAt(null);
+		deadlineRef.current = null;
 		expiredRef.current = false;
 
 		if (intervalRef.current) {

@@ -5,4 +5,13 @@ import { error, loadConfigFromEnv, setDefaultConfig } from "bugfixes";
 // copy that reports always has the BUGFIXES_* credentials (without them it only logs locally).
 setDefaultConfig(loadConfigFromEnv());
 
-export { error as reportError };
+// The db layer's errors are plain { message, code } objects, which the SDK would print as
+// "[object Object]": they go as JSON instead.
+export const reportError = (...inputs: unknown[]) =>
+	error(
+		...inputs.map((input) =>
+			input && typeof input === "object" && !(input instanceof Error)
+				? JSON.stringify(input)
+				: input,
+		),
+	);

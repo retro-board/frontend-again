@@ -1,4 +1,4 @@
-import { reportServer } from "~/lib/report";
+import { isRequestNoise, reportServer } from "~/lib/report";
 
 // Next.js calls register once when the server starts. The Bugfixes SDK reads
 // BUGFIXES_AGENT_KEY / BUGFIXES_AGENT_SECRET / BUGFIXES_LOCAL_ONLY from the environment
@@ -6,6 +6,8 @@ import { reportServer } from "~/lib/report";
 export async function register() {
 	await import("~/lib/bugfixes"); // loads the Bugfixes config from env
 	if (process.env.NEXT_RUNTIME !== "nodejs") return;
+	// next build loads this too, with no database to sweep
+	if (process.env.NEXT_PHASE === "phase-production-build") return;
 	// at boot and hourly after, every user goes to ChewedFeed HQ as a customer
 	const { syncAllCustomers } = await import("~/lib/chewedfeed");
 	void syncAllCustomers();
@@ -19,6 +21,7 @@ export async function onRequestError(
 	context: { routePath?: string; routeType?: string },
 ) {
 	const e = err instanceof Error ? err : new Error(String(err));
+	if (isRequestNoise(e.message)) return;
 	const path = request.path.split(/[?#]/)[0]; // never the query
 	await reportServer(
 		`server ${context.routeType ?? "request"} error: ${e.message}`,

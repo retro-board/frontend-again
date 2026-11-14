@@ -1,4 +1,13 @@
-import { syncCustomer } from "./chewedfeed";
+import { getPool } from "~/lib/db";
+import { syncAllCustomers, syncCustomer } from "./chewedfeed";
+
+jest.mock("~/lib/db", () => ({ getPool: jest.fn() }));
+
+it("syncAllCustomers leaves the database alone when unconfigured", async () => {
+	delete process.env.CHEWEDFEED_API_URL;
+	await syncAllCustomers();
+	expect(getPool).not.toHaveBeenCalled();
+});
 
 describe("syncCustomer", () => {
 	const fetchMock = jest.fn(async () => ({ ok: true, status: 200 }));
