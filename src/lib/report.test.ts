@@ -1,4 +1,19 @@
-import { allowReport, cleanReport, resetReportLimits } from "./report";
+import {
+	allowReport,
+	cleanReport,
+	isRequestNoise,
+	resetReportLimits,
+} from "./report";
+
+describe("isRequestNoise", () => {
+	it("drops hung-up clients and unknown Server Actions, nothing else", () => {
+		expect(isRequestNoise("aborted")).toBe(true);
+		expect(
+			isRequestNoise("Failed to find Server Action. This request might be"),
+		).toBe(true);
+		expect(isRequestNoise("query aborted by the database")).toBe(false);
+	});
+});
 
 describe("cleanReport", () => {
 	it("returns null without a message", () => {

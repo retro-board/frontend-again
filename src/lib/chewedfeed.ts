@@ -35,6 +35,8 @@ export async function syncCustomer(customer: Customer): Promise<void> {
 /** Send every user: a backfill, and a catch-up for the routes that create users themselves. */
 // ponytail: one POST per user, one at a time; a batch endpoint in ChewedFeed if users reach the thousands
 export async function syncAllCustomers(): Promise<void> {
+	if (!process.env.CHEWEDFEED_API_URL || !process.env.CHEWEDFEED_ENQUIRY_KEY)
+		return;
 	try {
 		const { rows } = await getPool().query<Customer>(
 			`SELECT clerk_id AS "clerkId", email, name FROM users`,
