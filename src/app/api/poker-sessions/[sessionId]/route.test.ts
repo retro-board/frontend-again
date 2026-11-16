@@ -62,12 +62,13 @@ describe("PATCH /api/poker-sessions/[sessionId] result_method (RB-4)", () => {
 		});
 	});
 
-	it("rejects an update with nothing in it", async () => {
+	it("rejects an update with nothing in it, before touching the db (RB-35)", async () => {
 		mockUser({ role: "facilitator" });
-		expect(await patch({})).toEqual({
+		expect(await patch({ unknown: 1 })).toEqual({
 			data: { error: "Nothing to update" },
 			init: { status: 400 },
 		});
+		expect(mockFrom).not.toHaveBeenCalled();
 	});
 
 	it("saves it for the facilitator", async () => {

@@ -6,12 +6,29 @@ import {
 } from "./report";
 
 describe("isRequestNoise", () => {
+	const err = (message: string, extra: object = {}) =>
+		Object.assign(new Error(message), extra);
+
 	it("drops hung-up clients and unknown Server Actions, nothing else", () => {
-		expect(isRequestNoise("aborted")).toBe(true);
+		expect(isRequestNoise(err("aborted"))).toBe(true);
 		expect(
-			isRequestNoise("Failed to find Server Action. This request might be"),
+			isRequestNoise(
+				err("Failed to find Server Action. This request might be"),
+			),
 		).toBe(true);
-		expect(isRequestNoise("query aborted by the database")).toBe(false);
+		expect(isRequestNoise(err("query aborted by the database"))).toBe(false);
+	});
+
+	it("drops other client-abort shapes (RB-34)", () => {
+		expect(
+			isRequestNoise(err("This operation was aborted", { name: "AbortError" })),
+		).toBe(true);
+		expect(isRequestNoise(err("socket hang up", { code: "ECONNRESET" }))).toBe(
+			true,
+		);
+		expect(
+			isRequestNoise(err("connect ECONNREFUSED", { code: "ECONNREFUSED" })),
+		).toBe(false);
 	});
 });
 

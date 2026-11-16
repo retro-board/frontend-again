@@ -292,7 +292,7 @@ export function usePokerVoting({
 		} else if (!sessionState.timer.isActive && timer.isActive) {
 			timer.stop();
 		}
-	}, [sessionState.timer, timer]);
+	}, [sessionState.timer, timer.isActive, timer.startUntil, timer.stop]);
 
 	return {
 		// State
