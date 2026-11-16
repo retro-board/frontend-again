@@ -7,12 +7,19 @@ import { getPool } from "~/lib/db";
 
 export type Customer = { clerkId: string; email: string; name?: string | null };
 
-/** Send one user to ChewedFeed. Best effort: failures are reported, never thrown. */
-export async function syncCustomer(customer: Customer): Promise<void> {
+// config: where to send customers, or null when ChewedFeed isn't set up.
+const config = () => {
 	const url = process.env.CHEWEDFEED_API_URL?.replace(/\/$/, "");
 	const key = process.env.CHEWEDFEED_ENQUIRY_KEY;
+	return url && key ? { url, key } : null;
+};
+
+/** Send one user to ChewedFeed. Best effort: failures are reported, never thrown. */
+export async function syncCustomer(customer: Customer): Promise<void> {
+	const cf = config();
 	// routes store "" when Clerk has no address; ChewedFeed needs one
-	if (!url || !key || !customer.email?.includes("@")) return;
+	if (!cf || !customer.email?.includes("@")) return;
+	const { url, key } = cf;
 	try {
 		const response = await fetch(`${url}/api/product-customers/sync`, {
 			method: "POST",
@@ -35,8 +42,7 @@ export async function syncCustomer(customer: Customer): Promise<void> {
 /** Send every user: a backfill, and a catch-up for the routes that create users themselves. */
 // ponytail: one POST per user, one at a time; a batch endpoint in ChewedFeed if users reach the thousands
 export async function syncAllCustomers(): Promise<void> {
-	if (!process.env.CHEWEDFEED_API_URL || !process.env.CHEWEDFEED_ENQUIRY_KEY)
-		return;
+	if (!config()) return;
 	try {
 		const { rows } = await getPool().query<Customer>(
 			`SELECT clerk_id AS "clerkId", email, name FROM users`,

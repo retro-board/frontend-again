@@ -3,25 +3,29 @@ import { syncAllCustomers, syncCustomer } from "./chewedfeed";
 
 jest.mock("~/lib/db", () => ({ getPool: jest.fn() }));
 
-it("syncAllCustomers leaves the database alone when unconfigured", async () => {
-	delete process.env.CHEWEDFEED_API_URL;
+const fetchMock = jest.fn(async () => ({ ok: true, status: 200 }));
+const saved = { ...process.env };
+beforeEach(() => {
+	global.fetch = fetchMock as unknown as typeof fetch;
+	process.env.CHEWEDFEED_API_URL = "https://hq.test/";
+	process.env.CHEWEDFEED_ENQUIRY_KEY = "ek";
+});
+afterEach(() => {
+	process.env = { ...saved };
+	fetchMock.mockClear();
+	(getPool as jest.Mock).mockClear();
+});
+
+it.each([
+	"CHEWEDFEED_API_URL",
+	"CHEWEDFEED_ENQUIRY_KEY",
+])("syncAllCustomers leaves the database alone without %s", async (name) => {
+	delete process.env[name];
 	await syncAllCustomers();
 	expect(getPool).not.toHaveBeenCalled();
 });
 
 describe("syncCustomer", () => {
-	const fetchMock = jest.fn(async () => ({ ok: true, status: 200 }));
-	const saved = { ...process.env };
-	beforeEach(() => {
-		global.fetch = fetchMock as unknown as typeof fetch;
-		process.env.CHEWEDFEED_API_URL = "https://hq.test/";
-		process.env.CHEWEDFEED_ENQUIRY_KEY = "ek";
-	});
-	afterEach(() => {
-		process.env = { ...saved };
-		fetchMock.mockClear();
-	});
-
 	it("sends a free customer to the standard hook", async () => {
 		await syncCustomer({ clerkId: "user_1", email: "a@b.c", name: "Ann" });
 		const [url, init] = fetchMock.mock.calls[0] as unknown as [

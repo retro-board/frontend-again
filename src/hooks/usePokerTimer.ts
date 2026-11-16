@@ -15,6 +15,11 @@ export function usePokerTimer({
 	const intervalRef = useRef<NodeJS.Timeout | null>(null);
 	const expiredRef = useRef(false);
 	const deadlineRef = useRef<number | null>(null);
+	// Callers pass onExpire inline; keeping it in a ref stops each re-render rebuilding the interval (RB-32).
+	const onExpireRef = useRef(onExpire);
+	useEffect(() => {
+		onExpireRef.current = onExpire;
+	}, [onExpire]);
 
 	// Start timer with duration in seconds
 	const start = useCallback((duration: number) => {
@@ -50,7 +55,8 @@ export function usePokerTimer({
 		setIsActive(false);
 		setTimeRemaining(0);
 		setEndsAt(null);
-		deadlineRef.current = null;
+		// deadlineRef is kept: the session state can still hold this deadline until the stop
+		// reaches the server, and re-syncing it must not restart the timer (RB-30).
 		expiredRef.current = false;
 
 		if (intervalRef.current) {
@@ -85,7 +91,7 @@ export function usePokerTimer({
 					setIsActive(false);
 				}
 
-				onExpire?.();
+				onExpireRef.current?.();
 
 				if (intervalRef.current) {
 					clearInterval(intervalRef.current);
@@ -106,7 +112,7 @@ export function usePokerTimer({
 				intervalRef.current = null;
 			}
 		};
-	}, [isActive, endsAt, onExpire, autoStop]);
+	}, [isActive, endsAt, autoStop]);
 
 	// Format time for display
 	const formatTime = useCallback((seconds: number): string => {

@@ -329,8 +329,39 @@ describe("usePokerTimer re-sync (RB-10)", () => {
 		expect(result.current.isActive).toBe(false);
 		act(() => result.current.startUntil(past));
 		expect(onExpire).toHaveBeenCalledTimes(1);
-		// a new deadline, or the same one after a stop, is a new timer
+		// a new deadline is a new timer
 		act(() => result.current.startUntil("2024-01-01T12:01:00Z"));
 		expect(result.current.isActive).toBe(true);
+	});
+
+	it("doesn't restart after stop() when the same deadline re-syncs (RB-30)", () => {
+		const onExpire = jest.fn();
+		const { result } = renderHook(() => usePokerTimer({ onExpire }));
+		const deadline = "2024-01-01T12:01:00Z";
+		act(() => result.current.startUntil(deadline));
+		act(() => result.current.stop());
+		act(() => result.current.startUntil(deadline));
+		expect(result.current.isActive).toBe(false);
+		act(() => jest.advanceTimersByTime(120_000));
+		expect(onExpire).not.toHaveBeenCalled();
+	});
+
+	it("keeps one interval across re-renders with a new inline onExpire (RB-32)", () => {
+		const setIntervalSpy = jest.spyOn(global, "setInterval");
+		const first = jest.fn();
+		const latest = jest.fn();
+		const { result, rerender } = renderHook(
+			({ onExpire }) => usePokerTimer({ onExpire }),
+			{ initialProps: { onExpire: first } },
+		);
+		act(() => result.current.startUntil("2024-01-01T12:00:05Z"));
+		const intervals = setIntervalSpy.mock.calls.length;
+		rerender({ onExpire: jest.fn() });
+		rerender({ onExpire: latest });
+		expect(setIntervalSpy.mock.calls.length).toBe(intervals);
+		act(() => jest.advanceTimersByTime(6000));
+		expect(first).not.toHaveBeenCalled();
+		expect(latest).toHaveBeenCalledTimes(1);
+		setIntervalSpy.mockRestore();
 	});
 });

@@ -6,12 +6,21 @@ import { error, loadConfigFromEnv, setDefaultConfig } from "bugfixes";
 setDefaultConfig(loadConfigFromEnv());
 
 // The db layer's errors are plain { message, code } objects, which the SDK would print as
-// "[object Object]": they go as JSON instead.
+// "[object Object]": they go as JSON instead. Circular or BigInt values can't be JSON, and this
+// runs in catch blocks, so it must not throw (RB-33).
+const asText = (input: object) => {
+	try {
+		return JSON.stringify(input);
+	} catch {
+		return String(input);
+	}
+};
+
 export const reportError = (...inputs: unknown[]) =>
 	error(
 		...inputs.map((input) =>
 			input && typeof input === "object" && !(input instanceof Error)
-				? JSON.stringify(input)
+				? asText(input)
 				: input,
 		),
 	);

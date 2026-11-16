@@ -155,6 +155,12 @@ export async function PATCH(
 		const body = await request.json();
 		const { current_story_id, reveal_votes, result_method } = body;
 		if (
+			current_story_id === undefined &&
+			reveal_votes === undefined &&
+			result_method === undefined
+		)
+			return NextResponse.json({ error: "Nothing to update" }, { status: 400 });
+		if (
 			result_method !== undefined &&
 			!RESULT_METHODS.includes(result_method)
 		) {
@@ -207,8 +213,6 @@ export async function PATCH(
 		if (current_story_id !== undefined)
 			updateData.current_story_id = current_story_id;
 		if (reveal_votes !== undefined) updateData.reveal_votes = reveal_votes;
-		if (!Object.keys(updateData).length)
-			return NextResponse.json({ error: "Nothing to update" }, { status: 400 });
 
 		const { data: session, error } = await db
 			.from("poker_sessions")
