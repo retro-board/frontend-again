@@ -17,12 +17,14 @@ export async function reportServer(
 
 // isRequestNoise: request errors that aren't the app's: a client that hung up mid-response (Node
 // and fetch word it several ways), or a stale tab (or a bot) posting a Server Action id this
-// deployment doesn't have.
+// deployment doesn't have, or a body that isn't the multipart form it claims to be (bots posting
+// junk to /RSC/*.txt, RB-38/RB-39).
 export const isRequestNoise = (e: Error & { code?: unknown }) =>
 	e.message === "aborted" ||
 	e.name === "AbortError" ||
 	e.code === "ECONNRESET" ||
-	e.message.startsWith("Failed to find Server Action");
+	e.message.startsWith("Failed to find Server Action") ||
+	e.message.includes("while parsing FormData");
 
 export type ClientReport = {
 	kind: string;
