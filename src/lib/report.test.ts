@@ -19,6 +19,12 @@ describe("isRequestNoise", () => {
 		expect(isRequestNoise(err("query aborted by the database"))).toBe(false);
 	});
 
+	it("drops malformed multipart bodies (RB-38, RB-39)", () => {
+		expect(
+			isRequestNoise(err("missing final boundary while parsing FormData")),
+		).toBe(true);
+	});
+
 	it("drops other client-abort shapes (RB-34)", () => {
 		expect(
 			isRequestNoise(err("This operation was aborted", { name: "AbortError" })),
